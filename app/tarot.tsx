@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,8 +31,29 @@ export default function TarotScreen() {
   // User's archetype (hardcoded for now, can be dynamic later)
   const archetype = 'Quiet Strategist';
 
-  const [drawnCards, setDrawnCards] = useState<DrawnCard[]>([]);
-  const [revealedIndex, setRevealedIndex] = useState(0);
+  // Restore today's drawn cards from persisted state
+  const todayCards = engagement?.todayTarotCards || [];
+  const initialDrawn: DrawnCard[] = todayCards.map((c) => ({
+    cardId: c.cardId,
+    reversed: c.reversed,
+    position: c.position,
+  }));
+
+  const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn);
+  const [revealedIndex, setRevealedIndex] = useState(initialDrawn.length > 0 ? initialDrawn.length - 1 : 0);
+
+  useEffect(() => {
+    // Re-sync if engagement loads after mount
+    if (todayCards.length > 0 && drawnCards.length === 0) {
+      const restored = todayCards.map((c) => ({
+        cardId: c.cardId,
+        reversed: c.reversed,
+        position: c.position,
+      }));
+      setDrawnCards(restored);
+      setRevealedIndex(restored.length - 1);
+    }
+  }, [engagement?.todayTarotCards]);
 
   const canDraw = engagement?.canDrawTarot?.(isPremium) ?? true;
   const drawsRemaining = engagement?.getTarotDrawsRemaining?.(isPremium) ?? (isPremium ? 3 : 1);

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
-import { Star, Heart, Users, Hand, Lock } from 'lucide-react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { Star, Heart, Users, Hand } from 'lucide-react-native';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
 
@@ -13,7 +13,6 @@ const features = [
     icon: Star,
     title: 'Full Soulprint',
     description: 'Your complete emotional blueprint.',
-    price: '$9',
     gradient: ['#E8DDFB', '#F8DCCB'] as const,
   },
   {
@@ -21,7 +20,6 @@ const features = [
     icon: Heart,
     title: 'Love Pattern',
     description: 'How you seek safety and closeness.',
-    price: '$7',
     gradient: ['#F4C7D2', '#E8DDFB'] as const,
   },
   {
@@ -29,7 +27,6 @@ const features = [
     icon: Users,
     title: 'Compatibility',
     description: 'Decode chemistry with someone.',
-    price: '$9',
     gradient: ['#DDEDDC', '#DFF2EC'] as const,
   },
   {
@@ -37,9 +34,8 @@ const features = [
     icon: Hand,
     title: 'Palm Reading',
     description: 'Coming soon, privacy-first.',
-    price: 'Soon',
     gradient: ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)'] as const,
-    locked: true,
+    soon: true,
   },
 ];
 
@@ -57,7 +53,7 @@ export default function DecodeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerLabel}>Explore</Text>
-            <Text style={styles.headerTitle}>Decode</Text>
+            <Text style={styles.headerTitle}>Readings</Text>
           </View>
           <View style={styles.headerAvatar}>
             <Text style={styles.headerAvatarText}>G</Text>
@@ -68,9 +64,7 @@ export default function DecodeScreen() {
       <Animated.View entering={FadeInUp.duration(500).delay(50)}>
         <Text style={styles.title}>What do you want to understand next?</Text>
         <Text style={styles.description}>
-          {isPremium
-            ? 'All readings are unlocked. Choose what feels most alive right now.'
-            : 'Unlock deeper readings when a question keeps returning.'}
+          Readings that meet you where you are. Tap what feels alive right now.
         </Text>
       </Animated.View>
 
@@ -89,7 +83,7 @@ export default function DecodeScreen() {
                 { color: isPremium ? '#16A7A0' : '#7A63BD' },
               ]}
             >
-              {isPremium ? 'Unlocked' : 'Premium'}
+              {isPremium ? 'Unlocked' : 'Free'}
             </Text>
           </View>
         </View>
@@ -98,14 +92,13 @@ export default function DecodeScreen() {
       <View style={styles.featuresList}>
         {features.map((feature, index) => {
           const Icon = feature.icon;
-          const isLocked = feature.locked || (!isPremium && feature.id !== 'soulprint');
 
-          if (feature.locked) {
+          if (feature.soon) {
             return (
               <Animated.View
                 key={feature.id}
                 entering={FadeInUp.duration(500).delay(150 + index * 80)}
-                style={styles.lockedFeature}
+                style={styles.soonFeature}
               >
                 <LinearGradient
                   colors={feature.gradient}
@@ -113,7 +106,7 @@ export default function DecodeScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.featureIconBg}
                 >
-                  <Text style={styles.featureIconText}>🔒</Text>
+                  <Hand size={20} color={theme.colors.muted} />
                 </LinearGradient>
                 <View style={styles.featureText}>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
@@ -122,37 +115,6 @@ export default function DecodeScreen() {
                 <View style={styles.soonBadge}>
                   <Text style={styles.soonBadgeText}>Soon</Text>
                 </View>
-              </Animated.View>
-            );
-          }
-
-          if (isLocked) {
-            return (
-              <Animated.View
-                key={feature.id}
-                entering={FadeInUp.duration(500).delay(150 + index * 80)}
-              >
-                <TouchableOpacity
-                  onPress={() => router.push('/pricing')}
-                  activeOpacity={0.85}
-                  style={styles.lockedFeature}
-                >
-                  <LinearGradient
-                    colors={feature.gradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.featureIconBg}
-                  >
-                    <Lock size={18} color="#7A63BD" />
-                  </LinearGradient>
-                  <View style={styles.featureText}>
-                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureDesc}>{feature.description}</Text>
-                  </View>
-                  <View style={styles.priceBadge}>
-                    <Text style={styles.priceBadgeText}>{feature.price}</Text>
-                  </View>
-                </TouchableOpacity>
               </Animated.View>
             );
           }
@@ -179,7 +141,7 @@ export default function DecodeScreen() {
                   <Text style={styles.featureTitle}>{feature.title}</Text>
                   <Text style={styles.featureDesc}>{feature.description}</Text>
                 </View>
-                <Text style={styles.openText}>Open</Text>
+                <Text style={styles.openText}>Open →</Text>
               </TouchableOpacity>
             </Animated.View>
           );
@@ -188,18 +150,8 @@ export default function DecodeScreen() {
 
       {!isPremium && (
         <Animated.View entering={FadeInUp.duration(500).delay(500)}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.push('/pricing')}
-          >
-            <LinearGradient
-              colors={theme.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.unlockBtn}
-            >
-              <Text style={styles.unlockBtnText}>✦ Unlock all readings</Text>
-            </LinearGradient>
+          <TouchableOpacity onPress={() => router.push('/pricing')} activeOpacity={0.85}>
+            <Text style={styles.upgradeLink}>Upgrade for weekly readings →</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -213,7 +165,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',
@@ -277,11 +229,11 @@ const styles = StyleSheet.create({
     gap: 12,
     ...theme.shadows.warmSm,
   },
-  lockedFeature: {
+  soonFeature: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.15)',
-    backgroundColor: 'rgba(232,221,251,0.5)',
+    borderColor: 'rgba(31,33,48,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.5)',
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,20 +247,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureIconText: { fontSize: 18 },
   featureText: { flex: 1 },
   featureTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   featureDesc: { fontSize: 12, color: theme.colors.muted, lineHeight: 18 },
   openText: { fontSize: 12, fontWeight: '800', color: '#16A7A0' },
-  priceBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.52)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.18)',
-  },
-  priceBadgeText: { fontSize: 11, fontWeight: '700', color: '#7A63BD' },
   soonBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -316,13 +258,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.52)',
   },
   soonBadgeText: { fontSize: 11, fontWeight: '700', color: theme.colors.muted },
-  unlockBtn: {
-    width: '100%',
-    borderRadius: 24,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 16,
-    ...theme.shadows.primaryGlow,
+  upgradeLink: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#8B72CF',
+    textAlign: 'center',
+    paddingVertical: 16,
+    marginTop: 8,
   },
-  unlockBtnText: { fontSize: 14, fontWeight: '500', color: '#FFFFFF' },
 });

@@ -5,10 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeInUp,
   FadeIn,
-  FadeOut,
   FadeOutUp,
-  SlideInRight,
-  SlideOutLeft,
   ZoomIn,
   Layout,
   Easing,
@@ -52,8 +49,8 @@ export default function PricingScreen() {
         entering={FadeInUp.duration(500)}
         style={styles.center}
       >
-        <Text style={styles.title}>Choose your journey</Text>
-        <Text style={styles.subtitle}>Go deeper into your emotional blueprint</Text>
+        <Text style={styles.title}>Go deeper</Text>
+        <Text style={styles.subtitle}>Weekly readings, relationship tools, and your full year ahead.</Text>
       </Animated.View>
 
       {/* Toggle — flattened structure, text sits directly on the gradient or bg */}
@@ -171,14 +168,14 @@ export default function PricingScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.ctaButton}
           >
-            <Text style={styles.ctaText}>Start my journey</Text>
+            <Text style={styles.ctaText}>Go deeper</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(300).duration(500)}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.secondaryCta}>Continue with free snapshot</Text>
+          <Text style={styles.secondaryCta}>Stay with my free reading</Text>
         </TouchableOpacity>
       </Animated.View>
     </ScrollView>

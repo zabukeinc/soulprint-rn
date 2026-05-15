@@ -128,33 +128,14 @@ export default function FirstMirrorScreen() {
         </View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(500).duration(500)} style={styles.deepDiveCard}>
-        <Text style={styles.deepDiveTitle}>
-          There is more beneath this pattern.
+      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
+        <Text style={styles.softCta}>
+          Your full blueprint lives in the Soulprint tab —
+          go deeper whenever you're ready.
         </Text>
-        <Text style={styles.deepDiveText}>
-          Your full Soulprint explores the parts of you that may need more language: love pattern, shadow self, career energy, growth direction, and your 12-month theme.
-        </Text>
-        <Animated.View entering={FadeInUp.delay(600).duration(500)}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.push('/pricing')}
-          >
-            <LinearGradient
-              colors={theme.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.deepDiveButton}
-            >
-              <Text style={styles.deepDiveButtonText}>
-                Deep dive into your Soulprint →
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(700).duration(500)}>
+      <Animated.View entering={FadeInUp.delay(600).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => router.push('/(tabs)/today')}
@@ -348,24 +329,13 @@ const styles = StyleSheet.create({
   },
   feedbackBtnText: { fontSize: 10, fontWeight: '500', color: theme.colors.muted },
   feedbackBtnTextActive: { color: '#FFFFFF' },
-  deepDiveCard: {
-    borderRadius: 20,
-    padding: 16,
+  softCta: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    marginTop: 8,
     marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
   },
-  deepDiveTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 4 },
-  deepDiveText: { fontSize: 11, color: theme.colors.muted, lineHeight: 18, marginBottom: 12 },
-  deepDiveButton: {
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 24,
-    alignItems: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  deepDiveButtonText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   mainButton: {
     width: '100%',
     minHeight: 48,

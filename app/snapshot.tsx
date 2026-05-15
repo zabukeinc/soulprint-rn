@@ -104,7 +104,7 @@ export default function SnapshotScreen() {
       <Animated.View entering={FadeInUp.delay(600).duration(400).easing(Easing.out(Easing.cubic))}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push('/pricing')}
+          onPress={() => router.push('/(tabs)/today')}
         >
           <LinearGradient
             colors={theme.gradients.primary}
@@ -112,20 +112,15 @@ export default function SnapshotScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.button}
           >
-            <Text style={styles.buttonText}>Deep dive into your Soulprint →</Text>
+            <Text style={styles.buttonText}>Back to Today</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(700).duration(400).easing(Easing.out(Easing.cubic))}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/(tabs)/today')}
-        >
-          <View style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Continue to Today</Text>
-          </View>
-        </TouchableOpacity>
+        <Text style={styles.softCta}>
+          Your free reading is always here. Go deeper anytime.
+        </Text>
       </Animated.View>
     </ScrollView>
   );
@@ -302,16 +297,11 @@ const styles = StyleSheet.create({
     ...theme.shadows.primaryGlow,
   },
   buttonText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-  secondaryButton: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+  softCta: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
   },
-  secondaryButtonText: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
 });

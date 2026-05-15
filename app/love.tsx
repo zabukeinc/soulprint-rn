@@ -6,7 +6,6 @@ import Animated, {
   FadeIn,
   FadeInUp,
   ZoomIn,
-  Layout,
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
@@ -41,7 +40,6 @@ const insights = [
 
 export default function LoveReadingScreen() {
   const router = useRouter();
-  const [revealedIndex, setRevealedIndex] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   return (
@@ -86,48 +84,25 @@ export default function LoveReadingScreen() {
       </Animated.View>
 
       <View style={styles.insights}>
-        {insights.map((insight, i) => {
-          const isRevealed = i <= revealedIndex;
-          return (
-            <Animated.View
-              key={insight.title}
-              entering={FadeInUp.delay(400 + i * 100).duration(500).easing(Easing.out(Easing.cubic))}
-              layout={Layout.duration(300)}
-              style={{ opacity: isRevealed ? 1 : 0.5 }}
-            >
-              {isRevealed ? (
-                <Animated.View
-                  entering={FadeInUp.duration(500)}
-                  key={`${insight.title}-revealed`}
-                >
-                  <View style={styles.insightCard}>
-                    <View style={styles.insightHeader}>
-                      <Text style={styles.insightEmoji}>{insight.emoji}</Text>
-                      <Text style={styles.insightTitle}>{insight.title}</Text>
-                    </View>
-                    <Text style={styles.insightText}>{insight.content}</Text>
-                  </View>
-                </Animated.View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setRevealedIndex(i)}
-                  style={styles.lockedInsight}
-                >
-                  <View style={styles.insightHeader}>
-                    <Text style={styles.insightEmoji}>🔒</Text>
-                    <Text style={styles.lockedTitle}>{insight.title}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            </Animated.View>
-          );
-        })}
+        {insights.map((insight, i) => (
+          <Animated.View
+            key={insight.title}
+            entering={FadeInUp.delay(400 + i * 100).duration(500).easing(Easing.out(Easing.cubic))}
+          >
+            <View style={styles.insightCard}>
+              <View style={styles.insightHeader}>
+                <Text style={styles.insightEmoji}>{insight.emoji}</Text>
+                <Text style={styles.insightTitle}>{insight.title}</Text>
+              </View>
+              <Text style={styles.insightText}>{insight.content}</Text>
+            </View>
+          </Animated.View>
+        ))}
       </View>
 
-      {revealedIndex >= insights.length - 1 && (
+      {(
         <Animated.View
           entering={FadeInUp.duration(500)}
-          layout={Layout.duration(300)}
           style={styles.feedbackCard}
         >
           <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
@@ -258,13 +233,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
-  },
-  lockedInsight: {
-    borderRadius: 24,
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
   },
   insightHeader: {
     flexDirection: 'row',

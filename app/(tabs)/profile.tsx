@@ -154,6 +154,18 @@ export default function ProfileScreen() {
         <View style={styles.divider} />
 
         <Animated.View entering={FadeInUp.duration(500).delay(280)} style={styles.settingRow}>
+          <View>
+            <Text style={styles.settingTitle}>Privacy</Text>
+            <Text style={styles.settingDesc}>
+              Export or delete data
+            </Text>
+          </View>
+          <Text style={styles.settingArrow}>→</Text>
+        </Animated.View>
+
+        <View style={styles.divider} />
+
+        <Animated.View entering={FadeInUp.duration(500).delay(320)} style={styles.settingRow}>
           <TouchableOpacity
             style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
             onPress={() => router.push('/pricing')}
@@ -169,12 +181,10 @@ export default function ProfileScreen() {
 
         <View style={styles.divider} />
 
-        <Animated.View entering={FadeInUp.duration(500).delay(320)} style={styles.settingRow}>
+        <Animated.View entering={FadeInUp.duration(500).delay(360)} style={styles.settingRow}>
           <View>
-            <Text style={styles.settingTitle}>Privacy</Text>
-            <Text style={styles.settingDesc}>
-              Export or delete data
-            </Text>
+            <Text style={styles.settingTitle}>About Soulprint</Text>
+            <Text style={styles.settingDesc}>Version 1.0 · Built with care</Text>
           </View>
           <Text style={styles.settingArrow}>→</Text>
         </Animated.View>

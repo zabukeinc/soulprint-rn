@@ -6,6 +6,10 @@ import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'reac
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 import { useTier } from '@/src/context/TierContext';
+import { getTodaySignal, getTodayInsight, getTodayMove } from '@/src/lib/dailyContent';
+import VisualStreakTracker from '@/src/components/VisualStreakTracker';
+import PatternAlertCard from '@/src/components/PatternAlertCard';
+import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
 
 function getTimeGreeting() {
   const hour = new Date().getHours();
@@ -23,10 +27,6 @@ function getTimeEmoji() {
   return '🌙';
 }
 
-function getDayIndex() {
-  return (new Date().getDate() + new Date().getMonth()) % 7;
-}
-
 const moods = [
   { emoji: '💛', label: 'Steady' },
   { emoji: '🌊', label: 'Emotional' },
@@ -41,36 +41,6 @@ const moodResponses: Record<string, string> = {
   Numb: "Numbness is still a signal. Your body may be asking for rest, not distraction.",
 };
 
-const dailySignals = [
-  { title: "Your mind wants clarity, but your heart needs emotional evidence.", sub: "A calm day for naming what you usually keep private." },
-  { title: "The thing you're avoiding mentioning is the thing that needs saying.", sub: "Directness serves you better than politeness today." },
-  { title: "You've been holding space for others. Today, hold some for yourself.", sub: "Your energy is a resource — check if you're running low." },
-  { title: "A small decision today carries more weight than you think.", sub: "Pay attention to the quiet pull, not the loud push." },
-  { title: "Your pattern of over-giving looks like kindness, but it's self-erasure.", sub: "Notice where you say yes when you mean maybe." },
-  { title: "Today rewards stillness more than action.", sub: "You don't have to respond to everything immediately." },
-  { title: "Someone's reaction to you isn't about you. It's about their pattern.", sub: "A good day to observe without absorbing." },
-];
-
-const dailyInsights = [
-  '"The pattern you keep avoiding addressing is the one running your decisions."',
-  '"You don\'t need more information. You need more honesty with yourself."',
-  '"Your comfort zone isn\'t safe — it\'s just familiar."',
-  '"The way you process silence says more about you than the way you process noise."',
-  '"What you\'re afraid to say is what someone needs to hear."',
-  '"Rest is not the opposite of productivity. It\'s the foundation."',
-  '"You keep waiting for permission that only you can give."',
-];
-
-const dailyMoves = [
-  { move: 'Say the thing before it becomes resentment.', label: 'Best Move' },
-  { move: 'Ask for what you need without apologizing.', label: 'Best Move' },
-  { move: 'Let one expectation go that isn\'t yours.', label: 'Best Move' },
-  { move: 'Name the feeling instead of analyzing it.', label: 'Best Move' },
-  { move: 'Choose one boundary and hold it gently.', label: 'Best Move' },
-  { move: 'Respond, don\'t react. The pause is the power.', label: 'Best Move' },
-  { move: 'Write down the thing you keep replaying.', label: 'Best Move' },
-];
-
 const journalPrompts = [
   'What do I need but avoid asking for?',
   'What pattern keeps showing up that I keep ignoring?',
@@ -80,6 +50,10 @@ const journalPrompts = [
   'What emotion have I been sitting on all week?',
   'What would the person I\'m becoming do right now?',
 ];
+
+function getDayIndex() {
+  return (new Date().getDate() + new Date().getMonth()) % 7;
+}
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -100,13 +74,12 @@ export default function TodayScreen() {
     if (engagement) engagement.checkInToday();
   }, []);
 
-  const signal = dailySignals[dayIdx];
-  const insight = dailyInsights[dayIdx];
-  const move = dailyMoves[dayIdx];
+  const signal = getTodaySignal();
+  const insight = getTodayInsight();
+  const move = getTodayMove();
   const prompt = journalPrompts[dayIdx];
   const streak = engagement?.streak || 0;
   const lastReflection = engagement?.journalEntries?.[0];
-  const reflectionsCount = engagement?.reflections || 0;
 
   const handleMoodSelect = (mood: string) => {
     setSelectedMood(mood);
@@ -117,16 +90,15 @@ export default function TodayScreen() {
     if (journalText.trim() && engagement) {
       engagement.addJournalEntry(journalText);
       setJournalSaved(true);
-      const newCount = engagement.reflections + 1;
-      if (newCount >= 3) {
-        setToastMessage('Reflection saved — you unlocked a deep reading!');
-      } else {
-        setToastMessage(`${3 - newCount} more reflection${3 - newCount !== 1 ? 's' : ''} to unlock your next reading`);
-      }
+      setToastMessage('Reflection saved.');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
   };
+
+  const consecutiveMood = engagement?.getConsecutiveMood?.() || null;
+  const weeklyStatus = engagement?.getWeeklyReadingStatus?.();
+  const showWeeklyCard = weeklyStatus?.isNewWeek && !engagement?.dismissedWeeklyReading;
 
   return (
     <ScrollView
@@ -212,6 +184,19 @@ export default function TodayScreen() {
         </Animated.View>
       )}
 
+      <VisualStreakTracker streak={streak} />
+
+      {consecutiveMood && (
+        <PatternAlertCard mood={consecutiveMood} />
+      )}
+
+      {showWeeklyCard && (
+        <WeeklyReadingCard
+          visible={true}
+          onDismiss={() => engagement?.dismissWeeklyReading?.()}
+        />
+      )}
+
       <Animated.View entering={FadeInUp.duration(500).delay(200)}>
         <LinearGradient
           colors={theme.gradients.hero}
@@ -286,20 +271,8 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      {streak > 1 && (
-        <Animated.View entering={FadeInUp.duration(500).delay(400)} style={styles.streakCard}>
-          <Text style={styles.streakCardEmoji}>🔥</Text>
-          <View style={styles.streakCardText}>
-            <Text style={styles.streakCardTitle}>{streak}-day reflection streak</Text>
-            <Text style={styles.streakCardSub}>
-              You're building something real. Keep going.
-            </Text>
-          </View>
-        </Animated.View>
-      )}
-
       {lastReflection && !expandedJournal && (
-        <Animated.View entering={FadeInUp.duration(500).delay(450)} style={styles.lastReflection}>
+        <Animated.View entering={FadeInUp.duration(500).delay(350)} style={styles.lastReflection}>
           <Text style={styles.lastReflectionLabel}>Last reflection</Text>
           <Text style={styles.lastReflectionText}>"{lastReflection.text}"</Text>
           <Text style={styles.lastReflectionDate}>{lastReflection.date}</Text>
@@ -307,10 +280,10 @@ export default function TodayScreen() {
       )}
 
       <View style={styles.insightSection}>
-        <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+        <Animated.View entering={FadeInUp.duration(500).delay(400)}>
           <Text style={styles.insightLabel}>One Insight For You</Text>
         </Animated.View>
-        <Animated.View entering={FadeInUp.duration(500).delay(550)}>
+        <Animated.View entering={FadeInUp.duration(500).delay(450)}>
           <View style={styles.insightCard}>
             <Text style={styles.insightText}>{insight}</Text>
             <Text style={styles.insightSub}>— for Aquarius Sun, Life Path 7</Text>
@@ -318,7 +291,7 @@ export default function TodayScreen() {
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+      <Animated.View entering={FadeInUp.duration(500).delay(500)}>
         <TouchableOpacity
           style={styles.journalCard}
           onPress={() => { if (!expandedJournal) setExpandedJournal(true); }}
@@ -340,12 +313,7 @@ export default function TodayScreen() {
           {journalSaved ? (
             <View style={styles.journalSaved}>
               <Text style={styles.journalSavedTitle}>✓ Saved</Text>
-              <Text style={styles.journalSavedSub}>
-                {engagement?.reflections >= 3
-                  ? "You've unlocked a deep reading!"
-                  : `${3 - reflectionsCount} more reflection${3 - reflectionsCount !== 1 ? 's' : ''} to unlock your next reading`
-                }
-              </Text>
+              <Text style={styles.journalSavedSub}>Your reflection is safe here.</Text>
             </View>
           ) : (
             <>
@@ -376,14 +344,14 @@ export default function TodayScreen() {
         </Animated.View>
       )}
 
-      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
+      <Animated.View entering={FadeInUp.duration(500).delay(550)}>
         <View style={styles.moveCard}>
-          <Text style={styles.moveLabel}>{move.label}</Text>
-          <Text style={styles.moveText}>{move.move}</Text>
+          <Text style={styles.moveLabel}>Best Move</Text>
+          <Text style={styles.moveText}>{move}</Text>
         </View>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
+      <Animated.View entering={FadeInUp.duration(500).delay(600)}>
         <TouchableOpacity
           style={styles.tarotLink}
           onPress={() => router.push('/tarot')}
@@ -403,6 +371,23 @@ export default function TodayScreen() {
             </Text>
           </View>
           <Text style={styles.tarotArrow}>→</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
+        <TouchableOpacity
+          style={styles.horoscopeLink}
+          onPress={() => router.push('/horoscope')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.horoscopeIcon}>
+            <Text style={styles.horoscopeIconText}>✦</Text>
+          </View>
+          <View style={styles.horoscopeText}>
+            <Text style={styles.horoscopeTitle}>Your Horoscope</Text>
+            <Text style={styles.horoscopeSub}>Daily stars + natal chart</Text>
+          </View>
+          <Text style={styles.horoscopeArrow}>→</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -625,21 +610,6 @@ const styles = StyleSheet.create({
   },
   energyLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.ink, marginBottom: 2 },
   energySub: { fontSize: 10, color: theme.colors.muted },
-  streakCard: {
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(247,216,117,0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(247,216,117,0.3)',
-  },
-  streakCardEmoji: { fontSize: 20 },
-  streakCardText: { flex: 1 },
-  streakCardTitle: { fontSize: 13, fontWeight: '500', color: theme.colors.ink },
-  streakCardSub: { fontSize: 11, color: theme.colors.muted },
   lastReflection: {
     borderRadius: 20,
     padding: 12,
@@ -764,6 +734,33 @@ const styles = StyleSheet.create({
   tarotTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
   tarotSub: { fontSize: 12, color: theme.colors.muted },
   tarotArrow: { fontSize: 16, color: theme.colors.muted },
+  horoscopeLink: {
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    marginBottom: 12,
+    ...theme.shadows.warmSm,
+  },
+  horoscopeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F7D875',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  horoscopeIconText: { fontSize: 18 },
+  horoscopeText: { flex: 1 },
+  horoscopeTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
+  horoscopeSub: { fontSize: 12, color: theme.colors.muted },
+  horoscopeArrow: { fontSize: 16, color: theme.colors.muted },
   soulprintLink: {
     borderRadius: 24,
     padding: 16,
