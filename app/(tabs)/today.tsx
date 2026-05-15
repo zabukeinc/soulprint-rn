@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'react-native-reanimated';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
+import { useTier } from '@/src/context/TierContext';
 
 function getTimeGreeting() {
   const hour = new Date().getHours();
@@ -83,6 +84,7 @@ const journalPrompts = [
 export default function TodayScreen() {
   const router = useRouter();
   const engagement = useEngagement();
+  const { isPremium } = useTier();
   const dayIdx = getDayIndex();
 
   const [selectedMood, setSelectedMood] = useState<string | null>(
@@ -379,6 +381,29 @@ export default function TodayScreen() {
           <Text style={styles.moveLabel}>{move.label}</Text>
           <Text style={styles.moveText}>{move.move}</Text>
         </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
+        <TouchableOpacity
+          style={styles.tarotLink}
+          onPress={() => router.push('/tarot')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.tarotIconBg}>
+            <Text style={styles.tarotIconText}>🃏</Text>
+          </View>
+          <View style={styles.tarotText}>
+            <Text style={styles.tarotTitle}>Daily Tarot</Text>
+            <Text style={styles.tarotSub}>
+              {engagement?.canDrawTarot?.(isPremium)
+                ? isPremium
+                  ? `3-card spread · ${engagement?.getTarotDrawsRemaining?.(isPremium)} left today`
+                  : '1 free card today'
+                : 'Come back tomorrow'}
+            </Text>
+          </View>
+          <Text style={styles.tarotArrow}>→</Text>
+        </TouchableOpacity>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.duration(500).delay(700)}>
@@ -712,6 +737,33 @@ const styles = StyleSheet.create({
   },
   moveLabel: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   moveText: { fontSize: 13, color: theme.colors.muted },
+  tarotLink: {
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    marginBottom: 12,
+    ...theme.shadows.warmSm,
+  },
+  tarotIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8DDFB',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  tarotIconText: { fontSize: 18 },
+  tarotText: { flex: 1 },
+  tarotTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
+  tarotSub: { fontSize: 12, color: theme.colors.muted },
+  tarotArrow: { fontSize: 16, color: theme.colors.muted },
   soulprintLink: {
     borderRadius: 24,
     padding: 16,

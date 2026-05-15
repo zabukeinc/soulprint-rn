@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getWeeklyReadingIndex } from '@/src/lib/dailyContent';
 
 const STORAGE_KEY = 'soulprint_engagement';
 
@@ -16,6 +17,13 @@ interface MoodEntry {
   time: string;
 }
 
+interface TarotDraw {
+  cardId: string;
+  reversed: boolean;
+  position: 'past' | 'present' | 'future';
+  date: string;
+}
+
 interface EngagementState {
   streak: number;
   lastCheckIn: string | null;
@@ -23,6 +31,12 @@ interface EngagementState {
   moodHistory: MoodEntry[];
   unlockedReadings: string[];
   reflections: number;
+  lastWeeklyReadingDate: string | null;
+  dismissedWeeklyReading: boolean;
+  // Tarot
+  tarotDrawsToday: number;
+  lastTarotDate: string | null;
+  todayTarotCards: TarotDraw[];
 }
 
 const DEFAULT_STATE: EngagementState = {
@@ -32,6 +46,11 @@ const DEFAULT_STATE: EngagementState = {
   moodHistory: [],
   unlockedReadings: [],
   reflections: 0,
+  lastWeeklyReadingDate: null,
+  dismissedWeeklyReading: false,
+  tarotDrawsToday: 0,
+  lastTarotDate: null,
+  todayTarotCards: [],
 };
 
 function getToday() {
@@ -146,6 +165,71 @@ export function useEngagement() {
     setState({ ...DEFAULT_STATE });
   }, []);
 
+  const drawTarotCard = useCallback(
+    (cardId: string, reversed: boolean, position: 'past' | 'present' | 'future') => {
+      const today = getToday();
+      const draw: TarotDraw = { cardId, reversed, position, date: today };
+
+      setState((prev) => {
+        const isNewDay = prev.lastTarotDate !== today;
+        return {
+          ...prev,
+          lastTarotDate: today,
+          tarotDrawsToday: isNewDay ? 1 : prev.tarotDrawsToday + 1,
+          todayTarotCards: isNewDay
+            ? [draw]
+            : [...prev.todayTarotCards, draw],
+        };
+      });
+    },
+    []
+  );
+
+  const canDrawTarot = useCallback(
+    (isPremium: boolean) => {
+      const today = getToday();
+      const isNewDay = state.lastTarotDate !== today;
+      const drawsToday = isNewDay ? 0 : state.tarotDrawsToday;
+      const limit = isPremium ? 3 : 1;
+      return drawsToday < limit;
+    },
+    [state.lastTarotDate, state.tarotDrawsToday]
+  );
+
+  const getTarotDrawsRemaining = useCallback(
+    (isPremium: boolean) => {
+      const today = getToday();
+      const isNewDay = state.lastTarotDate !== today;
+      const drawsToday = isNewDay ? 0 : state.tarotDrawsToday;
+      const limit = isPremium ? 3 : 1;
+      return Math.max(0, limit - drawsToday);
+    },
+    [state.lastTarotDate, state.tarotDrawsToday]
+  );
+
+  const getConsecutiveMood = useCallback(() => {
+    if (state.moodHistory.length < 3) return null;
+    const recent = state.moodHistory.slice(0, 3);
+    const firstMood = recent[0].mood;
+    const allSame = recent.every((m) => m.mood === firstMood);
+    return allSame ? firstMood : null;
+  }, [state.moodHistory]);
+
+  const getWeeklyReadingStatus = useCallback(() => {
+    const weekStart = getWeeklyReadingIndex().toString();
+    const isNewWeek = state.lastWeeklyReadingDate !== weekStart;
+    return { isNewWeek, weekStart };
+  }, [state.lastWeeklyReadingDate]);
+
+  const markWeeklyReadingSeen = useCallback(() => {
+    const weekStart = getWeeklyReadingIndex().toString();
+    setState((prev) => ({ ...prev, lastWeeklyReadingDate: weekStart, dismissedWeeklyReading: false }));
+  }, []);
+
+  const dismissWeeklyReading = useCallback(() => {
+    setState((prev) => ({ ...prev, dismissedWeeklyReading: true }));
+  }, []);
+
   const getStreakDays = useCallback(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -169,5 +253,12 @@ export function useEngagement() {
     reflectionsNeeded,
     getStreakDays,
     clearAllData,
+    getConsecutiveMood,
+    getWeeklyReadingStatus,
+    markWeeklyReadingSeen,
+    dismissWeeklyReading,
+    drawTarotCard,
+    canDrawTarot,
+    getTarotDrawsRemaining,
   };
 }
