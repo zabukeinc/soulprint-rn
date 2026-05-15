@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -15,30 +22,15 @@ const focusOptions = [
   { id: 'purpose', label: 'Purpose', emoji: '🌟' },
 ];
 
-function FocusCard({ opt, isSelected, onPress, index }: any) {
-  return (
-    <Animated.View
-      entering={FadeInUp.delay(index * 60).duration(500)}
-      style={{ width: '47%' }}
-    >
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onPress}
-        style={[
-          styles.card,
-          isSelected && styles.cardActive,
-        ]}
-      >
-        <Text style={styles.emoji}>{opt.emoji}</Text>
-        <Text style={styles.cardLabel}>{opt.label}</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
+const GAP = 12;
+const PADDING = 20;
 
 export default function FocusMoodScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [focus, setFocus] = useState<string | null>(null);
+
+  const cardWidth = (width - PADDING * 2 - GAP) / 2;
 
   return (
     <ScrollView
@@ -63,13 +55,23 @@ export default function FocusMoodScreen() {
         {focusOptions.map((opt, index) => {
           const isSelected = focus === opt.id;
           return (
-            <FocusCard
+            <Animated.View
               key={opt.id}
-              opt={opt}
-              isSelected={isSelected}
-              onPress={() => setFocus(opt.id)}
-              index={index}
-            />
+              entering={FadeInUp.delay(index * 60).duration(500)}
+              style={{ width: cardWidth }}
+            >
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setFocus(opt.id)}
+                style={[
+                  styles.card,
+                  isSelected && styles.cardActive,
+                ]}
+              >
+                <Text style={styles.emoji}>{opt.emoji}</Text>
+                <Text style={styles.cardLabel}>{opt.label}</Text>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
@@ -100,7 +102,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: PADDING,
     paddingTop: 40,
     paddingBottom: 24,
   },
@@ -149,11 +151,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: GAP,
     marginBottom: 24,
   },
   card: {
-    width: '47%',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
