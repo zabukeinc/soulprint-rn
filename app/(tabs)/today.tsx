@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, FadeInDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 
@@ -133,7 +133,7 @@ export default function TodayScreen() {
       showsVerticalScrollIndicator={false}
     >
       {showToast && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.toast}>
+        <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(250)} style={styles.toast}>
           <LinearGradient
             colors={theme.gradients.primary}
             start={{ x: 0, y: 0 }}
@@ -146,120 +146,140 @@ export default function TodayScreen() {
         </Animated.View>
       )}
 
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getTimeGreeting()} {getTimeEmoji()}</Text>
-          <Text style={styles.name}>Gy</Text>
-        </View>
-        <View style={styles.headerRight}>
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakEmoji}>🔥</Text>
-              <Text style={styles.streakNum}>{streak}</Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(0)}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getTimeGreeting()} {getTimeEmoji()}</Text>
+            <Text style={styles.name}>Gy</Text>
+          </View>
+          <View style={styles.headerRight}>
+            {streak > 0 && (
+              <View style={styles.streakBadge}>
+                <Text style={styles.streakEmoji}>🔥</Text>
+                <Text style={styles.streakNum}>{streak}</Text>
+              </View>
+            )}
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>G</Text>
             </View>
-          )}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>G</Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.moodQuestion}>How are you feeling right now?</Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+        <Text style={styles.moodQuestion}>How are you feeling right now?</Text>
+      </Animated.View>
+
       <View style={styles.moodRow}>
-        {moods.map((mood) => (
-          <TouchableOpacity
+        {moods.map((mood, index) => (
+          <Animated.View
             key={mood.label}
-            onPress={() => handleMoodSelect(mood.label)}
-            style={[
-              styles.moodBtn,
-              selectedMood === mood.label && styles.moodBtnActive,
-            ]}
+            entering={FadeInUp.duration(500).delay(100 + index * 60)}
+            style={{ flex: 1 }}
           >
-            <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-            <Text
+            <TouchableOpacity
+              onPress={() => handleMoodSelect(mood.label)}
               style={[
-                styles.moodLabel,
-                selectedMood === mood.label && styles.moodLabelActive,
+                styles.moodBtn,
+                selectedMood === mood.label && styles.moodBtnActive,
               ]}
             >
-              {mood.label}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+              <Text
+                style={[
+                  styles.moodLabel,
+                  selectedMood === mood.label && styles.moodLabelActive,
+                ]}
+              >
+                {mood.label}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         ))}
       </View>
 
       {selectedMood && (
-        <Animated.View entering={FadeInUp} style={styles.moodResponse}>
+        <Animated.View entering={FadeInUp.duration(400)} style={styles.moodResponse}>
           <Text style={styles.moodResponseText}>{moodResponses[selectedMood]}</Text>
         </Animated.View>
       )}
 
-      <LinearGradient
-        colors={theme.gradients.hero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.signalCard}
-      >
-        <View style={styles.signalGlow} />
-        <Text style={styles.signalLabel}>Today's Signal</Text>
-        <Text style={styles.signalTitle}>{signal.title}</Text>
-        <Text style={styles.signalSub}>{signal.sub}</Text>
-      </LinearGradient>
+      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+        <LinearGradient
+          colors={theme.gradients.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.signalCard}
+        >
+          <View style={styles.signalGlow} />
+          <Text style={styles.signalLabel}>Today's Signal</Text>
+          <Text style={styles.signalTitle}>{signal.title}</Text>
+          <Text style={styles.signalSub}>{signal.sub}</Text>
+        </LinearGradient>
+      </Animated.View>
 
       <View style={styles.weekSection}>
-        <View style={styles.weekHeader}>
-          <Text style={styles.weekTitle}>This week</Text>
-          <View style={styles.weekDays}>
-            {engagement?.getStreakDays?.()?.map((day, i) => (
-              <View key={i} style={styles.dayCol}>
-                <View
-                  style={[
-                    styles.dayBox,
-                    {
-                      backgroundColor: day.active
-                        ? '#8B72CF'
-                        : 'rgba(31,33,48,0.06)',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: '700',
-                      color: day.active ? '#FFFFFF' : theme.colors.softMuted,
-                    }}
+        <Animated.View entering={FadeInUp.duration(500).delay(250)}>
+          <View style={styles.weekHeader}>
+            <Text style={styles.weekTitle}>This week</Text>
+            <View style={styles.weekDays}>
+              {engagement?.getStreakDays?.()?.map((day, i) => (
+                <View key={i} style={styles.dayCol}>
+                  <View
+                    style={[
+                      styles.dayBox,
+                      {
+                        backgroundColor: day.active
+                          ? '#8B72CF'
+                          : 'rgba(31,33,48,0.06)',
+                      },
+                    ]}
                   >
-                    {day.day}
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '700',
+                        color: day.active ? '#FFFFFF' : theme.colors.softMuted,
+                      }}
+                    >
+                      {day.day}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        </Animated.View>
         <View style={styles.energyRow}>
           {[
             { label: 'Calm', sub: 'emotional weather', width: '72%' as const, colors: ['#8B72CF', '#16A7A0'] as const },
             { label: 'Direct', sub: 'best move', width: '85%' as const, colors: ['#E8A87C', '#F7D875'] as const },
             { label: 'Testing', sub: 'avoid', width: '40%' as const, colors: ['#F4C7D2', '#8B72CF'] as const },
-          ].map((item) => (
-            <View key={item.label} style={styles.energyCard}>
-              <View style={styles.energyBarBg}>
-                <View
-                  style={[
-                    styles.energyBarFill,
-                    { width: item.width, backgroundColor: item.colors[0] },
-                  ]}
-                />
+          ].map((item, index) => (
+            <Animated.View
+              key={item.label}
+              entering={FadeInUp.duration(500).delay(300 + index * 80)}
+              style={{ flex: 1 }}
+            >
+              <View style={styles.energyCard}>
+                <View style={styles.energyBarBg}>
+                  <View
+                    style={[
+                      styles.energyBarFill,
+                      { width: item.width, backgroundColor: item.colors[0] },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.energyLabel}>{item.label}</Text>
+                <Text style={styles.energySub}>{item.sub}</Text>
               </View>
-              <Text style={styles.energyLabel}>{item.label}</Text>
-              <Text style={styles.energySub}>{item.sub}</Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
       </View>
 
       {streak > 1 && (
-        <View style={styles.streakCard}>
+        <Animated.View entering={FadeInUp.duration(500).delay(400)} style={styles.streakCard}>
           <Text style={styles.streakCardEmoji}>🔥</Text>
           <View style={styles.streakCardText}>
             <Text style={styles.streakCardTitle}>{streak}-day reflection streak</Text>
@@ -267,41 +287,47 @@ export default function TodayScreen() {
               You're building something real. Keep going.
             </Text>
           </View>
-        </View>
+        </Animated.View>
       )}
 
       {lastReflection && !expandedJournal && (
-        <View style={styles.lastReflection}>
+        <Animated.View entering={FadeInUp.duration(500).delay(450)} style={styles.lastReflection}>
           <Text style={styles.lastReflectionLabel}>Last reflection</Text>
           <Text style={styles.lastReflectionText}>"{lastReflection.text}"</Text>
           <Text style={styles.lastReflectionDate}>{lastReflection.date}</Text>
-        </View>
+        </Animated.View>
       )}
 
       <View style={styles.insightSection}>
-        <Text style={styles.insightLabel}>One Insight For You</Text>
-        <View style={styles.insightCard}>
-          <Text style={styles.insightText}>{insight}</Text>
-          <Text style={styles.insightSub}>— for Aquarius Sun, Life Path 7</Text>
-        </View>
+        <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+          <Text style={styles.insightLabel}>One Insight For You</Text>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.duration(500).delay(550)}>
+          <View style={styles.insightCard}>
+            <Text style={styles.insightText}>{insight}</Text>
+            <Text style={styles.insightSub}>— for Aquarius Sun, Life Path 7</Text>
+          </View>
+        </Animated.View>
       </View>
 
-      <TouchableOpacity
-        style={styles.journalCard}
-        onPress={() => { if (!expandedJournal) setExpandedJournal(true); }}
-        activeOpacity={0.85}
-      >
-        <View style={styles.journalHeader}>
-          <Text style={styles.journalTitle}>Journal Prompt</Text>
-          {!expandedJournal && <Text style={styles.journalArrow}>▾</Text>}
-        </View>
-        {!expandedJournal && (
-          <Text style={styles.journalPreview}>{prompt}</Text>
-        )}
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+        <TouchableOpacity
+          style={styles.journalCard}
+          onPress={() => { if (!expandedJournal) setExpandedJournal(true); }}
+          activeOpacity={0.85}
+        >
+          <View style={styles.journalHeader}>
+            <Text style={styles.journalTitle}>Journal Prompt</Text>
+            {!expandedJournal && <Text style={styles.journalArrow}>▾</Text>}
+          </View>
+          {!expandedJournal && (
+            <Text style={styles.journalPreview}>{prompt}</Text>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
 
       {expandedJournal && (
-        <View style={styles.journalExpanded}>
+        <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.journalExpanded}>
           <Text style={styles.journalPrompt}>{prompt}</Text>
           {journalSaved ? (
             <View style={styles.journalSaved}>
@@ -339,28 +365,32 @@ export default function TodayScreen() {
               </View>
             </>
           )}
-        </View>
+        </Animated.View>
       )}
 
-      <View style={styles.moveCard}>
-        <Text style={styles.moveLabel}>{move.label}</Text>
-        <Text style={styles.moveText}>{move.move}</Text>
-      </View>
+      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
+        <View style={styles.moveCard}>
+          <Text style={styles.moveLabel}>{move.label}</Text>
+          <Text style={styles.moveText}>{move.move}</Text>
+        </View>
+      </Animated.View>
 
-      <TouchableOpacity
-        style={styles.soulprintLink}
-        onPress={() => router.push('/(tabs)/soulprint')}
-        activeOpacity={0.85}
-      >
-        <View style={styles.soulprintIcon}>
-          <Text style={styles.soulprintIconText}>✦</Text>
-        </View>
-        <View style={styles.soulprintText}>
-          <Text style={styles.soulprintTitle}>View your Soulprint</Text>
-          <Text style={styles.soulprintSub}>Your complete emotional blueprint</Text>
-        </View>
-        <Text style={styles.soulprintArrow}>→</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.duration(500).delay(700)}>
+        <TouchableOpacity
+          style={styles.soulprintLink}
+          onPress={() => router.push('/(tabs)/soulprint')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.soulprintIcon}>
+            <Text style={styles.soulprintIconText}>✦</Text>
+          </View>
+          <View style={styles.soulprintText}>
+            <Text style={styles.soulprintTitle}>View your Soulprint</Text>
+            <Text style={styles.soulprintSub}>Your complete emotional blueprint</Text>
+          </View>
+          <Text style={styles.soulprintArrow}>→</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }

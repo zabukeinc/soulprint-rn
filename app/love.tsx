@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  ZoomIn,
+  Layout,
+  Easing,
+} from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 
 const insights = [
@@ -44,33 +50,40 @@ export default function LoveReadingScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Love Pattern</Text>
         <View style={styles.backButtonPlaceholder} />
-      </View>
+      </Animated.View>
 
-      <View style={styles.center}>
-        <View style={styles.iconBg}>
+      <Animated.View
+        entering={FadeInUp.delay(100).duration(500).easing(Easing.out(Easing.cubic))}
+        style={styles.center}
+      >
+        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={styles.iconBg}>
           <Text style={styles.icon}>💕</Text>
-        </View>
+        </Animated.View>
         <Text style={styles.label}>Love Pattern Reading</Text>
         <Text style={styles.title}>How you love, and what you need in return</Text>
-      </View>
+      </Animated.View>
 
-      <LinearGradient
-        colors={theme.gradients.love}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
+      <Animated.View
+        entering={FadeInUp.delay(300).duration(500).easing(Easing.out(Easing.cubic))}
       >
-        <View style={styles.heroGlow} />
-        <Text style={styles.heroText}>
-          You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.
-        </Text>
-      </LinearGradient>
+        <LinearGradient
+          colors={theme.gradients.love}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroGlow} />
+          <Text style={styles.heroText}>
+            You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.
+          </Text>
+        </LinearGradient>
+      </Animated.View>
 
       <View style={styles.insights}>
         {insights.map((insight, i) => {
@@ -78,17 +91,23 @@ export default function LoveReadingScreen() {
           return (
             <Animated.View
               key={insight.title}
-              entering={FadeInUp.delay(i * 100)}
+              entering={FadeInUp.delay(400 + i * 100).duration(500).easing(Easing.out(Easing.cubic))}
+              layout={Layout.duration(300)}
               style={{ opacity: isRevealed ? 1 : 0.5 }}
             >
               {isRevealed ? (
-                <View style={styles.insightCard}>
-                  <View style={styles.insightHeader}>
-                    <Text style={styles.insightEmoji}>{insight.emoji}</Text>
-                    <Text style={styles.insightTitle}>{insight.title}</Text>
+                <Animated.View
+                  entering={FadeInUp.duration(500)}
+                  key={`${insight.title}-revealed`}
+                >
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <Text style={styles.insightEmoji}>{insight.emoji}</Text>
+                      <Text style={styles.insightTitle}>{insight.title}</Text>
+                    </View>
+                    <Text style={styles.insightText}>{insight.content}</Text>
                   </View>
-                  <Text style={styles.insightText}>{insight.content}</Text>
-                </View>
+                </Animated.View>
               ) : (
                 <TouchableOpacity
                   onPress={() => setRevealedIndex(i)}
@@ -106,27 +125,36 @@ export default function LoveReadingScreen() {
       </View>
 
       {revealedIndex >= insights.length - 1 && (
-        <Animated.View entering={FadeInUp} style={styles.feedbackCard}>
+        <Animated.View
+          entering={FadeInUp.duration(500)}
+          layout={Layout.duration(300)}
+          style={styles.feedbackCard}
+        >
           <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
           <View style={styles.feedbackRow}>
-            {['Yes, surprisingly', 'A little', 'Not really'].map((opt) => (
-              <TouchableOpacity
+            {['Yes, surprisingly', 'A little', 'Not really'].map((opt, i) => (
+              <Animated.View
                 key={opt}
-                onPress={() => setFeedback(opt)}
-                style={[
-                  styles.feedbackBtn,
-                  feedback === opt && styles.feedbackBtnActive,
-                ]}
+                entering={FadeIn.delay(100 + i * 80).duration(400)}
+                style={{ flex: 1 }}
               >
-                <Text
+                <TouchableOpacity
+                  onPress={() => setFeedback(opt)}
                   style={[
-                    styles.feedbackBtnText,
-                    feedback === opt && styles.feedbackBtnTextActive,
+                    styles.feedbackBtn,
+                    feedback === opt && styles.feedbackBtnActive,
                   ]}
                 >
-                  {opt}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.feedbackBtnText,
+                      feedback === opt && styles.feedbackBtnTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
           </View>
         </Animated.View>

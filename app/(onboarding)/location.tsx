@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import { IllustrationMood } from '@/src/components/Illustrations';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
@@ -19,6 +19,26 @@ const cities = [
   { name: 'Tokyo, Japan', flag: '🇯🇵', vibe: 'calm' },
   { name: 'Sydney, Australia', flag: '🇦🇺', vibe: 'bright' },
 ];
+
+function CityItem({ city, isSelected, onPress, index }: any) {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(index * 50).duration(500)}
+    >
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={[
+          styles.cityItem,
+          isSelected && styles.cityItemActive,
+        ]}
+      >
+        <Text style={styles.cityFlag}>{city.flag}</Text>
+        <Text style={styles.cityName}>{city.name}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function LocationScreen() {
   const router = useRouter();
@@ -37,12 +57,12 @@ export default function LocationScreen() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.stepText}>3 of 6</Text>
-      </View>
+      </Animated.View>
 
       <Animated.View entering={FadeInUp.duration(500)} style={styles.heroCard}>
         <View style={styles.heroText}>
@@ -54,7 +74,7 @@ export default function LocationScreen() {
         <View style={styles.heroGlow} />
       </Animated.View>
 
-      <View style={styles.searchBox}>
+      <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           value={search}
@@ -63,50 +83,52 @@ export default function LocationScreen() {
           placeholderTextColor={theme.colors.muted + '80'}
           style={styles.searchInput}
         />
-      </View>
+      </Animated.View>
 
-      <View style={styles.selectedCard}>
+      <Animated.View
+        key={selectedCity.name}
+        entering={FadeIn.duration(500)}
+        style={styles.selectedCard}
+      >
         <Text style={styles.selectedFlag}>{selectedCity.flag}</Text>
         <View style={styles.selectedInfo}>
           <Text style={styles.selectedLabel}>Selected</Text>
           <Text style={styles.selectedName}>{selectedCity.name}</Text>
         </View>
         <Text style={styles.pinIcon}>📍</Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.list}>
-        {filteredCities.map((city) => {
+        {filteredCities.map((city, index) => {
           const idx = cities.indexOf(city);
           const isSelected = selected === idx;
           return (
-            <TouchableOpacity
+            <CityItem
               key={city.name}
+              city={city}
+              isSelected={isSelected}
               onPress={() => setSelected(idx)}
-              style={[
-                styles.cityItem,
-                isSelected && styles.cityItemActive,
-              ]}
-            >
-              <Text style={styles.cityFlag}>{city.flag}</Text>
-              <Text style={styles.cityName}>{city.name}</Text>
-            </TouchableOpacity>
+              index={index}
+            />
           );
         })}
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(onboarding)/mbti')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(onboarding)/mbti')}
         >
-          <Text style={styles.buttonText}>Continue</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Continue</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
       <ProgressDots total={6} current={2} />
     </ScrollView>
   );

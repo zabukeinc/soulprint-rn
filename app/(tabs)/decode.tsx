@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { Star, Heart, Users, Hand, Lock } from 'lucide-react-native';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
@@ -52,50 +53,60 @@ export default function DecodeScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Explore</Text>
-          <Text style={styles.headerTitle}>Decode</Text>
+      <Animated.View entering={FadeInUp.duration(500)}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Explore</Text>
+            <Text style={styles.headerTitle}>Decode</Text>
+          </View>
+          <View style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>G</Text>
+          </View>
         </View>
-        <View style={styles.headerAvatar}>
-          <Text style={styles.headerAvatarText}>G</Text>
-        </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.title}>What do you want to understand next?</Text>
-      <Text style={styles.description}>
-        {isPremium
-          ? 'All readings are unlocked. Choose what feels most alive right now.'
-          : 'Unlock deeper readings when a question keeps returning.'}
-      </Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+        <Text style={styles.title}>What do you want to understand next?</Text>
+        <Text style={styles.description}>
+          {isPremium
+            ? 'All readings are unlocked. Choose what feels most alive right now.'
+            : 'Unlock deeper readings when a question keeps returning.'}
+        </Text>
+      </Animated.View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Available Readings</Text>
-        <View
-          style={[
-            styles.tierBadge,
-            { backgroundColor: isPremium ? 'rgba(22,167,160,0.12)' : 'rgba(139,114,207,0.12)' },
-          ]}
-        >
-          <Text
+      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Available Readings</Text>
+          <View
             style={[
-              styles.tierBadgeText,
-              { color: isPremium ? '#16A7A0' : '#7A63BD' },
+              styles.tierBadge,
+              { backgroundColor: isPremium ? 'rgba(22,167,160,0.12)' : 'rgba(139,114,207,0.12)' },
             ]}
           >
-            {isPremium ? 'Unlocked' : 'Premium'}
-          </Text>
+            <Text
+              style={[
+                styles.tierBadgeText,
+                { color: isPremium ? '#16A7A0' : '#7A63BD' },
+              ]}
+            >
+              {isPremium ? 'Unlocked' : 'Premium'}
+            </Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.featuresList}>
-        {features.map((feature) => {
+        {features.map((feature, index) => {
           const Icon = feature.icon;
           const isLocked = feature.locked || (!isPremium && feature.id !== 'soulprint');
 
           if (feature.locked) {
             return (
-              <View key={feature.id} style={styles.lockedFeature}>
+              <Animated.View
+                key={feature.id}
+                entering={FadeInUp.duration(500).delay(150 + index * 80)}
+                style={styles.lockedFeature}
+              >
                 <LinearGradient
                   colors={feature.gradient}
                   start={{ x: 0, y: 0 }}
@@ -111,17 +122,50 @@ export default function DecodeScreen() {
                 <View style={styles.soonBadge}>
                   <Text style={styles.soonBadgeText}>Soon</Text>
                 </View>
-              </View>
+              </Animated.View>
             );
           }
 
           if (isLocked) {
             return (
-              <TouchableOpacity
+              <Animated.View
                 key={feature.id}
-                onPress={() => router.push('/pricing')}
+                entering={FadeInUp.duration(500).delay(150 + index * 80)}
+              >
+                <TouchableOpacity
+                  onPress={() => router.push('/pricing')}
+                  activeOpacity={0.85}
+                  style={styles.lockedFeature}
+                >
+                  <LinearGradient
+                    colors={feature.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.featureIconBg}
+                  >
+                    <Lock size={18} color="#7A63BD" />
+                  </LinearGradient>
+                  <View style={styles.featureText}>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureDesc}>{feature.description}</Text>
+                  </View>
+                  <View style={styles.priceBadge}>
+                    <Text style={styles.priceBadgeText}>{feature.price}</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          }
+
+          return (
+            <Animated.View
+              key={feature.id}
+              entering={FadeInUp.duration(500).delay(150 + index * 80)}
+            >
+              <TouchableOpacity
+                onPress={() => router.push(`/${feature.id}`)}
                 activeOpacity={0.85}
-                style={styles.lockedFeature}
+                style={styles.featureCard}
               >
                 <LinearGradient
                   colors={feature.gradient}
@@ -129,58 +173,35 @@ export default function DecodeScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.featureIconBg}
                 >
-                  <Lock size={18} color="#7A63BD" />
+                  <Icon size={20} color={theme.colors.ink} />
                 </LinearGradient>
                 <View style={styles.featureText}>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
                   <Text style={styles.featureDesc}>{feature.description}</Text>
                 </View>
-                <View style={styles.priceBadge}>
-                  <Text style={styles.priceBadgeText}>{feature.price}</Text>
-                </View>
+                <Text style={styles.openText}>Open</Text>
               </TouchableOpacity>
-            );
-          }
-
-          return (
-            <TouchableOpacity
-              key={feature.id}
-              onPress={() => router.push(`/${feature.id}`)}
-              activeOpacity={0.85}
-              style={styles.featureCard}
-            >
-              <LinearGradient
-                colors={feature.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.featureIconBg}
-              >
-                <Icon size={20} color={theme.colors.ink} />
-              </LinearGradient>
-              <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDesc}>{feature.description}</Text>
-              </View>
-              <Text style={styles.openText}>Open</Text>
-            </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
 
       {!isPremium && (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/pricing')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.unlockBtn}
+        <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/pricing')}
           >
-            <Text style={styles.unlockBtnText}>✦ Unlock all readings</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={theme.gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.unlockBtn}
+            >
+              <Text style={styles.unlockBtnText}>✦ Unlock all readings</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </ScrollView>
   );

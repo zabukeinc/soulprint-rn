@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, Easing } from 'react-native-reanimated';
 import { Download } from 'lucide-react-native';
 import { theme } from '@/src/lib/theme';
 
@@ -15,16 +15,24 @@ export default function ShareCardScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Share Preview</Text>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.label}>Make it yours</Text>
-      <Text style={styles.title}>Share the part that felt true.</Text>
-      <Text style={styles.description}>Save this as a soft identity card.</Text>
+      <Animated.View entering={FadeInUp.delay(100).duration(400)}>
+        <Text style={styles.label}>Make it yours</Text>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(200).duration(400)}>
+        <Text style={styles.title}>Share the part that felt true.</Text>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(300).duration(400)}>
+        <Text style={styles.description}>Save this as a soft identity card.</Text>
+      </Animated.View>
 
       <Animated.View entering={FadeInUp.duration(400)} style={styles.card}>
         <View style={styles.cardHeader}>
@@ -39,24 +47,28 @@ export default function ShareCardScreen() {
         </View>
       </Animated.View>
 
-      <TouchableOpacity activeOpacity={0.85} style={styles.downloadBtn}>
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.downloadGradient}
-        >
-          <Download size={18} color="#FFFFFF" />
-          <Text style={styles.downloadText}>Download Card</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(500).duration(400).easing(Easing.out(Easing.cubic))} style={{ marginBottom: 12 }}>
+        <TouchableOpacity activeOpacity={0.85} style={styles.downloadBtn}>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.downloadGradient}
+          >
+            <Download size={18} color="#FFFFFF" />
+            <Text style={styles.downloadText}>Download Card</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <TouchableOpacity
-        style={styles.secondaryBtn}
-        onPress={() => router.push('/snapshot')}
-      >
-        <Text style={styles.secondaryBtnText}>Choose Another Insight</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(600).duration(400).easing(Easing.out(Easing.cubic))}>
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          onPress={() => router.push('/snapshot')}
+        >
+          <Text style={styles.secondaryBtnText}>Choose Another Insight</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }

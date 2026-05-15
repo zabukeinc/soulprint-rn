@@ -5,11 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeIn,
   FadeInUp,
+  ZoomIn,
   withRepeat,
   withTiming,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
@@ -53,11 +53,11 @@ export default function GeneratingScreen() {
   return (
     <View style={styles.container}>
       {!isComplete ? (
-        <Animated.View entering={FadeIn} style={styles.loadingContainer}>
+        <Animated.View entering={FadeIn.duration(400)} style={styles.loadingContainer}>
           <View style={styles.center}>
-            <View style={styles.iconBg}>
+            <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
               <Animated.Text style={[styles.icon, spinStyle]}>✦</Animated.Text>
-            </View>
+            </Animated.View>
             <Text style={styles.loadingLabel}>Preparing your first Soulprint</Text>
             <Text style={styles.loadingTitle}>
               We're turning your pattern into language.
@@ -68,10 +68,11 @@ export default function GeneratingScreen() {
             {stages.map((stage) => (
               <Animated.View
                 key={stage.id}
-                entering={FadeInUp.delay(stage.delay / 2)}
+                entering={FadeInUp.delay(stage.delay / 2).duration(500)}
                 style={[
                   styles.stageRow,
                   {
+                    opacity: currentStage >= stage.id ? 1 : 0.4,
                     backgroundColor:
                       currentStage >= stage.id
                         ? 'rgba(255,255,255,0.95)'
@@ -111,31 +112,33 @@ export default function GeneratingScreen() {
         </Animated.View>
       ) : (
         <Animated.View
-          entering={FadeInUp.duration(500)}
+          entering={ZoomIn.duration(300)}
           style={styles.completeContainer}
         >
-          <View style={styles.iconBg}>
+          <Animated.View entering={ZoomIn.delay(100).duration(300)} style={styles.iconBg}>
             <Text style={styles.icon}>✦</Text>
-          </View>
+          </Animated.View>
           <Text style={styles.completeLabel}>Your Soulprint is ready</Text>
           <Text style={styles.completeTitle}>Your first reflection is ready.</Text>
           <Text style={styles.completeDesc}>
             Take a moment to see what your pattern reveals about you today.
           </Text>
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.push('/(onboarding)/first-mirror')}
-          >
-            <LinearGradient
-              colors={theme.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.button}
+          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.push('/(onboarding)/first-mirror')}
             >
-              <Text style={styles.buttonText}>See your Soulprint</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={theme.gradients.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.button}
+              >
+                <Text style={styles.buttonText}>See your Soulprint</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
       )}
     </View>

@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -24,9 +31,16 @@ const mbtiOptions = [
   { type: "I'm not sure", label: 'Explore later', symbol: '❓', color: '#E8DDFB' },
 ];
 
+const GAP = 10;
+const PADDING = 20;
+
 export default function MbtiScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Responsive: exactly 2 columns, accounting for screen width, padding, and gap
+  const cardWidth = (width - PADDING * 2 - GAP) / 2;
 
   return (
     <ScrollView
@@ -34,63 +48,74 @@ export default function MbtiScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.stepText}>4 of 6</Text>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.label}>Optional self-language</Text>
-      <Text style={styles.title}>Do you know your MBTI?</Text>
-      <Text style={styles.description}>
-        If you already use MBTI, Soulprint can weave it gently into your reading.
-      </Text>
+      <Animated.View entering={FadeInUp.delay(100).duration(500)}>
+        <Text style={styles.label}>Optional self-language</Text>
+        <Text style={styles.title}>Do you know your MBTI?</Text>
+        <Text style={styles.description}>
+          If you already use MBTI, Soulprint can weave it gently into your reading.
+        </Text>
+      </Animated.View>
 
       <View style={styles.grid}>
-        {mbtiOptions.map((opt) => {
+        {mbtiOptions.map((opt, index) => {
           const isSelected = selected === opt.type;
           return (
-            <TouchableOpacity
+            <Animated.View
               key={opt.type}
-              onPress={() => setSelected(opt.type)}
-              activeOpacity={0.85}
-              style={[
-                styles.card,
-                isSelected && styles.cardActive,
-              ]}
+              entering={FadeInUp.delay(index * 30).duration(500)}
+              style={{ width: cardWidth }}
             >
-              <Text style={styles.symbol}>{opt.symbol}</Text>
-              <View style={styles.cardText}>
-                <Text style={styles.type}>{opt.type}</Text>
-                <Text style={styles.typeLabel}>{opt.label}</Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setSelected(opt.type)}
+                style={[
+                  styles.card,
+                  isSelected && styles.cardActive,
+                ]}
+              >
+                <Text style={styles.symbol}>{opt.symbol}</Text>
+                <View style={styles.cardText}>
+                  <Text style={styles.type}>{opt.type}</Text>
+                  <Text style={styles.typeLabel}>{opt.label}</Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={!selected}
-        onPress={() => router.push('/(onboarding)/focus-mood')}
-      >
-        <LinearGradient
-          colors={selected ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.button, !selected && styles.buttonDisabled]}
+      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={!selected}
+          onPress={() => router.push('/(onboarding)/focus-mood')}
         >
-          <Text style={styles.buttonText}>Continue</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={selected ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.button, !selected && styles.buttonDisabled]}
+          >
+            <Text style={styles.buttonText}>Continue</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <TouchableOpacity
-        style={styles.skipButton}
-        onPress={() => router.push('/(onboarding)/focus-mood')}
-      >
-        <Text style={styles.skipButtonText}>Skip and test later</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.push('/(onboarding)/focus-mood')}
+        >
+          <Text style={styles.skipButtonText}>Skip and test later</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       <ProgressDots total={6} current={3} />
     </ScrollView>
@@ -101,7 +126,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: PADDING,
     paddingTop: 40,
     paddingBottom: 24,
   },
@@ -150,11 +175,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: GAP,
     marginBottom: 24,
   },
   card: {
-    width: '47%',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',

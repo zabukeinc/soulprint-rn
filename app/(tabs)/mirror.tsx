@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
@@ -59,62 +60,74 @@ export default function MirrorScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Growth</Text>
-          <Text style={styles.headerTitle}>Mirror</Text>
+      <Animated.View entering={FadeInUp.duration(500)}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Growth</Text>
+            <Text style={styles.headerTitle}>Mirror</Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.description}>
-        Your patterns, reflected back. This is where you see what's shifting.
-      </Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+        <Text style={styles.description}>
+          Your patterns, reflected back. This is where you see what's shifting.
+        </Text>
+      </Animated.View>
 
-      <View
-        style={[
-          styles.streakCard,
-          {
-            backgroundColor:
-              streak > 1
-                ? 'rgba(247,216,117,0.25)'
-                : '#FFFDF7',
-          },
-        ]}
-      >
-        <View style={styles.streakGlow} />
-        <View style={styles.streakContent}>
-          <Text style={styles.streakLabel}>
-            {streak > 1 ? `${streak}-day streak` : 'Your reflection arc'}
-          </Text>
-          <Text style={styles.streakTitle}>
-            {streak > 2
-              ? "You're building something real."
-              : streak > 0
-              ? 'Every reflection counts.'
-              : 'Start your first reflection today.'}
-          </Text>
-          <Text style={styles.streakDesc}>
-            {reflectionsCount > 0
-              ? `${reflectionsCount} reflection${reflectionsCount !== 1 ? 's' : ''} saved. ${3 - reflectionsCount > 0 ? `${3 - reflectionsCount} more to unlock a deep reading.` : "You've unlocked a deep reading!"}`
-              : 'Write your first journal entry on the Today page.'}
-          </Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+        <View
+          style={[
+            styles.streakCard,
+            {
+              backgroundColor:
+                streak > 1
+                  ? 'rgba(247,216,117,0.25)'
+                  : '#FFFDF7',
+            },
+          ]}
+        >
+          <View style={styles.streakGlow} />
+          <View style={styles.streakContent}>
+            <Text style={styles.streakLabel}>
+              {streak > 1 ? `${streak}-day streak` : 'Your reflection arc'}
+            </Text>
+            <Text style={styles.streakTitle}>
+              {streak > 2
+                ? "You're building something real."
+                : streak > 0
+                ? 'Every reflection counts.'
+                : 'Start your first reflection today.'}
+            </Text>
+            <Text style={styles.streakDesc}>
+              {reflectionsCount > 0
+                ? `${reflectionsCount} reflection${reflectionsCount !== 1 ? 's' : ''} saved. ${3 - reflectionsCount > 0 ? `${3 - reflectionsCount} more to unlock a deep reading.` : "You've unlocked a deep reading!"}`
+                : 'Write your first journal entry on the Today page.'}
+            </Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.weekSection}>
-        <View style={styles.weekHeader}>
-          <Text style={styles.weekTitle}>This week</Text>
-          <Text style={styles.weekCount}>
-            {reflectionsCount} reflection{reflectionsCount !== 1 ? 's' : ''}
-          </Text>
-        </View>
+        <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+          <View style={styles.weekHeader}>
+            <Text style={styles.weekTitle}>This week</Text>
+            <Text style={styles.weekCount}>
+              {reflectionsCount} reflection{reflectionsCount !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        </Animated.View>
         <View style={styles.weekGrid}>
-          {last7.map((day) => {
+          {last7.map((day, index) => {
             const hasReflection = !!reflectionByDate[day.date];
             const hasMood = !!moodByDate[day.date];
             const mood = moodByDate[day.date];
             return (
-              <View key={day.date} style={styles.dayCol}>
+              <Animated.View
+                key={day.date}
+                entering={FadeInUp.duration(500).delay(250 + index * 40)}
+                style={styles.dayCol}
+              >
                 <View
                   style={[
                     styles.dayBox,
@@ -139,14 +152,14 @@ export default function MirrorScreen() {
                   </Text>
                 </View>
                 <Text style={styles.dayName}>{day.dayName}</Text>
-              </View>
+              </Animated.View>
             );
           })}
         </View>
       </View>
 
       {topMood && moodHistory.length > 1 && (
-        <View style={styles.patternCard}>
+        <Animated.View entering={FadeInUp.duration(500).delay(300)} style={styles.patternCard}>
           <Text style={styles.patternLabel}>Pattern shift</Text>
           <Text style={styles.patternText}>
             You've felt <Text style={styles.patternBold}>{topMood[0]}</Text> {topMood[1]} time{topMood[1] !== 1 ? 's' : ''} recently.{' '}
@@ -158,18 +171,24 @@ export default function MirrorScreen() {
               ? 'Something is asking for your attention. Sit with it before chasing it.'
               : 'Numbness is a signal too. Your body may be asking for rest.'}
           </Text>
-        </View>
+        </Animated.View>
       )}
 
       {reflections.length > 0 && (
         <>
-          <View style={styles.reflectionsHeader}>
-            <Text style={styles.reflectionsTitle}>Your reflections</Text>
-            <Text style={styles.reflectionsCount}>{reflections.length} saved</Text>
-          </View>
+          <Animated.View entering={FadeInUp.duration(500).delay(350)}>
+            <View style={styles.reflectionsHeader}>
+              <Text style={styles.reflectionsTitle}>Your reflections</Text>
+              <Text style={styles.reflectionsCount}>{reflections.length} saved</Text>
+            </View>
+          </Animated.View>
           <View style={styles.reflectionsList}>
-            {reflections.slice(0, 5).map((entry) => (
-              <View key={entry.id} style={styles.reflectionCard}>
+            {reflections.slice(0, 5).map((entry, index) => (
+              <Animated.View
+                key={entry.id}
+                entering={FadeInUp.duration(500).delay(400 + index * 80)}
+                style={styles.reflectionCard}
+              >
                 <View style={styles.reflectionIcon}>
                   <Text style={styles.reflectionIconText}>📝</Text>
                 </View>
@@ -187,18 +206,20 @@ export default function MirrorScreen() {
                   </Text>
                   <Text style={styles.reflectionDate}>{entry.date}</Text>
                 </View>
-              </View>
+              </Animated.View>
             ))}
           </View>
         </>
       )}
 
-      <View style={styles.savedHeader}>
-        <Text style={styles.savedTitle}>Saved</Text>
-      </View>
+      <Animated.View entering={FadeInUp.duration(500).delay(450)}>
+        <View style={styles.savedHeader}>
+          <Text style={styles.savedTitle}>Saved</Text>
+        </View>
+      </Animated.View>
 
       <View style={styles.savedList}>
-        <View style={styles.savedCard}>
+        <Animated.View entering={FadeInUp.duration(500).delay(500)} style={styles.savedCard}>
           <View style={[styles.savedIcon, { backgroundColor: '#E8DDFB' }]}>
             <Text style={styles.savedIconText}>✦</Text>
           </View>
@@ -207,9 +228,10 @@ export default function MirrorScreen() {
             <Text style={styles.savedDesc}>Your first mirror</Text>
           </View>
           <Text style={styles.savedArrow}>→</Text>
-        </View>
+        </Animated.View>
 
-        <View
+        <Animated.View
+          entering={FadeInUp.duration(500).delay(550)}
           style={[
             styles.savedCard,
             {
@@ -238,25 +260,27 @@ export default function MirrorScreen() {
             </View>
             <Text style={styles.savedDesc}>Complete emotional blueprint</Text>
           </View>
-        </View>
+        </Animated.View>
       </View>
 
       {!isPremium && (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/pricing')}
-        >
-          <View style={styles.unlockBtn}>
-            <Text style={styles.unlockBtnText}>✦ Unlock your full Mirror</Text>
-          </View>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/pricing')}
+          >
+            <View style={styles.unlockBtn}>
+              <Text style={styles.unlockBtnText}>✦ Unlock your full Mirror</Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
-      <View style={styles.footerCard}>
+      <Animated.View entering={FadeInUp.duration(500).delay(650)} style={styles.footerCard}>
         <Text style={styles.footerText}>
           <Text style={styles.footerBold}>Your mirror grows with you.</Text> Every reflection adds depth to how the app reads your pattern.
         </Text>
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
 
@@ -26,20 +26,22 @@ export default function BirthTimeScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.stepText}>2 of 6</Text>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.label}>Optional depth</Text>
-      <Text style={styles.title}>Do you know your birth time?</Text>
-      <Text style={styles.description}>
-        Birth time helps us understand your emotional timing.
-      </Text>
+      <Animated.View entering={FadeInUp.delay(100).duration(500)}>
+        <Text style={styles.label}>Optional depth</Text>
+        <Text style={styles.title}>Do you know your birth time?</Text>
+        <Text style={styles.description}>
+          Birth time helps us understand your emotional timing.
+        </Text>
+      </Animated.View>
 
-      <View style={styles.timeCard}>
+      <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.timeCard}>
         <Text style={styles.timeLabel}>Birth Time</Text>
         <View style={styles.timeDisplay}>
           <Text style={styles.timeValue}>{time}</Text>
@@ -73,9 +75,9 @@ export default function BirthTimeScreen() {
             ))}
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.tipCard}>
+      <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.tipCard}>
         <Text style={styles.tipEmoji}>💡</Text>
         <View style={styles.tipText}>
           <Text style={styles.tipTitle}>Not sure?</Text>
@@ -85,26 +87,30 @@ export default function BirthTimeScreen() {
         </View>
       </Animated.View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(onboarding)/location')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(onboarding)/location')}
         >
-          <Text style={styles.buttonText}>Continue</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Continue</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <TouchableOpacity
-        style={styles.skipButton}
-        onPress={() => router.push('/(onboarding)/location')}
-      >
-        <Text style={styles.skipButtonText}>Skip for now</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.push('/(onboarding)/location')}
+        >
+          <Text style={styles.skipButtonText}>Skip for now</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       <ProgressDots total={6} current={1} />
     </ScrollView>

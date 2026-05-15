@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
 
@@ -14,6 +15,27 @@ const focusOptions = [
   { id: 'purpose', label: 'Purpose', emoji: '🌟' },
 ];
 
+function FocusCard({ opt, isSelected, onPress, index }: any) {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(index * 60).duration(500)}
+      style={{ width: '47%' }}
+    >
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={[
+          styles.card,
+          isSelected && styles.cardActive,
+        ]}
+      >
+        <Text style={styles.emoji}>{opt.emoji}</Text>
+        <Text style={styles.cardLabel}>{opt.label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function FocusMoodScreen() {
   const router = useRouter();
   const [focus, setFocus] = useState<string | null>(null);
@@ -24,48 +46,50 @@ export default function FocusMoodScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.stepText}>5 of 6</Text>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.label}>Right now</Text>
-      <Text style={styles.title}>What needs understanding today?</Text>
-      <Text style={styles.description}>Choose one area you want to explore.</Text>
+      <Animated.View entering={FadeInUp.delay(100).duration(500)}>
+        <Text style={styles.label}>Right now</Text>
+        <Text style={styles.title}>What needs understanding today?</Text>
+        <Text style={styles.description}>Choose one area you want to explore.</Text>
+      </Animated.View>
 
       <View style={styles.grid}>
-        {focusOptions.map((opt) => {
+        {focusOptions.map((opt, index) => {
           const isSelected = focus === opt.id;
           return (
-            <TouchableOpacity
+            <FocusCard
               key={opt.id}
+              opt={opt}
+              isSelected={isSelected}
               onPress={() => setFocus(opt.id)}
-              activeOpacity={0.85}
-              style={[styles.card, isSelected && styles.cardActive]}
-            >
-              <Text style={styles.emoji}>{opt.emoji}</Text>
-              <Text style={styles.cardLabel}>{opt.label}</Text>
-            </TouchableOpacity>
+              index={index}
+            />
           );
         })}
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={!focus}
-        onPress={() => router.push('/(onboarding)/generating')}
-      >
-        <LinearGradient
-          colors={focus ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.button, !focus && styles.buttonDisabled]}
+      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={!focus}
+          onPress={() => router.push('/(onboarding)/generating')}
         >
-          <Text style={styles.buttonText}>Create My Soulprint</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={focus ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.button, !focus && styles.buttonDisabled]}
+          >
+            <Text style={styles.buttonText}>Create My Soulprint</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       <ProgressDots total={6} current={4} />
     </ScrollView>

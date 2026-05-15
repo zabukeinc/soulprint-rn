@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
 import SoftMascot from '@/src/components/SoftMascot';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
@@ -25,7 +25,7 @@ export default function BirthDateScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -33,7 +33,7 @@ export default function BirthDateScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.stepText}>1 of 6</Text>
-      </View>
+      </Animated.View>
 
       <Animated.View
         entering={FadeInUp.duration(500)}
@@ -51,7 +51,7 @@ export default function BirthDateScreen() {
       </Animated.View>
 
       <View style={styles.pickers}>
-        <View style={styles.pickerCol}>
+        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Day</Text>
           <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
             {days.map((d) => (
@@ -66,8 +66,8 @@ export default function BirthDateScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
-        <View style={styles.pickerCol}>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Month</Text>
           <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
             {months.map((m) => (
@@ -82,8 +82,8 @@ export default function BirthDateScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
-        <View style={styles.pickerCol}>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Year</Text>
           <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
             {years.map((y) => (
@@ -98,30 +98,33 @@ export default function BirthDateScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
 
       <Animated.View
-        entering={FadeInUp.delay(200)}
+        key={selectedDate}
+        entering={ZoomIn.duration(300)}
         style={styles.selectedDateCard}
       >
         <Text style={styles.selectedDateLabel}>Selected date</Text>
         <Text style={styles.selectedDateValue}>{selectedDate}</Text>
       </Animated.View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(onboarding)/birth-time')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(onboarding)/birth-time')}
         >
-          <Text style={styles.buttonText}>Continue</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Continue</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
       <ProgressDots total={6} current={0} />
     </ScrollView>
   );

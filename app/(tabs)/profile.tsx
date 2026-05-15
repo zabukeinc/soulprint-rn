@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
 
@@ -14,14 +15,16 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Settings</Text>
-          <Text style={styles.headerTitle}>Profile</Text>
+      <Animated.View entering={FadeInUp.duration(500)}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Settings</Text>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={styles.profileCard}>
+      <Animated.View entering={FadeInUp.duration(500).delay(50)} style={styles.profileCard}>
         <View style={styles.profileRow}>
           <View style={styles.profileAvatar}>
             <Text style={styles.profileAvatarText}>G</Text>
@@ -60,21 +63,16 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <View
-        style={[
-          styles.tierCard,
-          {
-            backgroundColor: isPremium
-              ? 'rgba(22,167,160,0.1)'
-              : 'rgba(255,255,255,0.78)',
-            borderColor: isPremium
-              ? 'rgba(22,167,160,0.2)'
-              : 'rgba(31,33,48,0.08)',
-          },
-        ]}
-      >
+      <Animated.View entering={FadeInUp.duration(500).delay(100)} style={[styles.tierCard, {
+        backgroundColor: isPremium
+          ? 'rgba(22,167,160,0.1)'
+          : 'rgba(255,255,255,0.78)',
+        borderColor: isPremium
+          ? 'rgba(22,167,160,0.2)'
+          : 'rgba(31,33,48,0.08)',
+      }]}>
         <View style={styles.tierRow}>
           <View>
             <Text style={styles.tierTitle}>
@@ -102,67 +100,79 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.sectionLabel}>Preferences</Text>
+      <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+        <Text style={styles.sectionLabel}>Preferences</Text>
+      </Animated.View>
 
       <View style={styles.settingsCard}>
-        <View style={styles.settingRow}>
+        <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.settingRow}>
           <View>
             <Text style={styles.settingTitle}>Daily Signal</Text>
-            <Text style={styles.settingDesc}>Personal insight every day</Text>
+            <Text style={styles.settingDesc}>
+              Personal insight every day
+            </Text>
           </View>
           <View style={[styles.toggleTrack, { backgroundColor: '#16A7A0' }]}>
             <View style={[styles.toggleKnob, { transform: [{ translateX: 18 }] }]} />
           </View>
-        </View>
+        </Animated.View>
 
         <View style={styles.divider} />
 
-        <View style={styles.settingRow}>
+        <Animated.View entering={FadeInUp.duration(500).delay(240)} style={styles.settingRow}>
           <View>
             <Text style={styles.settingTitle}>Deep Tone</Text>
-            <Text style={styles.settingDesc}>Warm, direct, reflective</Text>
+            <Text style={styles.settingDesc}>
+              Warm, direct, reflective
+            </Text>
           </View>
           <Text style={styles.settingValue}>Active</Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.divider} />
 
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => router.push('/pricing')}
-          activeOpacity={0.85}
-        >
-          <View>
-            <Text style={styles.settingTitle}>Subscription</Text>
-            <Text style={styles.settingDesc}>Manage your plan</Text>
-          </View>
-          <Text style={styles.settingArrow}>→</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInUp.duration(500).delay(280)} style={styles.settingRow}>
+          <TouchableOpacity
+            style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+            onPress={() => router.push('/pricing')}
+            activeOpacity={0.85}
+          >
+            <View>
+              <Text style={styles.settingTitle}>Subscription</Text>
+              <Text style={styles.settingDesc}>Manage your plan</Text>
+            </View>
+            <Text style={styles.settingArrow}>→</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         <View style={styles.divider} />
 
-        <View style={styles.settingRow}>
+        <Animated.View entering={FadeInUp.duration(500).delay(320)} style={styles.settingRow}>
           <View>
             <Text style={styles.settingTitle}>Privacy</Text>
-            <Text style={styles.settingDesc}>Export or delete data</Text>
+            <Text style={styles.settingDesc}>
+              Export or delete data
+            </Text>
           </View>
           <Text style={styles.settingArrow}>→</Text>
-        </View>
+        </Animated.View>
       </View>
 
-      <View style={styles.privacyCard}>
+      <Animated.View entering={FadeInUp.duration(500).delay(400)} style={styles.privacyCard}>
         <Text style={styles.privacyIcon}>🛡️</Text>
         <View>
           <Text style={styles.privacyTitle}>Privacy First</Text>
           <Text style={styles.privacyDesc}>Your data is never sold. Ever.</Text>
         </View>
-      </View>
+      </Animated.View>
 
-      <TouchableOpacity style={styles.deleteBtn}>
-        <Text style={styles.deleteText}>Delete Account</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.duration(500).delay(450)}>
+        <TouchableOpacity style={styles.deleteBtn}>
+          <Text style={styles.deleteText}>Delete Account</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }

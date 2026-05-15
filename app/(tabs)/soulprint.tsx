@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
 
@@ -115,156 +115,173 @@ export default function SoulprintScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Your identity map</Text>
-          <Text style={styles.headerTitle}>Gy's Soulprint</Text>
+      <Animated.View entering={FadeInUp.duration(500)}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Your identity map</Text>
+            <Text style={styles.headerTitle}>Gy's Soulprint</Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <Text style={styles.headerIconText}>✦</Text>
+          </View>
         </View>
-        <View style={styles.headerIcon}>
-          <Text style={styles.headerIconText}>✦</Text>
-        </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.intro}>
-        We see you, Gy. Here's what your emotional blueprint looks like — the patterns that shape how you connect, decide, and grow.
-      </Text>
-
-      <LinearGradient
-        colors={theme.gradients.hero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroGlow} />
-        <Text style={styles.heroLabel}>Core Archetype</Text>
-        <Text style={styles.heroTitle}>The Quiet Strategist</Text>
-        <Text style={styles.heroDesc}>
-          You process deeply, move carefully, and often understand the room before you explain yourself.
+      <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+        <Text style={styles.intro}>
+          We see you, Gy. Here's what your emotional blueprint looks like — the patterns that shape how you connect, decide, and grow.
         </Text>
-        <View style={styles.heroBadges}>
-          {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
-            <View key={badge} style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{badge}</Text>
-            </View>
-          ))}
-        </View>
-      </LinearGradient>
+      </Animated.View>
 
-      <View style={styles.blueprintHeader}>
-        <Text style={styles.blueprintTitle}>Your Blueprint</Text>
-        <Text style={styles.blueprintSub}>
-          {isPremium ? 'Tap to explore' : '2 of 6 unlocked'}
-        </Text>
-      </View>
+      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+        <LinearGradient
+          colors={theme.gradients.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroGlow} />
+          <Text style={styles.heroLabel}>Core Archetype</Text>
+          <Text style={styles.heroTitle}>The Quiet Strategist</Text>
+          <Text style={styles.heroDesc}>
+            You process deeply, move carefully, and often understand the room before you explain yourself.
+          </Text>
+          <View style={styles.heroBadges}>
+            {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
+              <View key={badge} style={styles.heroBadge}>
+                <Text style={styles.heroBadgeText}>{badge}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+        <View style={styles.blueprintHeader}>
+          <Text style={styles.blueprintTitle}>Your Blueprint</Text>
+          <Text style={styles.blueprintSub}>
+            {isPremium ? 'Tap to explore' : '2 of 6 unlocked'}
+          </Text>
+        </View>
+      </Animated.View>
 
       <View style={styles.sections}>
-        {sections.map((section) => {
+        {sections.map((section, index) => {
           const isExpanded = expandedId === section.id;
           const isLocked = section.locked && !isPremium;
 
           return (
-            <View key={section.id}>
-              <TouchableOpacity
-                onPress={() => toggleSection(section.id, section.locked)}
-                activeOpacity={0.85}
-                style={[
-                  styles.sectionBtn,
-                  {
-                    backgroundColor: isLocked
-                      ? 'rgba(232,221,251,0.5)'
-                      : isExpanded
-                      ? 'rgba(255,255,255,0.9)'
-                      : 'rgba(255,255,255,0.74)',
-                    borderColor: isLocked
-                      ? 'rgba(139,114,207,0.15)'
-                      : isExpanded
-                      ? 'rgba(139,114,207,0.18)'
-                      : 'rgba(31,33,48,0.08)',
-                    opacity: isLocked ? 0.65 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.sectionRow}>
-                  <LinearGradient
-                    colors={section.gradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.sectionIconBg}
-                  >
-                    <Text style={styles.sectionIcon}>
-                      {isLocked ? '🔒' : section.emoji}
-                    </Text>
-                  </LinearGradient>
-                  <View style={styles.sectionText}>
-                    <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Animated.View
+              key={section.id}
+              entering={FadeInUp.duration(500).delay(250 + index * 80)}
+            >
+              <View>
+                <TouchableOpacity
+                  onPress={() => toggleSection(section.id, section.locked)}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.sectionBtn,
+                    {
+                      backgroundColor: isLocked
+                        ? 'rgba(232,221,251,0.5)'
+                        : isExpanded
+                        ? 'rgba(255,255,255,0.9)'
+                        : 'rgba(255,255,255,0.74)',
+                      borderColor: isLocked
+                        ? 'rgba(139,114,207,0.15)'
+                        : isExpanded
+                        ? 'rgba(139,114,207,0.18)'
+                        : 'rgba(31,33,48,0.08)',
+                      opacity: isLocked ? 0.65 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.sectionRow}>
+                    <LinearGradient
+                      colors={section.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.sectionIconBg}
+                    >
+                      <Text style={styles.sectionIcon}>
+                        {isLocked ? '🔒' : section.emoji}
+                      </Text>
+                    </LinearGradient>
+                    <View style={styles.sectionText}>
+                      <Text style={styles.sectionTitle}>{section.title}</Text>
+                      {isLocked ? (
+                        <Text style={styles.sectionPreview}>
+                          Unlock with Premium to reveal this pattern.
+                        </Text>
+                      ) : !isExpanded ? (
+                        <Text style={styles.sectionPreview} numberOfLines={1}>
+                          {section.preview}
+                        </Text>
+                      ) : (
+                        <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+                      )}
+                    </View>
                     {isLocked ? (
-                      <Text style={styles.sectionPreview}>
-                        Unlock with Premium to reveal this pattern.
-                      </Text>
-                    ) : !isExpanded ? (
-                      <Text style={styles.sectionPreview} numberOfLines={1}>
-                        {section.preview}
-                      </Text>
+                      <View style={styles.lockedBadge}>
+                        <Text style={styles.lockedBadgeText}>Locked</Text>
+                      </View>
                     ) : (
-                      <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+                      <Text style={styles.expandArrow}>{isExpanded ? '▾' : '▸'}</Text>
                     )}
                   </View>
-                  {isLocked ? (
-                    <View style={styles.lockedBadge}>
-                      <Text style={styles.lockedBadgeText}>Locked</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.expandArrow}>{isExpanded ? '▾' : '▸'}</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              {isExpanded && !isLocked && (
-                <Animated.View entering={FadeInUp.duration(300)} style={styles.expandedContent}>
-                  <View style={styles.detailCard}>
-                    <Text style={styles.detailLabel}>Core Pattern</Text>
-                    <Text style={styles.detailText}>{section.content.core}</Text>
-                  </View>
-                  <View style={[styles.detailCard, { backgroundColor: 'rgba(255,255,255,0.72)' }]}>
-                    <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>How It Shows</Text>
-                    <Text style={[styles.detailText, { color: theme.colors.muted }]}>{section.content.pattern}</Text>
-                  </View>
-                  <View style={[styles.detailCard, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.12)' }]}>
-                    <Text style={styles.detailLabel}>Hidden Insight</Text>
-                    <Text style={styles.detailText}>{section.content.insight}</Text>
-                  </View>
-                  <View style={[styles.detailCard, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
-                    <Text style={[styles.detailLabel, { color: '#16A7A0' }]}>Your Affirmation</Text>
-                    <Text style={[styles.detailText, { fontWeight: '500', fontStyle: 'italic' }]}>
-                      "{section.content.affirmation}"
-                    </Text>
-                  </View>
-                </Animated.View>
-              )}
-            </View>
+                {isExpanded && !isLocked && (
+                  <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.expandedContent}>
+                    <View style={styles.detailCard}>
+                      <Text style={styles.detailLabel}>Core Pattern</Text>
+                      <Text style={styles.detailText}>{section.content.core}</Text>
+                    </View>
+                    <View style={[styles.detailCard, { backgroundColor: 'rgba(255,255,255,0.72)' }]}>
+                      <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>How It Shows</Text>
+                      <Text style={[styles.detailText, { color: theme.colors.muted }]}>{section.content.pattern}</Text>
+                    </View>
+                    <View style={[styles.detailCard, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.12)' }]}>
+                      <Text style={styles.detailLabel}>Hidden Insight</Text>
+                      <Text style={styles.detailText}>{section.content.insight}</Text>
+                    </View>
+                    <View style={[styles.detailCard, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
+                      <Text style={[styles.detailLabel, { color: '#16A7A0' }]}>Your Affirmation</Text>
+                      <Text style={[styles.detailText, { fontWeight: '500', fontStyle: 'italic' }]}>
+                        "{section.content.affirmation}"
+                      </Text>
+                    </View>
+                  </Animated.View>
+                )}
+              </View>
+            </Animated.View>
           );
         })}
       </View>
 
       {!isPremium && (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/pricing')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.unlockBtn}
+        <Animated.View entering={FadeInUp.duration(500).delay(750)}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/pricing')}
           >
-            <Text style={styles.unlockBtnText}>✦ Unlock your full Soulprint</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={theme.gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.unlockBtn}
+            >
+              <Text style={styles.unlockBtnText}>✦ Unlock your full Soulprint</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
-      <TouchableOpacity onPress={() => router.push('/snapshot')}>
-        <Text style={styles.snapshotLink}>View Free Snapshot</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.duration(500).delay(800)}>
+        <TouchableOpacity onPress={() => router.push('/snapshot')}>
+          <Text style={styles.snapshotLink}>View Free Snapshot</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }

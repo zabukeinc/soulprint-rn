@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeInUp,
+  FadeIn,
+  ZoomIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 
 const patternCards = [
@@ -16,16 +24,28 @@ export default function FirstMirrorScreen() {
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const floatY = useSharedValue(0);
+  useEffect(() => {
+    floatY.value = withRepeat(
+      withTiming(-4, { duration: 1500 }),
+      -1,
+      true
+    );
+  }, []);
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.center}>
-        <View style={styles.iconBg}>
+      <Animated.View entering={FadeInUp.duration(600)} style={styles.center}>
+        <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
           <Text style={styles.icon}>✦</Text>
-        </View>
+        </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
         <Text style={styles.desc}>
@@ -39,9 +59,9 @@ export default function FirstMirrorScreen() {
       >
         <View style={styles.heroGlow} />
         <View style={styles.heroRow}>
-          <View style={styles.heroAvatar}>
+          <Animated.View style={[styles.heroAvatar, floatStyle]}>
             <Text style={styles.heroAvatarEmoji}>🌿</Text>
-          </View>
+          </Animated.View>
           <View>
             <Text style={styles.heroLabel}>Your Core Archetype</Text>
             <Text style={styles.heroTitle}>The Quiet Strategist</Text>
@@ -64,7 +84,7 @@ export default function FirstMirrorScreen() {
         {patternCards.map((card, i) => (
           <Animated.View
             key={card.title}
-            entering={FadeInUp.delay(200 + i * 50).duration(400)}
+            entering={FadeInUp.delay(200 + i * 50).duration(500)}
             style={styles.patternCard}
           >
             <Text style={styles.patternTitle}>{card.title}</Text>
@@ -115,36 +135,40 @@ export default function FirstMirrorScreen() {
         <Text style={styles.deepDiveText}>
           Your full Soulprint explores the parts of you that may need more language: love pattern, shadow self, career energy, growth direction, and your 12-month theme.
         </Text>
+        <Animated.View entering={FadeInUp.delay(600).duration(500)}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/pricing')}
+          >
+            <LinearGradient
+              colors={theme.gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.deepDiveButton}
+            >
+              <Text style={styles.deepDiveButtonText}>
+                Deep dive into your Soulprint →
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(700).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push('/pricing')}
+          onPress={() => router.push('/(tabs)/today')}
         >
           <LinearGradient
             colors={theme.gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.deepDiveButton}
+            style={styles.mainButton}
           >
-            <Text style={styles.deepDiveButtonText}>
-              Deep dive into your Soulprint →
-            </Text>
+            <Text style={styles.mainButtonText}>Continue to Today</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
-
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(tabs)/today')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.mainButton}
-        >
-          <Text style={styles.mainButtonText}>Continue to Today</Text>
-        </LinearGradient>
-      </TouchableOpacity>
     </ScrollView>
   );
 }

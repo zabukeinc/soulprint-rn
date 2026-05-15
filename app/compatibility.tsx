@@ -5,8 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeIn,
   FadeInUp,
+  ZoomIn,
+  Easing,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
@@ -21,6 +24,10 @@ export default function CompatibilityScreen() {
   const [showResult, setShowResult] = useState(false);
 
   const progress = useSharedValue(0);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
+  }));
 
   const handleReveal = () => {
     if (name.trim() && selectedSign) {
@@ -42,12 +49,16 @@ export default function CompatibilityScreen() {
   if (step === 'loading') {
     return (
       <View style={styles.loadingContainer}>
-        <Animated.View entering={FadeIn} style={styles.loadingCenter}>
-          <View style={styles.loadingIconBg}>
+        <Animated.View entering={FadeIn.duration(500)} style={styles.loadingCenter}>
+          <Animated.View style={[styles.loadingIconBg, pulseStyle]}>
             <Text style={styles.loadingIcon}>✦</Text>
-          </View>
-          <Text style={styles.loadingTitle}>Reading the space between you...</Text>
-          <Text style={styles.loadingSub}>This takes feeling, not just logic</Text>
+          </Animated.View>
+          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
+            <Text style={styles.loadingTitle}>Reading the space between you...</Text>
+          </Animated.View>
+          <Animated.View entering={FadeInUp.delay(350).duration(500)}>
+            <Text style={styles.loadingSub}>This takes feeling, not just logic</Text>
+          </Animated.View>
         </Animated.View>
       </View>
     );
@@ -60,42 +71,46 @@ export default function CompatibilityScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerLabel}>Compatibility</Text>
           <View style={styles.backButtonPlaceholder} />
-        </View>
+        </Animated.View>
 
         {showResult && (
           <Animated.View entering={FadeIn.duration(500)}>
-            <View style={styles.resultCenter}>
+            <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.resultCenter}>
               <Text style={styles.resultLabel}>Compatibility Reading</Text>
               <Text style={styles.resultTitle}>Gy & {name}</Text>
               <Text style={styles.resultSub}>Aquarius Sun · {selectedSign}</Text>
-            </View>
+            </Animated.View>
 
-            <LinearGradient
-              colors={theme.gradients.compatibility}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.scoreCard}
+            <Animated.View
+              entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
             >
-              <View style={styles.scoreGlow} />
-              <View style={styles.scoreContent}>
-                <Text style={styles.scoreLabel}>Emotional Match</Text>
-                <Text style={styles.scoreValue}>74%</Text>
-                <Text style={styles.scoreSub}>Strong potential with room to grow</Text>
-              </View>
-              <View style={styles.scoreBarBg}>
-                <Animated.View
-                  style={[styles.scoreBarFill, barStyle]}
-                />
-              </View>
-            </LinearGradient>
+              <LinearGradient
+                colors={theme.gradients.compatibility}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.scoreCard}
+              >
+                <View style={styles.scoreGlow} />
+                <Animated.View entering={ZoomIn.delay(400).duration(300)} style={styles.scoreContent}>
+                  <Text style={styles.scoreLabel}>Emotional Match</Text>
+                  <Text style={styles.scoreValue}>74%</Text>
+                  <Text style={styles.scoreSub}>Strong potential with room to grow</Text>
+                </Animated.View>
+                <View style={styles.scoreBarBg}>
+                  <Animated.View
+                    style={[styles.scoreBarFill, barStyle]}
+                  />
+                </View>
+              </LinearGradient>
+            </Animated.View>
 
-            <View style={styles.resultSection}>
+            <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.resultSection}>
               <View style={styles.resultSectionHeader}>
                 <Text style={styles.resultSectionEmoji}>🧲</Text>
                 <Text style={styles.resultSectionTitle}>What Draws You Together</Text>
@@ -103,9 +118,9 @@ export default function CompatibilityScreen() {
               <Text style={styles.resultSectionText}>
                 {name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth. The attraction isn't just surface — it's two different kinds of intensity finding a rhythm.
               </Text>
-            </View>
+            </Animated.View>
 
-            <View style={styles.resultSection}>
+            <Animated.View entering={FadeInUp.delay(450).duration(500)} style={styles.resultSection}>
               <View style={styles.resultSectionHeader}>
                 <Text style={styles.resultSectionEmoji}>⚡</Text>
                 <Text style={styles.resultSectionTitle}>Where Friction Lives</Text>
@@ -113,9 +128,9 @@ export default function CompatibilityScreen() {
               <Text style={styles.resultSectionText}>
                 You process before you respond. They react and then reflect. This timing difference can feel like indifference to you, and like withholding to them. Naming this gap early prevents it from becoming resentment.
               </Text>
-            </View>
+            </Animated.View>
 
-            <View style={[styles.resultSection, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
+            <Animated.View entering={FadeInUp.delay(550).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
               <View style={styles.resultSectionHeader}>
                 <Text style={styles.resultSectionEmoji}>🌱</Text>
                 <Text style={styles.resultSectionTitle}>Growth Together</Text>
@@ -123,13 +138,13 @@ export default function CompatibilityScreen() {
               <Text style={styles.resultSectionText}>
                 The best version of this connection isn't about avoiding friction — it's about not going silent when it arrives. If you can both say the hard thing early, this becomes a relationship that deepens with time instead of just continuing.
               </Text>
-            </View>
+            </Animated.View>
 
-            <View style={[styles.resultSection, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.15)' }]}>
+            <Animated.View entering={FadeInUp.delay(650).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.15)' }]}>
               <Text style={styles.quoteText}>
                 "Compatibility isn't about being the same. It's about whether you can grow in the same direction without losing yourself."
               </Text>
-            </View>
+            </Animated.View>
           </Animated.View>
         )}
       </ScrollView>
@@ -143,26 +158,26 @@ export default function CompatibilityScreen() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Compatibility</Text>
         <View style={styles.backButtonPlaceholder} />
-      </View>
+      </Animated.View>
 
-      <View style={styles.center}>
-        <View style={[styles.iconBg, { backgroundColor: '#DDEDDC' }]}>
+      <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.center}>
+        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={[styles.iconBg, { backgroundColor: '#DDEDDC' }]}>
           <Text style={styles.icon}>🔗</Text>
-        </View>
+        </Animated.View>
         <Text style={styles.label}>Decode Chemistry</Text>
         <Text style={styles.title}>How do you two connect?</Text>
         <Text style={styles.desc}>
           Enter their name and zodiac sign. We'll show you what happens when your patterns meet theirs.
         </Text>
-      </View>
+      </Animated.View>
 
-      <View style={styles.inputSection}>
+      <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
         <Text style={styles.inputLabel}>Their name</Text>
         <TextInput
           value={name}
@@ -171,47 +186,54 @@ export default function CompatibilityScreen() {
           placeholderTextColor={theme.colors.muted + '80'}
           style={styles.input}
         />
-      </View>
+      </Animated.View>
 
-      <View style={styles.inputSection}>
+      <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
         <Text style={styles.inputLabel}>Their zodiac sign</Text>
         <View style={styles.signGrid}>
-          {zodiacSigns.map((sign) => (
-            <TouchableOpacity
+          {zodiacSigns.map((sign, i) => (
+            <Animated.View
               key={sign}
-              onPress={() => setSelectedSign(sign)}
-              style={[
-                styles.signBtn,
-                selectedSign === sign && styles.signBtnActive,
-              ]}
+              entering={FadeInUp.delay(400 + i * 30).duration(300)}
+              style={{ width: '23%' }}
             >
-              <Text
+              <TouchableOpacity
+                onPress={() => setSelectedSign(sign)}
                 style={[
-                  styles.signBtnText,
-                  selectedSign === sign && styles.signBtnTextActive,
+                  styles.signBtn,
+                  selectedSign === sign && styles.signBtnActive,
                 ]}
               >
-                {sign}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.signBtnText,
+                    selectedSign === sign && styles.signBtnTextActive,
+                  ]}
+                >
+                  {sign}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
         </View>
-      </View>
+      </Animated.View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={!name.trim() || !selectedSign}
-        onPress={handleReveal}
-      >
-        <LinearGradient
-          colors={name.trim() && selectedSign ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.button, (!name.trim() || !selectedSign) && styles.buttonDisabled]}
+      <Animated.View entering={FadeInUp.delay(700).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={!name.trim() || !selectedSign}
+          onPress={handleReveal}
         >
-          <Text style={styles.buttonText}>Reveal Compatibility</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={name.trim() && selectedSign ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.button, (!name.trim() || !selectedSign) && styles.buttonDisabled]}
+          >
+            <Text style={styles.buttonText}>Reveal Compatibility</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -334,7 +356,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   signBtn: {
-    width: '23%',
+    width: '100%',
     paddingVertical: 8,
     borderRadius: 12,
     alignItems: 'center',

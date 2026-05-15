@@ -19,17 +19,17 @@ export default function WelcomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.inner}>
-        <Animated.View entering={FadeIn.duration(600)}>
+        <Animated.View entering={FadeInUp.duration(600)}>
           <IllustrationLogo />
         </Animated.View>
 
-        <View style={styles.textCenter}>
+        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.textCenter}>
           <Text style={styles.subtitle}>Welcome to your inner map</Text>
           <Text style={styles.title}>Soulprint</Text>
           <Text style={styles.description}>
             A gentle space to understand your patterns, your emotional rhythm, and the parts of yourself that are still learning how to be heard.
           </Text>
-        </View>
+        </Animated.View>
 
         <Animated.View
           entering={FadeInUp.delay(300).duration(500)}
@@ -42,19 +42,21 @@ export default function WelcomeScreen() {
         </Animated.View>
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(onboarding)/birth-date')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(onboarding)/birth-date')}
         >
-          <Text style={styles.buttonText}>Begin gently</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Begin gently</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }

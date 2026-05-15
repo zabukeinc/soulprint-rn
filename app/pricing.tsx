@@ -2,7 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeInUp,
+  FadeIn,
+  FadeOut,
+  FadeOutUp,
+  SlideInRight,
+  SlideOutLeft,
+  ZoomIn,
+  Layout,
+  Easing,
+} from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 
 const features = {
@@ -32,21 +42,26 @@ export default function PricingScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeIn.duration(400)}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.center}>
+      <Animated.View
+        entering={FadeInUp.duration(500)}
+        style={styles.center}
+      >
         <Text style={styles.title}>Choose your journey</Text>
         <Text style={styles.subtitle}>Go deeper into your emotional blueprint</Text>
       </Animated.View>
 
+      {/* Toggle — flattened structure, text sits directly on the gradient or bg */}
       <View style={styles.toggle}>
         <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => setSelected('monthly')}
-          style={[styles.toggleBtn, selected === 'monthly' && styles.toggleBtnActive]}
+          style={styles.toggleBtnBase}
         >
           {selected === 'monthly' ? (
             <LinearGradient
@@ -58,12 +73,16 @@ export default function PricingScreen() {
               <Text style={styles.toggleTextActive}>Monthly</Text>
             </LinearGradient>
           ) : (
-            <Text style={styles.toggleText}>Monthly</Text>
+            <View style={styles.toggleInactive}>
+              <Text style={styles.toggleText}>Monthly</Text>
+            </View>
           )}
         </TouchableOpacity>
+
         <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => setSelected('annually')}
-          style={[styles.toggleBtn, selected === 'annually' && styles.toggleBtnActive]}
+          style={styles.toggleBtnBase}
         >
           {selected === 'annually' ? (
             <LinearGradient
@@ -78,68 +97,90 @@ export default function PricingScreen() {
               </View>
             </LinearGradient>
           ) : (
-            <Text style={styles.toggleText}>Annually</Text>
+            <View style={styles.toggleInactive}>
+              <Text style={styles.toggleText}>Annually</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(100)} style={styles.planCard}>
-        <View style={styles.planHeader}>
-          <View>
-            <Text style={styles.planLabel}>Selected plan</Text>
-            <Text style={styles.planName}>
-              {selected === 'monthly' ? 'Monthly' : 'Annually'}
-            </Text>
+      {/* AnimatePresence-like content switch */}
+      <Animated.View
+        key={selected}
+        entering={FadeInUp.duration(300).easing(Easing.out(Easing.cubic))}
+        exiting={FadeOutUp.duration(200)}
+        layout={Layout.easing(Easing.out(Easing.cubic)).duration(300)}
+        style={styles.planWrapper}
+      >
+        <LinearGradient
+          colors={theme.gradients.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.planCard}
+        >
+          <View style={styles.planGlow} />
+          <View style={styles.planHeader}>
+            <View>
+              <Text style={styles.planLabel}>Selected plan</Text>
+              <Text style={styles.planName}>{selected}</Text>
+            </View>
+            <View style={styles.planPriceBox}>
+              <Text style={styles.planPrice}>${selected === 'monthly' ? '9' : '6'}</Text>
+              <Text style={styles.planPriceSub}>per month</Text>
+            </View>
           </View>
-          <View style={styles.planPriceBox}>
-            <Text style={styles.planPrice}>${selected === 'monthly' ? '9' : '6'}</Text>
-            <Text style={styles.planPriceSub}>per month</Text>
-          </View>
-        </View>
 
-        {selected === 'annually' && (
-          <View style={styles.yearlyInfo}>
-            <Text style={styles.yearlyText}>
-              <Text style={styles.yearlyBold}>$72 billed yearly</Text>
-              <Text style={styles.yearlyMuted}> (Save $36)</Text>
-            </Text>
-          </View>
-        )}
+          {selected === 'annually' && (
+            <Animated.View
+              entering={ZoomIn.duration(300)}
+              style={styles.yearlyInfo}
+            >
+              <Text style={styles.yearlyText}>
+                <Text style={styles.yearlyBold}>$72 billed yearly</Text>
+                <Text style={styles.yearlyMuted}> (Save $36)</Text>
+              </Text>
+            </Animated.View>
+          )}
 
-        <View style={styles.cancelRow}>
-          <View style={styles.cancelDot} />
-          <Text style={styles.cancelText}>Cancel anytime</Text>
+          <View style={styles.cancelRow}>
+            <View style={styles.cancelDot} />
+            <Text style={styles.cancelText}>Cancel anytime</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.featuresCard}>
+          <Text style={styles.featuresTitle}>What you unlock:</Text>
+          {features[selected].map((item, i) => (
+            <Animated.View
+              key={`${selected}-${item}`}
+              entering={FadeInUp.delay(i * 80).duration(400)}
+              style={styles.featureRow}
+            >
+              <View style={styles.featureDot} />
+              <Text style={styles.featureText}>{item}</Text>
+            </Animated.View>
+          ))}
         </View>
       </Animated.View>
 
-      <View style={styles.featuresCard}>
-        <Text style={styles.featuresTitle}>What you unlock:</Text>
-        {features[selected].map((item, i) => (
-          <Animated.View
-            key={item}
-            entering={FadeInUp.delay(i * 50)}
-            style={styles.featureRow}
+      <Animated.View entering={FadeInUp.delay(200).duration(500)}>
+        <TouchableOpacity activeOpacity={0.85}>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ctaButton}
           >
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>{item}</Text>
-          </Animated.View>
-        ))}
-      </View>
+            <Text style={styles.ctaText}>Start my journey</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <TouchableOpacity activeOpacity={0.85}>
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.ctaButton}
-        >
-          <Text style={styles.ctaText}>Start my journey</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.secondaryCta}>Continue with free snapshot</Text>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.secondaryCta}>Continue with free snapshot</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -152,7 +193,6 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 24,
   },
-  header: { marginBottom: 16 },
   backButton: {
     width: 36,
     height: 36,
@@ -162,6 +202,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(31,33,48,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
     ...theme.shadows.warmSoft,
   },
   backIcon: { fontSize: 16, color: theme.colors.ink },
@@ -184,7 +225,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(31,33,48,0.08)',
     marginBottom: 20,
   },
-  toggleBtn: {
+  toggleBtnBase: {
     flex: 1,
     borderRadius: 20,
     overflow: 'hidden',
@@ -193,30 +234,49 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 20,
     position: 'relative',
+    minHeight: 40,
+  },
+  toggleInactive: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
   },
   toggleText: { fontSize: 12, fontWeight: '500', color: theme.colors.muted },
   toggleTextActive: { fontSize: 12, fontWeight: '500', color: '#FFFFFF' },
-  toggleBtnActive: {},
   saveBadge: {
     position: 'absolute',
-    top: -8,
-    right: 4,
+    top: -10,
+    right: -4,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
     backgroundColor: '#F4C7D2',
+    zIndex: 10,
   },
   saveBadgeText: { fontSize: 8, fontWeight: '800', color: '#8B72CF' },
+  planWrapper: {},
   planCard: {
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     minHeight: 180,
-    backgroundColor: '#FFFDF7',
+    overflow: 'hidden',
+    position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
     ...theme.shadows.warmSoft,
+  },
+  planGlow: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    right: -30,
+    top: -30,
   },
   planHeader: {
     flexDirection: 'row',
@@ -224,7 +284,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  planLabel: { fontSize: 10, color: theme.colors.muted, textTransform: 'uppercase', marginBottom: 2 },
+  planLabel: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
   planName: {
     fontFamily: theme.fonts.serif,
     fontSize: 24,
@@ -261,8 +327,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(31,33,48,0.08)',
     ...theme.shadows.warmSm,
   },
-  featuresTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 12 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  featuresTitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: theme.colors.ink,
+    marginBottom: 12,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   featureDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16A7A0' },
   featureText: { fontSize: 12, color: theme.colors.muted },
   ctaButton: {

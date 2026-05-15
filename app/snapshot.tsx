@@ -2,7 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  ZoomIn,
+  Easing,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 
 const patternCards = [
@@ -15,24 +23,28 @@ const patternCards = [
 export default function SnapshotScreen() {
   const router = useRouter();
 
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: withRepeat(withTiming(-4, { duration: 1500 }), -1, true) }],
+  }));
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Snapshot</Text>
         <View style={styles.backButtonPlaceholder} />
-      </View>
+      </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.center}>
-        <View style={styles.iconBg}>
+      <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.center}>
+        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={styles.iconBg}>
           <Text style={styles.icon}>✦</Text>
-        </View>
+        </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
         <Text style={styles.desc}>
@@ -40,40 +52,47 @@ export default function SnapshotScreen() {
         </Text>
       </Animated.View>
 
-      <LinearGradient
-        colors={theme.gradients.firstMirror}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
+      <Animated.View
+        entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
       >
-        <View style={styles.heroGlow} />
-        <View style={styles.heroRow}>
-          <View style={styles.heroAvatar}>
-            <Text style={styles.heroAvatarEmoji}>🌿</Text>
-          </View>
-          <View>
-            <Text style={styles.heroLabel}>Your Core Archetype</Text>
-            <Text style={styles.heroTitle}>The Quiet Strategist</Text>
-          </View>
-        </View>
-        <Text style={styles.heroDesc}>
-          You tend to understand things deeply before you explain them. People may see calmness, but your inner world is usually more active than it looks.
-        </Text>
-        <View style={styles.badges}>
-          {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
-            <View key={badge} style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
+        <LinearGradient
+          colors={theme.gradients.firstMirror}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroGlow} />
+          <View style={styles.heroRow}>
+            <Animated.View style={[styles.heroAvatar, floatStyle]}>
+              <Text style={styles.heroAvatarEmoji}>🌿</Text>
+            </Animated.View>
+            <View>
+              <Text style={styles.heroLabel}>Your Core Archetype</Text>
+              <Text style={styles.heroTitle}>The Quiet Strategist</Text>
             </View>
-          ))}
-        </View>
-      </LinearGradient>
+          </View>
+          <Text style={styles.heroDesc}>
+            You tend to understand things deeply before you explain them. People may see calmness, but your inner world is usually more active than it looks.
+          </Text>
+          <View style={styles.badges}>
+            {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
+              <View key={badge} style={styles.badge}>
+                <Text style={styles.badgeText}>{badge}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
+      </Animated.View>
 
-      <Text style={styles.sectionTitle}>What this may reveal</Text>
+      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
+        <Text style={styles.sectionTitle}>What this may reveal</Text>
+      </Animated.View>
+
       <View style={styles.grid}>
         {patternCards.map((card, i) => (
           <Animated.View
             key={card.title}
-            entering={FadeInUp.delay(200 + i * 50).duration(400)}
+            entering={FadeInUp.delay(350 + i * 50).duration(400)}
             style={styles.patternCard}
           >
             <Text style={styles.patternTitle}>{card.title}</Text>
@@ -82,28 +101,32 @@ export default function SnapshotScreen() {
         ))}
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/pricing')}
-      >
-        <LinearGradient
-          colors={theme.gradients.primary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
+      <Animated.View entering={FadeInUp.delay(600).duration(400).easing(Easing.out(Easing.cubic))}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/pricing')}
         >
-          <Text style={styles.buttonText}>Deep dive into your Soulprint →</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={theme.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Deep dive into your Soulprint →</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(tabs)/today')}
-      >
-        <View style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Continue to Today</Text>
-        </View>
-      </TouchableOpacity>
+      <Animated.View entering={FadeInUp.delay(700).duration(400).easing(Easing.out(Easing.cubic))}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(tabs)/today')}
+        >
+          <View style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Continue to Today</Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }
