@@ -139,6 +139,13 @@ export function useEngagement() {
     return Math.max(0, required - state.reflections);
   }, [state.reflections]);
 
+  const clearAllData = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    setState({ ...DEFAULT_STATE });
+  }, []);
+
   const getStreakDays = useCallback(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -161,5 +168,6 @@ export function useEngagement() {
     canUnlock,
     reflectionsNeeded,
     getStreakDays,
+    clearAllData,
   };
 }

@@ -1,13 +1,33 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
+import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { isPremium, toggleTier } = useTier();
+  const engagement = useEngagement();
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will erase all your reflections, moods, and progress. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await engagement?.clearAllData?.();
+            router.replace('/(onboarding)/welcome');
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ScrollView
@@ -169,7 +189,7 @@ export default function ProfileScreen() {
       </Animated.View>
 
       <Animated.View entering={FadeInUp.duration(500).delay(450)}>
-        <TouchableOpacity style={styles.deleteBtn}>
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -183,7 +203,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   header: { marginBottom: 20 },
   headerLabel: { fontSize: 12, color: theme.colors.muted, letterSpacing: 0.5 },

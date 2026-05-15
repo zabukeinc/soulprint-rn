@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeInUp, FadeInDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'react-native-reanimated';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 
@@ -133,14 +133,20 @@ export default function TodayScreen() {
       showsVerticalScrollIndicator={false}
     >
       {showToast && (
-        <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(250)} style={styles.toast}>
+        <Animated.View
+          entering={FadeInDown.duration(300).easing(Easing.out(Easing.cubic))}
+          exiting={FadeOutUp.duration(250)}
+          style={styles.toast}
+        >
           <LinearGradient
             colors={theme.gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.toastInner}
           >
-            <Text style={styles.toastCheck}>✓</Text>
+            <View style={styles.toastIconBg}>
+              <Text style={styles.toastCheck}>✓</Text>
+            </View>
             <Text style={styles.toastText}>{toastMessage}</Text>
           </LinearGradient>
         </Animated.View>
@@ -401,23 +407,37 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
-  toast: { marginBottom: 16 },
+  toast: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    right: 20,
+    zIndex: 100,
+  },
   toastInner: {
     borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    shadowColor: 'rgba(139,114,207,0.25)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
+    gap: 10,
+    shadowColor: 'rgba(139,114,207,0.3)',
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 30,
     shadowOpacity: 1,
-    elevation: 6,
+    elevation: 10,
   },
-  toastCheck: { fontSize: 18, color: '#FFFFFF' },
+  toastIconBg: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastCheck: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
   toastText: { fontSize: 13, color: '#FFFFFF', fontWeight: '500', flex: 1 },
   header: {
     flexDirection: 'row',

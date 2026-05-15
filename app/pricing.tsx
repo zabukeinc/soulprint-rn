@@ -93,7 +93,7 @@ export default function PricingScreen() {
             >
               <Text style={styles.toggleTextActive}>Annually</Text>
               <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>Save</Text>
+                <Text style={styles.saveBadgeText}>Save!</Text>
               </View>
             </LinearGradient>
           ) : (
@@ -228,7 +228,6 @@ const styles = StyleSheet.create({
   toggleBtnBase: {
     flex: 1,
     borderRadius: 20,
-    overflow: 'hidden',
   },
   toggleGradient: {
     paddingVertical: 10,
@@ -248,13 +247,19 @@ const styles = StyleSheet.create({
   toggleTextActive: { fontSize: 12, fontWeight: '500', color: '#FFFFFF' },
   saveBadge: {
     position: 'absolute',
-    top: -10,
-    right: -4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    top: 6,
+    right: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     backgroundColor: '#F4C7D2',
-    zIndex: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    shadowColor: 'rgba(244,199,210,0.5)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    shadowOpacity: 1,
+    elevation: 3,
   },
   saveBadgeText: { fontSize: 8, fontWeight: '800', color: '#8B72CF' },
   planWrapper: {},
