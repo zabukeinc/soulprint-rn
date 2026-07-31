@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astrovy Space — Brand Guidelines</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --deep-space:       #0F0F23;
+      --royal-violet:     #7B61FF;
+      --soft-lavender:    #B39DFF;
+      --pastel-lilac:     #E2C6FF;
+      --light-bg:         #F3F0FF;
+      --cosmic-gray:      #6B6B7D;
+      --white:            #FFFFFF;
+
+      --font-heading: 'Poppins', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: #FAFAFE;
+      color: var(--deep-space);
+      line-height: 1.6;
+    }
+
+    /* ─── Nav ──────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(123,97,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+    }
+
+    .nav-logo {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--deep-space);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo span {
+      color: var(--royal-violet);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--cosmic-gray);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--royal-violet); }
+
+    .nav-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--royal-violet);
+      background: var(--light-bg);
+      border: 1px solid var(--pastel-lilac);
+      padding: 4px 12px;
+      border-radius: 100px;
+    }
+
+    /* ─── Page layout ──────────────────────────────── */
+    .page { padding-top: 64px; }
+
+    section {
+      padding: 56px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ─── Hero ─────────────────────────────────────── */
+    .hero {
+      min-height: 60vh;
+      background: var(--deep-space);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      padding: 0 48px;
+      max-width: 100%;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(123,97,255,0.25) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-stars {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1.5px 1.5px at 10% 15%, rgba(226,198,255,0.8) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 20%, rgba(179,157,255,0.6) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 65% 75%, rgba(226,198,255,0.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 80%, rgba(123,97,255,0.5) 0%, transparent 100%),
+        radial-gradient(2px 2px at 90% 60%, rgba(226,198,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 45% 35%, rgba(179,157,255,0.5) 0%, transparent 100%);
+    }
+
+    .hero-content { position: relative; z-index: 1; }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--soft-lavender);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(48px, 7vw, 88px);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.05;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 span { color: var(--soft-lavender); }
+
+    .hero-sub {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      color: var(--royal-violet);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero-desc {
+      font-size: 18px;
+      color: rgba(255,255,255,0.55);
+      max-width: 480px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--royal-violet);
+      color: white;
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 14px 32px;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(123,97,255,0.4);
+    }
+
+    .hero-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(123,97,255,0.5);
+    }
+
+    /* ─── Section headers ──────────────────────────── */
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--royal-violet);
+      margin-bottom: 12px;
+    }
+
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 24px; height: 2px;
+      background: var(--royal-violet);
+      border-radius: 2px;
+    }
+
+    h2.section-title {
+      font-family: var(--font-heading);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      color: var(--deep-space);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--cosmic-gray);
+      max-width: 560px;
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+
+    /* ─── Divider ──────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(123,97,255,0.2), transparent);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ─── Cards ────────────────────────────────────── */
+    .card {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 32px rgba(123,97,255,0.1);
+    }
+
+    /* ─── Logo Section ─────────────────────────────── */
+    .logo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .logo-showcase {
+      background: var(--light-bg);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 56px 40px;
+      gap: 20px;
+      border: 1px solid rgba(123,97,255,0.1);
+    }
+
+    .logo-showcase.dark {
+      background: var(--deep-space);
+    }
+
+    .logo-showcase-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--cosmic-gray);
+    }
+
+    .logo-showcase.dark .logo-showcase-label { color: rgba(255,255,255,0.4); }
+
+    /* SVG Logo inline */
+    .logo-svg-wrap svg { max-width: 220px; }
+
+    /* ─── Logo do/don't ────────────────────────────── */
+    .logo-rules {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .rule-card {
+      border-radius: var(--radius-md);
+      padding: 24px;
+      position: relative;
+    }
+
+    .rule-card.do {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+    }
+
+    .rule-card.dont {
+      background: #FFF1F2;
+      border: 1px solid #FECDD3;
+    }
+
+    .rule-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }
+
+    .rule-card.do .rule-badge { background: #22C55E; color: white; }
+    .rule-card.dont .rule-badge { background: #F43F5E; color: white; }
+
+    .rule-card p {
+      font-size: 13px;
+      color: var(--cosmic-gray);
+      line-height: 1.6;
+    }
+
+    /* ─── Symbol breakdown ─────────────────────────── */
+    .symbol-breakdown {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--light-bg);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .symbol-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .symbol-icon {
+      width: 72px; height: 72px;
+      background: white;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 4px 16px rgba(123,97,255,0.12);
+    }
+
+    .symbol-name {
+      font-family: var(--font-heading);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--deep-space);
+    }
+
+    .symbol-meaning {
+      font-size: 11px;
+      color: var(--cosmic-gray);
+      letter-spacing: 0.05em;
+    }
+
+    .symbol-plus {
+      font-size: 24px;
+      color: var(--soft-lavender);
+      font-weight: 300;
+    }
+
+    .symbol-equals {
+      font-size: 24px;
+      color: var(--royal-violet);
+      font-weight: 700;
+      margin: 0 4px;
+    }
+
+    /* ─── Colors ───────────────────────────────────── */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .color-card {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: transform 0.2s;
+    }
+
+    .color-card:hover { transform: translateY(-4px); }
+
+    .color-swatch {
+      height: 100px;
+    }
+
+    .color-info {
+      padding: 16px;
+      background: white;
+    }
+
+    .color-name {
+      font-family: var(--font-heading);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--deep-space);
+      margin-bottom: 4px;
+    }
+
+    .color-hex {
+      font-size: 11px;
+      color: var(--cosmic-gray);
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .color-role {
+      font-size: 10px;
+      color: var(--soft-lavender);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Usage combos */
+    .color-combos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .combo-card {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(123,97,255,0.1);
+    }
+
+    .combo-preview {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .combo-info {
+      padding: 16px;
+      background: white;
+    }
+
+    .combo-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--deep-space);
+      margin-bottom: 2px;
+    }
+
+    .combo-desc {
+      font-size: 11px;
+      color: var(--cosmic-gray);
+    }
+
+    /* ─── Typography ───────────────────────────────── */
+    .type-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .type-card {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+    }
+
+    .type-specimen-heading {
+      font-family: var(--font-heading);
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--deep-space);
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .type-specimen-body {
+      font-family: var(--font-body);
+      font-size: 18px;
+      color: var(--cosmic-gray);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .type-meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .type-tag {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--light-bg);
+      color: var(--royal-violet);
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--pastel-lilac);
+    }
+
+    /* Type scale */
+    .type-scale {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+
+    .scale-row {
+      display: flex;
+      align-items: baseline;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(123,97,255,0.07);
+    }
+
+    .scale-row:last-child { border-bottom: none; }
+
+    .scale-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--cosmic-gray);
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    .scale-meta {
+      font-size: 11px;
+      color: var(--soft-lavender);
+      min-width: 160px;
+      flex-shrink: 0;
+    }
+
+    /* ─── App Icons ────────────────────────────────── */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .icon-card {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+      transition: box-shadow 0.2s;
+    }
+
+    .icon-card:hover {
+      box-shadow: 0 8px 32px rgba(123,97,255,0.12);
+    }
+
+    .icon-preview {
+      width: 100px; height: 100px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-preview.dark { background: var(--deep-space); }
+    .icon-preview.light { background: white; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+    .icon-preview.gradient { background: linear-gradient(135deg, #A78BFF 0%, #7B61FF 100%); }
+
+    .icon-name {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--deep-space);
+    }
+
+    .icon-desc {
+      font-size: 13px;
+      color: var(--cosmic-gray);
+      line-height: 1.5;
+    }
+
+    /* Icon sizes */
+    .icon-sizes {
+      display: flex;
+      gap: 32px;
+      align-items: flex-end;
+      background: var(--light-bg);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      flex-wrap: wrap;
+    }
+
+    .size-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .size-box {
+      background: linear-gradient(135deg, #A78BFF 0%, #7B61FF 100%);
+      border-radius: 20%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .size-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cosmic-gray);
+      text-align: center;
+    }
+
+    .size-sublabel {
+      font-size: 10px;
+      color: var(--soft-lavender);
+    }
+
+    /* ─── Spacing ──────────────────────────────────── */
+    .spacing-grid {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .space-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .space-box {
+      background: linear-gradient(135deg, var(--pastel-lilac), var(--soft-lavender));
+      border-radius: 4px;
+      width: 40px;
+    }
+
+    .space-label {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--royal-violet);
+      font-weight: 600;
+    }
+
+    .space-name {
+      font-size: 10px;
+      color: var(--cosmic-gray);
+    }
+
+    /* ─── Gradient ─────────────────────────────────── */
+    .gradients-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .gradient-card {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid rgba(123,97,255,0.1);
+    }
+
+    .gradient-preview {
+      height: 140px;
+    }
+
+    .gradient-info {
+      background: white;
+      padding: 20px;
+    }
+
+    .gradient-title {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--deep-space);
+      margin-bottom: 4px;
+    }
+
+    .gradient-code {
+      font-size: 11px;
+      color: var(--cosmic-gray);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ─── Voice & Tone ─────────────────────────────── */
+    .voice-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .voice-card {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+    }
+
+    .voice-emoji {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .voice-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--deep-space);
+      margin-bottom: 8px;
+    }
+
+    .voice-desc {
+      font-size: 13px;
+      color: var(--cosmic-gray);
+      line-height: 1.6;
+    }
+
+    .voice-examples {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--light-bg);
+    }
+
+    .voice-example {
+      font-size: 12px;
+      color: var(--royal-violet);
+      font-style: italic;
+      margin-bottom: 6px;
+    }
+
+    /* ─── Motion ───────────────────────────────────── */
+    .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .motion-card {
+      background: white;
+      border: 1px solid rgba(123,97,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .motion-demo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .motion-ball {
+      width: 16px; height: 16px;
+      background: var(--royal-violet);
+      border-radius: 50%;
+    }
+
+    .motion-ball.ease-in  { animation: bounceIn 2s cubic-bezier(0.4,0,1,1) infinite; }
+    .motion-ball.ease-out { animation: bounceOut 2s cubic-bezier(0,0,0.2,1) infinite; }
+    .motion-ball.spring   { animation: spring 2s cubic-bezier(0.34,1.56,0.64,1) infinite; }
+    .motion-ball.linear   { animation: bounceIn 2s linear infinite; }
+
+    @keyframes bounceIn  { 0%,100% { transform: translateX(-20px); } 50% { transform: translateX(20px); } }
+    @keyframes bounceOut { 0%,100% { transform: translateX(-20px); } 50% { transform: translateX(20px); } }
+    @keyframes spring    { 0%,100% { transform: scale(0.8); } 50% { transform: scale(1.2); } }
+
+    .motion-name {
+      font-family: var(--font-heading);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--deep-space);
+      margin-bottom: 4px;
+    }
+
+    .motion-value {
+      font-size: 10px;
+      color: var(--cosmic-gray);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ─── Button examples ──────────────────────────── */
+    .button-grid {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .btn {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 100px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-primary {
+      background: var(--royal-violet);
+      color: white;
+      box-shadow: 0 4px 16px rgba(123,97,255,0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(123,97,255,0.45);
+    }
+
+    .btn-secondary {
+      background: var(--light-bg);
+      color: var(--royal-violet);
+      border: 1.5px solid var(--pastel-lilac);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--royal-violet);
+      background: var(--pastel-lilac);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--deep-space);
+      border: 1.5px solid rgba(15,15,35,0.15);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--royal-violet);
+      color: var(--royal-violet);
+    }
+
+    .btn-dark {
+      background: var(--deep-space);
+      color: white;
+    }
+
+    .btn-dark:hover {
+      background: #1a1a3a;
+      transform: translateY(-1px);
+    }
+
+    .btn-sm { padding: 8px 20px; font-size: 12px; }
+    .btn-lg { padding: 16px 36px; font-size: 16px; }
+
+    /* ─── Footer ───────────────────────────────────── */
+    footer {
+      background: var(--deep-space);
+      padding: 64px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    footer::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(123,97,255,0.15) 0%, transparent 70%);
+      bottom: -200px; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .footer-logo {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .footer-logo span { color: var(--soft-lavender); }
+
+    .footer-tagline {
+      font-size: 14px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 40px;
+      letter-spacing: 0.05em;
+    }
+
+    .footer-version {
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.1em;
+    }
+
+    /* ─── Inline SVG Logo ──────────────────────────── */
+    .astrovy-logo-dark svg path,
+    .astrovy-logo-dark svg circle { stroke: white; fill: none; }
+
+    /* ─── Utilities ────────────────────────────────── */
+    .mt-8  { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-32 { margin-top: 24px; }
+    .mt-48 { margin-top: 24px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .tag-violet { background: var(--light-bg); color: var(--royal-violet); border: 1px solid var(--pastel-lilac); }
+    .tag-dark   { background: rgba(15,15,35,0.08); color: var(--deep-space); }
+
+    /* Inline code */
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      background: var(--light-bg);
+      color: var(--royal-violet);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--pastel-lilac);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      section { padding: 60px 24px; }
+      .color-grid { grid-template-columns: repeat(3, 1fr); }
+      .logo-grid, .type-row, .icon-grid, .voice-grid, .gradients-grid, .logo-rules { grid-template-columns: 1fr; }
+      .color-combos { grid-template-columns: 1fr; }
+      .motion-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body class="page">
+
+  <!-- ── Navigation ──────────────────────────────────── -->
+  <nav>
+    <div class="nav-logo">
+      Astrovy <span>Space</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#colors">Colors</a></li>
+      <li><a href="#typography">Typography</a></li>
+      <li><a href="#components">Components</a></li>
+      
+    </ul>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero-stars"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Brand Identity System</p>
+      <h1>Astrovy<br/><span>Space</span></h1>
+      <p class="hero-sub">· Visual Guidelines ·</p>
+      <a href="#colors" class="hero-cta">
+        ✦ Explore Guidelines
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Colors ───────────────────────────────────────── -->
+  <section id="colors">
+    <div class="section-label">01 · Color System</div>
+    <h2 class="section-title">Cosmic color palette</h2>
+    <p class="section-desc">Six carefully chosen colors form the entire brand palette — from the depths of deep space to the softest cosmic glow.</p>
+
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#0F0F23;"></div>
+        <div class="color-info">
+          <div class="color-name">Deep Space</div>
+          <div class="color-hex">#0F0F23</div>
+          <div class="color-role">Primary Text · BG Dark</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#7B61FF;"></div>
+        <div class="color-info">
+          <div class="color-name">Royal Violet</div>
+          <div class="color-hex">#7B61FF</div>
+          <div class="color-role">Primary Brand · CTA</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#B39DFF;"></div>
+        <div class="color-info">
+          <div class="color-name">Soft Lavender</div>
+          <div class="color-hex">#B39DFF</div>
+          <div class="color-role">Accent · Highlights</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#E2C6FF;"></div>
+        <div class="color-info">
+          <div class="color-name">Pastel Lilac</div>
+          <div class="color-hex">#E2C6FF</div>
+          <div class="color-role">Borders · Subtle Fill</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#F3F0FF; border-bottom:1px solid #eee;"></div>
+        <div class="color-info">
+          <div class="color-name">Light Background</div>
+          <div class="color-hex">#F3F0FF</div>
+          <div class="color-role">Surface · Cards BG</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#6B6B7D;"></div>
+        <div class="color-info">
+          <div class="color-name">Cosmic Gray</div>
+          <div class="color-hex">#6B6B7D</div>
+          <div class="color-role">Secondary Text</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color combos -->
+    <div class="section-label mt-32">Approved Combinations</div>
+    <div class="color-combos mt-16">
+      <div class="combo-card">
+        <div class="combo-preview" style="background:#0F0F23; color:white;">Astrovy Space</div>
+        <div class="combo-info">
+          <div class="combo-title">Deep Space on White</div>
+          <div class="combo-desc">Primary body text — 15.3:1 contrast</div>
+        </div>
+      </div>
+      <div class="combo-card">
+        <div class="combo-preview" style="background:#7B61FF; color:white;">Astrovy Space</div>
+        <div class="combo-info">
+          <div class="combo-title">White on Royal Violet</div>
+          <div class="combo-desc">Buttons, CTAs — 5.1:1 contrast</div>
+        </div>
+      </div>
+      <div class="combo-card">
+        <div class="combo-preview" style="background:#0F0F23; color:#B39DFF;">Astrovy Space</div>
+        <div class="combo-info">
+          <div class="combo-title">Soft Lavender on Deep Space</div>
+          <div class="combo-desc">Dark mode accents — 6.8:1 contrast</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gradients -->
+    <div class="section-label mt-32">Brand Gradients</div>
+    <div class="gradients-grid mt-16">
+      <div class="gradient-card">
+        <div class="gradient-preview" style="background: linear-gradient(135deg, #A78BFF 0%, #7B61FF 100%);"></div>
+        <div class="gradient-info">
+          <div class="gradient-title">Cosmic Violet</div>
+          <div class="gradient-code">135° #A78BFF → #7B61FF</div>
+        </div>
+      </div>
+      <div class="gradient-card">
+        <div class="gradient-preview" style="background: linear-gradient(135deg, #7B61FF 0%, #0F0F23 100%);"></div>
+        <div class="gradient-info">
+          <div class="gradient-title">Deep Orbit</div>
+          <div class="gradient-code">135° #7B61FF → #0F0F23</div>
+        </div>
+      </div>
+      <div class="gradient-card">
+        <div class="gradient-preview" style="background: linear-gradient(180deg, #E2C6FF 0%, #B39DFF 50%, #7B61FF 100%);"></div>
+        <div class="gradient-info">
+          <div class="gradient-title">Nebula</div>
+          <div class="gradient-code">180° #E2C6FF → #B39DFF → #7B61FF</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Typography ───────────────────────────────────── -->
+  <section id="typography">
+    <div class="section-label">02 · Typography</div>
+    <h2 class="section-title">Type system</h2>
+    <p class="section-desc">Two typefaces — one with celestial weight, one with grounded clarity. Together they balance wonder and readability.</p>
+
+    <div class="type-row">
+      <div class="type-card">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-bottom:20px;">Headings · Logo Font</div>
+        <div class="type-specimen-heading">Poppins</div>
+        <div style="font-family:var(--font-heading); font-size:13px; color:var(--cosmic-gray); margin-bottom:16px; letter-spacing:0.05em;">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br/>abcdefghijklmnopqrstuvwxyz<br/>0123456789 !@#$%&*</div>
+        <div class="type-meta">
+          <span class="type-tag">300 Light</span>
+          <span class="type-tag">400 Regular</span>
+          <span class="type-tag">500 Medium</span>
+          <span class="type-tag">600 SemiBold</span>
+          <span class="type-tag">700 Bold</span>
+          <span class="type-tag">800 ExtraBold</span>
+        </div>
+      </div>
+      <div class="type-card">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-bottom:20px;">Body Font</div>
+        <div class="type-specimen-body" style="font-size:40px; font-weight:400; line-height:1.1; margin-bottom:16px;">DM Sans</div>
+        <div style="font-family:var(--font-body); font-size:13px; color:var(--cosmic-gray); margin-bottom:16px; letter-spacing:0.05em;">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br/>abcdefghijklmnopqrstuvwxyz<br/>0123456789 !@#$%&*</div>
+        <div class="type-meta">
+          <span class="type-tag">300 Light</span>
+          <span class="type-tag">400 Regular</span>
+          <span class="type-tag">500 Medium</span>
+          <span class="type-tag">600 SemiBold</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Type scale -->
+    <div class="section-label mt-32">Type Scale</div>
+    <div class="type-scale mt-16">
+      <div class="scale-row">
+        <div class="scale-label">Display</div>
+        <div class="scale-meta">Poppins 800 · 88px</div>
+        <div style="font-family:var(--font-heading); font-size:48px; font-weight:800; color:var(--deep-space); line-height:1; letter-spacing:-0.03em;">Astrovy</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Heading 1</div>
+        <div class="scale-meta">Poppins 700 · 48px</div>
+        <div style="font-family:var(--font-heading); font-size:36px; font-weight:700; color:var(--deep-space); letter-spacing:-0.02em;">Your cosmic journey</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Heading 2</div>
+        <div class="scale-meta">Poppins 600 · 32px</div>
+        <div style="font-family:var(--font-heading); font-size:26px; font-weight:600; color:var(--deep-space); letter-spacing:-0.01em;">Discover the universe within</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Heading 3</div>
+        <div class="scale-meta">Poppins 600 · 24px</div>
+        <div style="font-family:var(--font-heading); font-size:20px; font-weight:600; color:var(--deep-space);">Clarity, guidance, and self-discovery</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Body Large</div>
+        <div class="scale-meta">DM Sans 400 · 18px</div>
+        <div style="font-size:17px; color:var(--cosmic-gray); line-height:1.7;">Astrovy Space helps you navigate your personal cosmos with clarity and purpose.</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Body</div>
+        <div class="scale-meta">DM Sans 400 · 16px</div>
+        <div style="font-size:15px; color:var(--cosmic-gray); line-height:1.7;">The stars have always been a mirror for human longing — use them as a guide.</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Small / Caption</div>
+        <div class="scale-meta">DM Sans 500 · 12px</div>
+        <div style="font-size:12px; color:var(--cosmic-gray); line-height:1.6; font-weight:500;">Chart data • Labels • Metadata • Footer text</div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-label">Label / Eyebrow</div>
+        <div class="scale-meta">DM Sans 700 · 11px · uppercase</div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--royal-violet);">Brand Identity System</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── Components ────────────────────────────────────── -->
+  <section id="components">
+    <div class="section-label">03 · UI Components</div>
+    <h2 class="section-title">Design components</h2>
+    <p class="section-desc">Reusable interface elements that carry the Astrovy visual language into product experiences.</p>
+
+    <!-- Buttons -->
+    <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-bottom:20px;">Buttons</div>
+    <div class="button-grid">
+      <button class="btn btn-primary">Primary CTA</button>
+      <button class="btn btn-secondary">Secondary</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-dark">Dark</button>
+    </div>
+    <div class="button-grid">
+      <button class="btn btn-primary btn-sm">Small Primary</button>
+      <button class="btn btn-secondary btn-sm">Small Secondary</button>
+      <button class="btn btn-primary btn-lg">✦ Large Primary</button>
+    </div>
+
+    <!-- Cards -->
+    <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-top:48px; margin-bottom:20px;">Cards</div>
+    <div class="grid-3">
+      <div style="background:white; border:1px solid rgba(123,97,255,0.12); border-radius:20px; padding:28px; transition:all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 40px rgba(123,97,255,0.15)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+        <div style="width:44px;height:44px;background:var(--light-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">✦</div>
+        <div style="font-family:var(--font-heading); font-size:16px; font-weight:600; margin-bottom:8px;">Cosmic Insight</div>
+        <div style="font-size:13px; color:var(--cosmic-gray); line-height:1.6;">Your weekly celestial reading, personalized to your journey.</div>
+      </div>
+      <div style="background:var(--deep-space); border-radius:20px; padding:28px; transition:all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+        <div style="width:44px;height:44px;background:rgba(123,97,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">◎</div>
+        <div style="font-family:var(--font-heading); font-size:16px; font-weight:600; color:white; margin-bottom:8px;">Dark Card</div>
+        <div style="font-size:13px; color:rgba(255,255,255,0.5); line-height:1.6;">Perfect for dark surfaces and feature highlights.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#A78BFF,#7B61FF); border-radius:20px; padding:28px; transition:all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+        <div style="width:44px;height:44px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;">∞</div>
+        <div style="font-family:var(--font-heading); font-size:16px; font-weight:600; color:white; margin-bottom:8px;">Gradient Card</div>
+        <div style="font-size:13px; color:rgba(255,255,255,0.75); line-height:1.6;">For premium features and highlighted content blocks.</div>
+      </div>
+    </div>
+
+    <!-- Badges & Tags -->
+    <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-top:48px; margin-bottom:20px;">Badges & Tags</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <span style="background:var(--light-bg); color:var(--royal-violet); border:1px solid var(--pastel-lilac); font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">✦ New</span>
+      <span style="background:var(--royal-violet); color:white; font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">Premium</span>
+      <span style="background:var(--deep-space); color:white; font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">◎ Pro</span>
+      <span style="background:var(--pastel-lilac); color:var(--deep-space); font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">Astrology</span>
+      <span style="background:#E8FFF4; color:#14863E; border:1px solid #BBF7D0; font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">● Live</span>
+      <span style="background:#FFF7E6; color:#B45309; border:1px solid #FDE68A; font-size:12px; font-weight:600; padding:5px 14px; border-radius:100px;">Beta</span>
+    </div>
+
+    <!-- Spacing -->
+    <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-top:48px; margin-bottom:20px;">Spacing Scale</div>
+    <div class="spacing-grid">
+      <div class="space-item"><div class="space-box" style="height:4px;"></div><div class="space-label">4px</div><div class="space-name">xs</div></div>
+      <div class="space-item"><div class="space-box" style="height:8px;"></div><div class="space-label">8px</div><div class="space-name">sm</div></div>
+      <div class="space-item"><div class="space-box" style="height:12px;"></div><div class="space-label">12px</div><div class="space-name">—</div></div>
+      <div class="space-item"><div class="space-box" style="height:16px;"></div><div class="space-label">16px</div><div class="space-name">md</div></div>
+      <div class="space-item"><div class="space-box" style="height:24px;"></div><div class="space-label">24px</div><div class="space-name">lg</div></div>
+      <div class="space-item"><div class="space-box" style="height:32px;"></div><div class="space-label">32px</div><div class="space-name">xl</div></div>
+      <div class="space-item"><div class="space-box" style="height:48px;"></div><div class="space-label">48px</div><div class="space-name">2xl</div></div>
+      <div class="space-item"><div class="space-box" style="height:64px;"></div><div class="space-label">64px</div><div class="space-name">3xl</div></div>
+      <div class="space-item"><div class="space-box" style="height:80px;"></div><div class="space-label">80px</div><div class="space-name">4xl</div></div>
+    </div>
+
+    <!-- Border Radius -->
+    <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-top:48px; margin-bottom:20px;">Border Radius</div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:center;">
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:4px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">4px<br/>xs</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:8px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">8px<br/>sm</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:12px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">12px<br/>md</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:16px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">16px<br/>lg</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:20px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">20px<br/>xl</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:28px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">28px<br/>2xl</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:56px;height:56px;background:var(--royal-violet);border-radius:100px;margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--cosmic-gray);">full<br/>pill</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Motion ─────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">05 · Motion Principles</div>
+    <h2 class="section-title">Easing & timing</h2>
+    <p class="section-desc">Motion should feel organic — like cosmic bodies in gentle orbit. Never jarring, always purposeful.</p>
+
+    <div class="motion-grid">
+      <div class="motion-card">
+        <div class="motion-demo"><div class="motion-ball ease-out"></div></div>
+        <div class="motion-name">Ease Out</div>
+        <div class="motion-value">cubic-bezier(0,0,0.2,1)</div>
+        <div style="font-size:11px; color:var(--cosmic-gray); margin-top:8px;">Entrances · Reveals</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-demo"><div class="motion-ball ease-in"></div></div>
+        <div class="motion-name">Ease In</div>
+        <div class="motion-value">cubic-bezier(0.4,0,1,1)</div>
+        <div style="font-size:11px; color:var(--cosmic-gray); margin-top:8px;">Exits · Dismissals</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-demo"><div class="motion-ball spring"></div></div>
+        <div class="motion-name">Spring</div>
+        <div class="motion-value">cubic-bezier(0.34,1.56,0.64,1)</div>
+        <div style="font-size:11px; color:var(--cosmic-gray); margin-top:8px;">Buttons · Interactions</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-demo"><div class="motion-ball linear"></div></div>
+        <div class="motion-name">Linear</div>
+        <div class="motion-value">linear</div>
+        <div style="font-size:11px; color:var(--cosmic-gray); margin-top:8px;">Looping · Progress</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--royal-violet); margin-bottom:20px;">Duration Scale</div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap;">
+        <div><code>100ms</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Micro · hover</div></div>
+        <div><code>200ms</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Fast · toggle</div></div>
+        <div><code>300ms</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Base · transition</div></div>
+        <div><code>400ms</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Medium · modal</div></div>
+        <div><code>600ms</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Slow · page</div></div>
+        <div><code>1000ms+</code><div style="font-size:12px; color:var(--cosmic-gray); margin-top:4px;">Ambient · loop</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Imagery ─────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">06 · Imagery Style</div>
+    <h2 class="section-title">Photography & illustration</h2>
+    <p class="section-desc">Visuals should feel dreamlike, personal, and rooted in the cosmos — never stock-photo generic.</p>
+
+    <div class="grid-3">
+      <div style="background:linear-gradient(135deg,#0F0F23 0%,#2D1B69 50%,#0F0F23 100%); border-radius:var(--radius-lg); height:200px; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center; position:relative; overflow:hidden;">
+        <div style="position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 20% 30%, rgba(226,198,255,0.8) 0%, transparent 100%), radial-gradient(1px 1px at 80% 20%, rgba(179,157,255,0.6) 0%, transparent 100%), radial-gradient(2px 2px at 50% 70%, rgba(123,97,255,0.5) 0%, transparent 100%), radial-gradient(1px 1px at 70% 60%, rgba(226,198,255,0.7) 0%, transparent 100%);"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:28px; margin-bottom:8px;">✦</div>
+          <div style="font-family:var(--font-heading); font-size:13px; font-weight:600; color:white;">Cosmic Dark</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-top:4px;">Night sky, stars, deep space</div>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg,#F3F0FF 0%,#E2C6FF 100%); border-radius:var(--radius-lg); height:200px; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;">
+        <div>
+          <div style="font-size:28px; margin-bottom:8px;">◎</div>
+          <div style="font-family:var(--font-heading); font-size:13px; font-weight:600; color:var(--deep-space);">Soft Cosmic</div>
+          <div style="font-size:11px; color:var(--cosmic-gray); margin-top:4px;">Pastel nebulas, soft gradients</div>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg,#7B61FF 0%,#4C3AB3 100%); border-radius:var(--radius-lg); height:200px; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;">
+        <div>
+          <div style="font-size:28px; margin-bottom:8px; color:white;">∞</div>
+          <div style="font-family:var(--font-heading); font-size:13px; font-weight:600; color:white;">Brand Violet</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:4px;">On-brand tinted imagery</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-32" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:var(--radius-md); padding:24px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#16A34A; margin-bottom:12px;">✓ Photography Style</div>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--cosmic-gray);">
+          <li>· Moody, atmospheric night skies</li>
+          <li>· Soft bokeh and dreamy depth of field</li>
+          <li>· People looking upward, inward, exploring</li>
+          <li>· Natural light, candlelight, starlight</li>
+          <li>· Tinted with brand violet overlay when needed</li>
+        </ul>
+      </div>
+      <div style="background:#FFF1F2; border:1px solid #FECDD3; border-radius:var(--radius-md); padding:24px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#E11D48; margin-bottom:12px;">✗ Avoid</div>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--cosmic-gray);">
+          <li>· Bright, harsh studio lighting</li>
+          <li>· Generic stock photo aesthetics</li>
+          <li>· Cluttered, busy compositions</li>
+          <li>· Unrelated color palettes (yellows, reds)</li>
+          <li>· Posed, corporate-feeling photos</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
