@@ -1,790 +1,276 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'react-native-reanimated';
-import { useEngagement } from '@/src/hooks/useEngagement';
-import { theme } from '@/src/lib/theme';
-import { useTier } from '@/src/context/TierContext';
-import { getTodaySignal, getTodayInsight, getTodayMove } from '@/src/lib/dailyContent';
-import VisualStreakTracker from '@/src/components/VisualStreakTracker';
-import PatternAlertCard from '@/src/components/PatternAlertCard';
-import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
+// app/(tabs)/today.tsx
 
-function getTimeGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+import React, { useState, useEffect, useMemo } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Card } from '@/src/design/primitives/Card'
+import { Chip } from '@/src/design/primitives/Chip'
+import { Button } from '@/src/design/primitives/Button'
+import { Eyebrow } from '@/src/design/primitives/Eyebrow'
+import { Divider } from '@/src/design/primitives/Divider'
+import { Input } from '@/src/design/primitives/Input'
+import { useEngagement } from '@/src/hooks/useEngagement'
+import { useTier } from '@/src/context/TierContext'
+import { useProfile } from '@/src/context/ProfileContext'
+import { calculateLifePath, getZodiacSign, getZodiacInfo } from '@/src/lib/astrology'
+import { getTodaySignal, getTodayInsight, getTodayMove } from '@/src/lib/dailyContent'
+import PatternAlertCard from '@/src/components/PatternAlertCard'
+import WeeklyReadingCard from '@/src/components/WeeklyReadingCard'
+import { colors, typography, spacing, radii } from '@/src/design/tokens'
+
+const MOODS = [
+  { emoji: '\uD83D\uDC9B', label: 'Steady' },
+  { emoji: '\uD83C\uDF0A', label: 'Tender' },
+  { emoji: '\u26A1', label: 'Restless' },
+  { emoji: '\uD83E\uDDCA', label: 'Quiet' },
+]
+
+const MOOD_RESPONSES: Record<string, string> = {
+  Steady: 'Grounded today. Trust what\u2019s working.',
+  Tender: 'Feelings close to the surface. That\u2019s information, not a flaw.',
+  Restless: 'Something wants your attention. Sit with the question.',
+  Quiet: 'Quiet is still a signal. Your body may need rest, not distraction.',
 }
 
-function getTimeEmoji() {
-  const hour = new Date().getHours();
-  if (hour < 6) return '🌙';
-  if (hour < 12) return '☀️';
-  if (hour < 17) return '🌤';
-  if (hour < 21) return '🌆';
-  return '🌙';
-}
-
-const moods = [
-  { emoji: '💛', label: 'Steady' },
-  { emoji: '🌊', label: 'Emotional' },
-  { emoji: '⚡', label: 'Restless' },
-  { emoji: '🧊', label: 'Numb' },
-];
-
-const moodResponses: Record<string, string> = {
-  Steady: "You're grounded today. A good day to reflect on what's working — and trust it.",
-  Emotional: "Your feelings are close to the surface. That's not a flaw — it's information.",
-  Restless: "Something wants your attention. Don't chase the answer — sit with the question.",
-  Numb: "Numbness is still a signal. Your body may be asking for rest, not distraction.",
-};
-
-const journalPrompts = [
+const JOURNAL_PROMPTS = [
   'What do I need but avoid asking for?',
   'What pattern keeps showing up that I keep ignoring?',
   'If I were honest with myself right now, what would I say?',
-  'What am I performing today that I don\'t actually want to do?',
-  'What would I do differently if I wasn\'t afraid of being seen?',
+  'What am I performing today that I don\u2019t actually want to do?',
+  'What would I do differently if I wasn\u2019t afraid of being seen?',
   'What emotion have I been sitting on all week?',
-  'What would the person I\'m becoming do right now?',
-];
+  'What would the person I\u2019m becoming do right now?',
+]
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 6) return 'Still awake?'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  if (h < 21) return 'Good evening'
+  return 'Still awake?'
+}
 
 function getDayIndex() {
-  return (new Date().getDate() + new Date().getMonth()) % 7;
+  return (new Date().getDate() + new Date().getMonth()) % 7
 }
 
 export default function TodayScreen() {
-  const router = useRouter();
-  const engagement = useEngagement();
-  const { isPremium } = useTier();
-  const dayIdx = getDayIndex();
+  const router = useRouter()
+  const engagement = useEngagement()
+  const { isPremium } = useTier()
+  const { profile } = useProfile()
+  const dayIdx = getDayIndex()
 
   const [selectedMood, setSelectedMood] = useState<string | null>(
     engagement?.moodHistory?.[0]?.mood || null
-  );
-  const [expandedJournal, setExpandedJournal] = useState(false);
-  const [journalText, setJournalText] = useState('');
-  const [journalSaved, setJournalSaved] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  )
+  const [expandedJournal, setExpandedJournal] = useState(false)
+  const [journalText, setJournalText] = useState('')
+  const [journalSaved, setJournalSaved] = useState(false)
 
   useEffect(() => {
-    if (engagement) engagement.checkInToday();
-  }, []);
+    if (engagement) engagement.checkInToday()
+  }, [])
 
-  const signal = getTodaySignal();
-  const insight = getTodayInsight();
-  const move = getTodayMove();
-  const prompt = journalPrompts[dayIdx];
-  const streak = engagement?.streak || 0;
-  const lastReflection = engagement?.journalEntries?.[0];
+  const signal = getTodaySignal()
+  const insight = getTodayInsight()
+  const move = getTodayMove()
+  const prompt = JOURNAL_PROMPTS[dayIdx]
+  const streak = engagement?.streak || 0
+
+  const personalization = useMemo(() => {
+    if (!profile?.birth?.date) return ''
+    const [y, m, d] = profile.birth.date.split('-').map(Number)
+    const sign = getZodiacSign(m, d)
+    const lp = calculateLifePath(y, m, d)
+    const zi = getZodiacInfo(sign)
+    return `\u2014 for ${zi.name} Sun, Life Path ${lp}`
+  }, [profile])
+
+  const consecutiveMood = engagement?.getConsecutiveMood?.() || null
+  const weeklyStatus = engagement?.getWeeklyReadingStatus?.()
+  const showWeeklyCard = weeklyStatus?.isNewWeek && !engagement?.dismissedWeeklyReading
 
   const handleMoodSelect = (mood: string) => {
-    setSelectedMood(mood);
-    if (engagement) engagement.addMood(mood);
-  };
+    setSelectedMood(mood)
+    engagement?.addMood(mood)
+  }
 
   const handleSaveJournal = () => {
     if (journalText.trim() && engagement) {
-      engagement.addJournalEntry(journalText);
-      setJournalSaved(true);
-      setToastMessage('Reflection saved.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      engagement.addJournalEntry(journalText, prompt)
+      setJournalSaved(true)
     }
-  };
-
-  const consecutiveMood = engagement?.getConsecutiveMood?.() || null;
-  const weeklyStatus = engagement?.getWeeklyReadingStatus?.();
-  const showWeeklyCard = weeklyStatus?.isNewWeek && !engagement?.dismissedWeeklyReading;
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {showToast && (
-        <Animated.View
-          entering={FadeInDown.duration(300).easing(Easing.out(Easing.cubic))}
-          exiting={FadeOutUp.duration(250)}
-          style={styles.toast}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.toastInner}
-          >
-            <View style={styles.toastIconBg}>
-              <Text style={styles.toastCheck}>✓</Text>
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 1. Header */}
+        <Animated.View entering={FadeInUp.duration(500)}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
+              <Text style={styles.name}>{profile?.name || 'Friend'}</Text>
             </View>
-            <Text style={styles.toastText}>{toastMessage}</Text>
-          </LinearGradient>
-        </Animated.View>
-      )}
-
-      <Animated.View entering={FadeInUp.duration(500).delay(0)}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{getTimeGreeting()} {getTimeEmoji()}</Text>
-            <Text style={styles.name}>Gy</Text>
-          </View>
-          <View style={styles.headerRight}>
             {streak > 0 && (
               <View style={styles.streakBadge}>
-                <Text style={styles.streakEmoji}>🔥</Text>
+                <Text style={styles.streakEmoji}>{"\uD83D\uDD25"}</Text>
                 <Text style={styles.streakNum}>{streak}</Text>
               </View>
             )}
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>G</Text>
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(500).delay(50)}>
-        <Text style={styles.moodQuestion}>How are you feeling right now?</Text>
-      </Animated.View>
-
-      <View style={styles.moodRow}>
-        {moods.map((mood, index) => (
-          <Animated.View
-            key={mood.label}
-            entering={FadeInUp.duration(500).delay(100 + index * 60)}
-            style={{ flex: 1 }}
-          >
-            <TouchableOpacity
-              onPress={() => handleMoodSelect(mood.label)}
-              style={[
-                styles.moodBtn,
-                selectedMood === mood.label && styles.moodBtnActive,
-              ]}
-            >
-              <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-              <Text
-                style={[
-                  styles.moodLabel,
-                  selectedMood === mood.label && styles.moodLabelActive,
-                ]}
-              >
-                {mood.label}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
-      </View>
-
-      {selectedMood && (
-        <Animated.View entering={FadeInUp.duration(400)} style={styles.moodResponse}>
-          <Text style={styles.moodResponseText}>{moodResponses[selectedMood]}</Text>
-        </Animated.View>
-      )}
-
-      <VisualStreakTracker streak={streak} />
-
-      {consecutiveMood && (
-        <PatternAlertCard mood={consecutiveMood} />
-      )}
-
-      {showWeeklyCard && (
-        <WeeklyReadingCard
-          visible={true}
-          onDismiss={() => engagement?.dismissWeeklyReading?.()}
-        />
-      )}
-
-      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-        <LinearGradient
-          colors={theme.gradients.hero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.signalCard}
-        >
-          <View style={styles.signalGlow} />
-          <Text style={styles.signalLabel}>Today's Signal</Text>
-          <Text style={styles.signalTitle}>{signal.title}</Text>
-          <Text style={styles.signalSub}>{signal.sub}</Text>
-        </LinearGradient>
-      </Animated.View>
-
-      <View style={styles.weekSection}>
-        <Animated.View entering={FadeInUp.duration(500).delay(250)}>
-          <View style={styles.weekHeader}>
-            <Text style={styles.weekTitle}>This week</Text>
-            <View style={styles.weekDays}>
-              {engagement?.getStreakDays?.()?.map((day, i) => (
-                <View key={i} style={styles.dayCol}>
-                  <View
-                    style={[
-                      styles.dayBox,
-                      {
-                        backgroundColor: day.active
-                          ? '#8B72CF'
-                          : 'rgba(31,33,48,0.06)',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: '700',
-                        color: day.active ? '#FFFFFF' : theme.colors.softMuted,
-                      }}
-                    >
-                      {day.day}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
           </View>
         </Animated.View>
-        <View style={styles.energyRow}>
-          {[
-            { label: 'Calm', sub: 'emotional weather', width: '72%' as const, colors: ['#8B72CF', '#16A7A0'] as const },
-            { label: 'Direct', sub: 'best move', width: '85%' as const, colors: ['#E8A87C', '#F7D875'] as const },
-            { label: 'Testing', sub: 'avoid', width: '40%' as const, colors: ['#F4C7D2', '#8B72CF'] as const },
-          ].map((item, index) => (
-            <Animated.View
-              key={item.label}
-              entering={FadeInUp.duration(500).delay(300 + index * 80)}
-              style={{ flex: 1 }}
-            >
-              <View style={styles.energyCard}>
-                <View style={styles.energyBarBg}>
-                  <View
-                    style={[
-                      styles.energyBarFill,
-                      { width: item.width, backgroundColor: item.colors[0] },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.energyLabel}>{item.label}</Text>
-                <Text style={styles.energySub}>{item.sub}</Text>
-              </View>
+
+        {/* 2. Mood check-in */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+          <Text style={styles.moodQuestion}>How's today feeling?</Text>
+        </Animated.View>
+        <View style={styles.moodRow}>
+          {MOODS.map((mood, i) => (
+            <Animated.View key={mood.label} entering={FadeInUp.duration(500).delay(100 + i * 60)} style={{ flex: 1 }}>
+              <Chip
+                label={mood.label}
+                emoji={mood.emoji}
+                selected={selectedMood === mood.label}
+                onPress={() => handleMoodSelect(mood.label)}
+              />
             </Animated.View>
           ))}
         </View>
-      </View>
+        {selectedMood && MOOD_RESPONSES[selectedMood] && (
+          <Animated.View entering={FadeInUp.duration(400)}>
+            <Text style={styles.moodResponse}>{MOOD_RESPONSES[selectedMood]}</Text>
+          </Animated.View>
+        )}
 
-      {lastReflection && !expandedJournal && (
-        <Animated.View entering={FadeInUp.duration(500).delay(350)} style={styles.lastReflection}>
-          <Text style={styles.lastReflectionLabel}>Last reflection</Text>
-          <Text style={styles.lastReflectionText}>"{lastReflection.text}"</Text>
-          <Text style={styles.lastReflectionDate}>{lastReflection.date}</Text>
+        {/* 3. Daily reading (merged card) */}
+        <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+          <Card variant="gradient" padding="lg" style={styles.dailyCard}>
+            <Eyebrow color={colors.white}>Today</Eyebrow>
+            <Text style={styles.signalTitle}>{signal.title}</Text>
+            <Text style={styles.signalSub}>{signal.sub}</Text>
+            <Divider marginVertical="md" />
+            <Text style={styles.insightText}>"{insight}"</Text>
+            <Divider marginVertical="md" />
+            <Text style={styles.moveLabel}>Try this</Text>
+            <Text style={styles.moveText}>{move}</Text>
+            {personalization ? <Text style={styles.personalization}>{personalization}</Text> : null}
+          </Card>
         </Animated.View>
-      )}
 
-      <View style={styles.insightSection}>
-        <Animated.View entering={FadeInUp.duration(500).delay(400)}>
-          <Text style={styles.insightLabel}>One Insight For You</Text>
-        </Animated.View>
-        <Animated.View entering={FadeInUp.duration(500).delay(450)}>
-          <View style={styles.insightCard}>
-            <Text style={styles.insightText}>{insight}</Text>
-            <Text style={styles.insightSub}>— for Aquarius Sun, Life Path 7</Text>
-          </View>
-        </Animated.View>
-      </View>
-
-      <Animated.View entering={FadeInUp.duration(500).delay(500)}>
-        <TouchableOpacity
-          style={styles.journalCard}
-          onPress={() => { if (!expandedJournal) setExpandedJournal(true); }}
-          activeOpacity={0.85}
-        >
-          <View style={styles.journalHeader}>
-            <Text style={styles.journalTitle}>Journal Prompt</Text>
-            {!expandedJournal && <Text style={styles.journalArrow}>▾</Text>}
-          </View>
-          {!expandedJournal && (
-            <Text style={styles.journalPreview}>{prompt}</Text>
-          )}
-        </TouchableOpacity>
-      </Animated.View>
-
-      {expandedJournal && (
-        <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.journalExpanded}>
-          <Text style={styles.journalPrompt}>{prompt}</Text>
-          {journalSaved ? (
-            <View style={styles.journalSaved}>
-              <Text style={styles.journalSavedTitle}>✓ Saved</Text>
-              <Text style={styles.journalSavedSub}>Your reflection is safe here.</Text>
-            </View>
+        {/* 4. Journal */}
+        <Animated.View entering={FadeInUp.duration(500).delay(250)}>
+          {expandedJournal ? (
+            <Card variant="light" padding="lg">
+              <Text style={styles.journalPrompt}>{prompt}</Text>
+              {journalSaved ? (
+                <View style={styles.journalSaved}>
+                  <Text style={styles.journalSavedTitle}>{"\u2713"} Saved</Text>
+                  <Text style={styles.journalSavedSub}>Kept safe, just for you.</Text>
+                </View>
+              ) : (
+                <>
+                  <Input
+                    value={journalText}
+                    onChangeText={setJournalText}
+                    placeholder="Write freely..."
+                    multiline
+                  />
+                  <View style={styles.journalFooter}>
+                    <Text style={styles.journalHint}>Kept only for you</Text>
+                    <Button size="sm" onPress={handleSaveJournal} disabled={!journalText.trim()}>
+                      Save
+                    </Button>
+                  </View>
+                </>
+              )}
+            </Card>
           ) : (
-            <>
-              <TextInput
-                style={styles.journalInput}
-                multiline
-                numberOfLines={3}
-                placeholder="Start typing your reflection..."
-                placeholderTextColor={theme.colors.muted + '80'}
-                value={journalText}
-                onChangeText={setJournalText}
-              />
-              <View style={styles.journalFooter}>
-                <Text style={styles.journalHint}>Saved only for you</Text>
-                <TouchableOpacity
-                  onPress={handleSaveJournal}
-                  disabled={!journalText.trim()}
-                  style={[
-                    styles.saveBtn,
-                    !journalText.trim() && { backgroundColor: 'rgba(139,114,207,0.3)' },
-                  ]}
-                >
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+            <Card variant="light" padding="lg" onPress={() => setExpandedJournal(true)}>
+              <Eyebrow>Reflect</Eyebrow>
+              <Text style={styles.journalPreview}>{prompt}</Text>
+            </Card>
           )}
         </Animated.View>
-      )}
 
-      <Animated.View entering={FadeInUp.duration(500).delay(550)}>
-        <View style={styles.moveCard}>
-          <Text style={styles.moveLabel}>Best Move</Text>
-          <Text style={styles.moveText}>{move}</Text>
-        </View>
-      </Animated.View>
+        {/* 5. Pattern alert (conditional) */}
+        {consecutiveMood && (
+          <Animated.View entering={FadeInUp.duration(400)}>
+            <PatternAlertCard mood={consecutiveMood} />
+          </Animated.View>
+        )}
 
-      <Animated.View entering={FadeInUp.duration(500).delay(600)}>
-        <TouchableOpacity
-          style={styles.tarotLink}
-          onPress={() => router.push('/tarot')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.tarotIconBg}>
-            <Text style={styles.tarotIconText}>🃏</Text>
-          </View>
-          <View style={styles.tarotText}>
-            <Text style={styles.tarotTitle}>Daily Tarot</Text>
-            <Text style={styles.tarotSub}>
-              {engagement?.canDrawTarot?.(isPremium)
-                ? isPremium
-                  ? `3-card spread · ${engagement?.getTarotDrawsRemaining?.(isPremium)} left today`
-                  : '1 free card today'
-                : 'Come back tomorrow'}
-            </Text>
-          </View>
-          <Text style={styles.tarotArrow}>→</Text>
-        </TouchableOpacity>
-      </Animated.View>
+        {/* 6. Weekly reading (conditional) */}
+        {showWeeklyCard && (
+          <Animated.View entering={FadeInUp.duration(400)}>
+            <WeeklyReadingCard
+              visible={true}
+              onDismiss={() => engagement?.dismissWeeklyReading?.()}
+            />
+          </Animated.View>
+        )}
 
-      <Animated.View entering={FadeInUp.duration(500).delay(650)}>
-        <TouchableOpacity
-          style={styles.horoscopeLink}
-          onPress={() => router.push('/horoscope')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.horoscopeIcon}>
-            <Text style={styles.horoscopeIconText}>✦</Text>
+        {/* 7. Quick explore */}
+        <Animated.View entering={FadeInUp.duration(500).delay(300)}>
+          <Eyebrow>Explore</Eyebrow>
+          <View style={styles.exploreRow}>
+            <Card variant="soft" padding="md" style={styles.exploreCard} onPress={() => router.push('/tarot')}>
+              <Text style={styles.exploreTitle}>Tarot</Text>
+              <Text style={styles.exploreSub}>
+                {engagement?.canDrawTarot?.(isPremium)
+                  ? isPremium
+                    ? `${engagement?.getTarotDrawsRemaining?.(isPremium)} draws left`
+                    : 'Your card is waiting'
+                  : 'Return tomorrow'}
+              </Text>
+            </Card>
+            <Card variant="soft" padding="md" style={styles.exploreCard} onPress={() => router.push('/horoscope')}>
+              <Text style={styles.exploreTitle}>Horoscope</Text>
+              <Text style={styles.exploreSub}>Today's reading</Text>
+            </Card>
           </View>
-          <View style={styles.horoscopeText}>
-            <Text style={styles.horoscopeTitle}>Your Horoscope</Text>
-            <Text style={styles.horoscopeSub}>Daily stars + natal chart</Text>
-          </View>
-          <Text style={styles.horoscopeArrow}>→</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(500).delay(700)}>
-        <TouchableOpacity
-          style={styles.soulprintLink}
-          onPress={() => router.push('/(tabs)/soulprint')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.soulprintIcon}>
-            <Text style={styles.soulprintIconText}>✦</Text>
-          </View>
-          <View style={styles.soulprintText}>
-            <Text style={styles.soulprintTitle}>View your Soulprint</Text>
-            <Text style={styles.soulprintSub}>Your complete emotional blueprint</Text>
-          </View>
-          <Text style={styles.soulprintArrow}>→</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </ScrollView>
-  );
+        </Animated.View>
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 130,
-  },
-  toast: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    right: 20,
-    zIndex: 100,
-  },
-  toastInner: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    shadowColor: 'rgba(139,114,207,0.3)',
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 30,
-    shadowOpacity: 1,
-    elevation: 10,
-  },
-  toastIconBg: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toastCheck: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
-  toastText: { fontSize: 13, color: '#FFFFFF', fontWeight: '500', flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  greeting: { fontSize: 12, color: theme.colors.muted },
-  name: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 28,
-    fontWeight: '500',
-    color: theme.colors.ink,
-  },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    backgroundColor: 'rgba(247,216,117,0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(247,216,117,0.4)',
-  },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: 130 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  greeting: { ...typography.scale.caption, color: colors.cosmicGray },
+  name: { ...typography.scale.h1, color: colors.deepSpace },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, backgroundColor: 'rgba(123,97,255,0.12)' },
   streakEmoji: { fontSize: 12 },
-  streakNum: { fontSize: 11, fontWeight: '700', color: theme.colors.ink },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#16A7A0',
-    shadowColor: 'rgba(22,167,160,0.22)',
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 28,
-    shadowOpacity: 1,
-    elevation: 6,
-  },
-  avatarText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  moodQuestion: { fontSize: 13, fontWeight: '500', color: theme.colors.ink, marginBottom: 8 },
-  moodRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  moodBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  moodBtnActive: {
-    backgroundColor: '#8B72CF',
-    borderColor: 'transparent',
-    shadowColor: 'rgba(139,114,207,0.2)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    shadowOpacity: 1,
-    elevation: 4,
-  },
-  moodEmoji: { fontSize: 18, marginBottom: 2 },
-  moodLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.muted },
-  moodLabelActive: { color: '#FFFFFF' },
-  moodResponse: {
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 16,
-    backgroundColor: 'rgba(139,114,207,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.15)',
-  },
-  moodResponseText: { fontSize: 12, color: theme.colors.ink, lineHeight: 20 },
-  signalCard: {
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  signalGlow: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    right: -44,
-    top: -50,
-  },
-  signalLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 12,
-    position: 'relative',
-    zIndex: 10,
-  },
-  signalTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 26,
-    letterSpacing: -0.4,
-    marginBottom: 8,
-    position: 'relative',
-    zIndex: 10,
-  },
-  signalSub: {
-    fontSize: 12,
-    color: theme.colors.softMuted,
-    position: 'relative',
-    zIndex: 10,
-  },
-  weekSection: { marginBottom: 16 },
-  weekHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  weekTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.ink },
-  weekDays: { flexDirection: 'row', gap: 4 },
-  dayCol: { alignItems: 'center' },
-  dayBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  energyRow: { flexDirection: 'row', gap: 8 },
-  energyCard: {
-    flex: 1,
-    borderRadius: 20,
-    padding: 12,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
-  },
-  energyBarBg: {
-    width: '100%',
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(31,33,48,0.06)',
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  energyBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  energyLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.ink, marginBottom: 2 },
-  energySub: { fontSize: 10, color: theme.colors.muted },
-  lastReflection: {
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: 'rgba(221,237,220,0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
-  },
-  lastReflectionLabel: {
-    fontSize: 10,
-    letterSpacing: 1,
-    color: '#16A7A0',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  lastReflectionText: { fontSize: 12, color: theme.colors.ink, lineHeight: 20 },
-  lastReflectionDate: { fontSize: 10, color: theme.colors.muted, marginTop: 4 },
-  insightSection: { marginBottom: 12 },
-  insightLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  insightCard: {
-    borderRadius: 24,
-    padding: 16,
-    backgroundColor: 'rgba(232,221,251,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.18)',
-  },
-  insightText: { fontSize: 13, color: theme.colors.ink, lineHeight: 22, fontWeight: '500' },
-  insightSub: { fontSize: 11, color: theme.colors.muted, marginTop: 4 },
-  journalCard: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
-  },
-  journalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  journalTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  journalArrow: { fontSize: 12, color: theme.colors.muted },
-  journalPreview: { fontSize: 13, color: theme.colors.muted, marginTop: 4 },
-  journalExpanded: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.15)',
-    ...theme.shadows.warmSm,
-  },
-  journalPrompt: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 8 },
-  journalInput: {
-    fontSize: 13,
-    color: theme.colors.ink,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  journalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  journalHint: { fontSize: 11, color: theme.colors.muted },
-  saveBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#8B72CF',
-  },
-  saveBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  journalSaved: { paddingVertical: 16, alignItems: 'center' },
-  journalSavedTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 4 },
-  journalSavedSub: { fontSize: 12, color: theme.colors.muted },
-  moveCard: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
-  },
-  moveLabel: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
-  moveText: { fontSize: 13, color: theme.colors.muted },
-  tarotLink: {
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    marginBottom: 12,
-    ...theme.shadows.warmSm,
-  },
-  tarotIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E8DDFB',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
-  },
-  tarotIconText: { fontSize: 18 },
-  tarotText: { flex: 1 },
-  tarotTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  tarotSub: { fontSize: 12, color: theme.colors.muted },
-  tarotArrow: { fontSize: 16, color: theme.colors.muted },
-  horoscopeLink: {
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    marginBottom: 12,
-    ...theme.shadows.warmSm,
-  },
-  horoscopeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F7D875',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
-  },
-  horoscopeIconText: { fontSize: 18 },
-  horoscopeText: { flex: 1 },
-  horoscopeTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  horoscopeSub: { fontSize: 12, color: theme.colors.muted },
-  horoscopeArrow: { fontSize: 16, color: theme.colors.muted },
-  soulprintLink: {
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
-  },
-  soulprintIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E8DDFB',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
-  },
-  soulprintIconText: { fontSize: 18 },
-  soulprintText: { flex: 1 },
-  soulprintTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  soulprintSub: { fontSize: 12, color: theme.colors.muted },
-  soulprintArrow: { fontSize: 16, color: theme.colors.muted },
-});
+  streakNum: { ...typography.scale.caption, fontWeight: typography.weights.bold, color: colors.royalViolet },
+  moodQuestion: { ...typography.scale.body, fontWeight: typography.weights.medium, color: colors.deepSpace, marginBottom: spacing.sm },
+  moodRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  moodResponse: { ...typography.scale.caption, color: colors.deepSpace, backgroundColor: 'rgba(123,97,255,0.08)', borderRadius: radii.lg, padding: spacing.md, marginBottom: spacing.md },
+  dailyCard: { marginBottom: spacing.md },
+  signalTitle: { ...typography.scale.h3, color: colors.white, marginTop: spacing.sm, marginBottom: spacing.xs },
+  signalSub: { ...typography.scale.body, color: colors.pastelLilac },
+  insightText: { ...typography.scale.body, color: colors.white, fontStyle: 'italic' },
+  moveLabel: { ...typography.scale.caption, fontWeight: typography.weights.semibold, color: colors.pastelLilac, marginBottom: 4 },
+  moveText: { ...typography.scale.body, color: colors.white },
+  personalization: { ...typography.scale.caption, color: colors.pastelLilac, opacity: 0.7, marginTop: spacing.sm },
+  journalPrompt: { ...typography.scale.body, color: colors.deepSpace, marginBottom: spacing.sm, fontWeight: typography.weights.medium },
+  journalPreview: { ...typography.scale.body, color: colors.cosmicGray },
+  journalSaved: { paddingVertical: spacing.lg, alignItems: 'center' },
+  journalSavedTitle: { ...typography.scale.h3, color: colors.deepSpace, marginBottom: 4 },
+  journalSavedSub: { ...typography.scale.caption, color: colors.cosmicGray },
+  journalFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
+  journalHint: { ...typography.scale.caption, color: colors.cosmicGray },
+  exploreRow: { flexDirection: 'row', gap: spacing.sm },
+  exploreCard: { flex: 1 },
+  exploreTitle: { ...typography.scale.body, fontWeight: typography.weights.semibold, color: colors.deepSpace, marginBottom: 4 },
+  exploreSub: { ...typography.scale.caption, color: colors.cosmicGray },
+})

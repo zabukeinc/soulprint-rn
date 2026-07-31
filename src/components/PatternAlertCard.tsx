@@ -1,53 +1,37 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
-import { moodAlerts } from '@/src/lib/dailyContent';
+// src/components/PatternAlertCard.tsx
+
+import React from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Card } from '@/src/design/primitives/Card'
+import { Eyebrow } from '@/src/design/primitives/Eyebrow'
+import { moodAlerts } from '@/src/lib/dailyContent'
+import { colors, typography, spacing } from '@/src/design/tokens'
 
 interface Props {
-  mood: string | null;
+  mood: string | null
 }
 
 export default function PatternAlertCard({ mood }: Props) {
-  if (!mood || !moodAlerts[mood]) return null;
+  if (!mood || !moodAlerts[mood]) return null
 
   return (
-    <Animated.View entering={FadeInUp.duration(500)} style={styles.container}>
-      <View style={styles.iconRow}>
-        <Text style={styles.icon}>🌊</Text>
-        <Text style={styles.label}>Pattern emerging</Text>
-      </View>
-      <Text style={styles.text}>{moodAlerts[mood]}</Text>
+    <Animated.View entering={FadeInUp.duration(500)}>
+      <Card variant="soft" padding="lg" style={styles.container}>
+        <Eyebrow color={colors.royalViolet}>{"\u2726"} Pattern</Eyebrow>
+        <Text style={styles.text}>{moodAlerts[mood]}</Text>
+      </Card>
     </Animated.View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: 'rgba(248,220,203,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,220,203,0.6)',
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  icon: { fontSize: 16 },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#C48B5E',
-    textTransform: 'uppercase',
-    fontWeight: '800',
+    marginBottom: spacing.md,
   },
   text: {
-    fontSize: 13,
-    color: theme.colors.ink,
+    ...typography.scale.body,
+    color: colors.deepSpace,
     lineHeight: 22,
   },
-});
+})
