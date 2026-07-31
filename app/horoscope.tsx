@@ -1,311 +1,270 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
-import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
-import NatalChart from '@/src/components/NatalChart';
+// app/horoscope.tsx
 
-const categories = [
-  { id: 'overview', label: 'Overview', emoji: '✦' },
-  { id: 'love', label: 'Love', emoji: '💕' },
-  { id: 'career', label: 'Career', emoji: '🧭' },
-  { id: 'growth', label: 'Growth', emoji: '🌱' },
-] as const;
+import React, { useMemo, useState } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Chip } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useProfile } from '@/src/context/ProfileContext'
+import {
+  calculateNatalChart,
+  generateDailyHoroscope,
+  getZodiacInfo,
+} from '@/src/lib/astrology'
+
+const CATEGORIES = [
+  { id: 'overview', label: 'Overview', emoji: '\u2726' },
+  { id: 'love', label: 'Love', emoji: '\u{1F495}' },
+  { id: 'career', label: 'Career', emoji: '\u{1F9ED}' },
+  { id: 'growth', label: 'Growth', emoji: '\u{1F331}' },
+] as const
+
+type CategoryId = (typeof CATEGORIES)[number]['id']
 
 export default function HoroscopeScreen() {
-  const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState<typeof categories[number]['id']>('overview');
-  const horoscope = getTodayHoroscope();
-  const moon = getMoonPhase();
+  const router = useRouter()
+  const { profile } = useProfile()
+  const [activeCategory, setActiveCategory] = useState<CategoryId>('overview')
 
-  const reading = horoscope[activeCategory];
+  const natal = useMemo(() => {
+    if (!profile?.birth?.date) return null
+    return calculateNatalChart({
+      date: profile.birth.date,
+      time: profile.birth.time,
+      location: {
+        city: profile.birth.location.city,
+        lat: profile.birth.location.lat ?? 0,
+        lng: profile.birth.location.lng ?? 0,
+        timezone: profile.birth.location.timezone,
+      },
+    })
+  }, [profile])
+
+  const horoscope = useMemo(() => {
+    if (!natal) return null
+    return generateDailyHoroscope(natal)
+  }, [natal])
+
+  const sunSignInfo = natal ? getZodiacInfo(natal.sun.sign) : null
+  const reading = horoscope?.categories[activeCategory] ?? ''
+  const moon = horoscope?.moonPhase
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <Animated.View entering={FadeInUp.duration(500)}>
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerLabel}>Your Stars</Text>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.back()}
+            hitSlop={8}
+          >
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Horoscope
+            </Eyebrow>
             <Text style={styles.headerTitle}>Horoscope</Text>
           </View>
-          <View style={styles.backButtonPlaceholder} />
+          <View style={styles.backPlaceholder} />
         </View>
-      </Animated.View>
 
-      {/* Natal Chart Card */}
-      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
-        <LinearGradient
-          colors={['#1a0b2e', '#311b92', '#4a148c']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.chartCard}
-        >
-          <View style={styles.chartGlow} />
-          <Text style={styles.chartLabel}>Your Natal Chart</Text>
-          <Text style={styles.chartSub}>Tap a planet to explore its meaning</Text>
-          <NatalChart size={260} />
-        </LinearGradient>
-      </Animated.View>
+        {/* Natal chart label */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+          <Card variant="dark" padding="lg" style={styles.chartCard}>
+            <Eyebrow color={colors.softLavender}>Your chart</Eyebrow>
+            <Text style={styles.chartName}>
+              {sunSignInfo ? `${sunSignInfo.name} Sun` : 'Natal chart'}
+            </Text>
+            <Text style={styles.chartSub}>
+              {natal
+                ? `Sun in ${sunSignInfo?.name} \u00B7 ${natal.moon.sign} Moon`
+                : 'Add your birth date for a personal reading.'}
+            </Text>
+          </Card>
+        </Animated.View>
 
-      {/* Moon Phase */}
-      <Animated.View entering={FadeInUp.duration(500).delay(150)} style={styles.moonCard}>
-        <View style={styles.moonRow}>
-          <Text style={styles.moonEmoji}>{moon.emoji}</Text>
-          <View>
-            <Text style={styles.moonLabel}>Moon Phase</Text>
-            <Text style={styles.moonPhase}>{moon.phase}</Text>
-          </View>
-        </View>
-        <Text style={styles.moonMeaning}>{moon.meaning}</Text>
-      </Animated.View>
+        {/* Moon phase */}
+        {moon && (
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(100)}
+            style={styles.moonCard}
+          >
+            <View style={styles.moonRow}>
+              <Text style={styles.moonEmoji}>{moon.symbol}</Text>
+              <View>
+                <Eyebrow color={colors.royalViolet} showLine={false}>
+                  Moon Phase
+                </Eyebrow>
+                <Text style={styles.moonPhase}>{moon.name}</Text>
+              </View>
+              <View style={styles.moonIllum}>
+                <Text style={styles.moonIllumText}>{moon.illumination}%</Text>
+              </View>
+            </View>
+            <Text style={styles.moonMeaning}>{moon.meaning}</Text>
+          </Animated.View>
+        )}
 
-      {/* Category Tabs */}
-      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-        <View style={styles.tabs}>
-          {categories.map((cat) => (
-            <TouchableOpacity
+        {/* Category tabs */}
+        <Animated.View entering={FadeInUp.duration(500).delay(150)} style={styles.tabs}>
+          {CATEGORIES.map((cat) => (
+            <Chip
               key={cat.id}
+              label={cat.label}
+              emoji={cat.emoji}
+              selected={activeCategory === cat.id}
               onPress={() => setActiveCategory(cat.id)}
-              style={[
-                styles.tab,
-                activeCategory === cat.id && styles.tabActive,
-              ]}
-            >
-              <Text style={styles.tabEmoji}>{cat.emoji}</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeCategory === cat.id && styles.tabLabelActive,
-                ]}
-              >
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
-        </View>
-      </Animated.View>
+        </Animated.View>
 
-      {/* Reading Card */}
-      <Animated.View
-        entering={FadeInUp.duration(500).delay(250)}
-        key={activeCategory}
-      >
-        <LinearGradient
-          colors={theme.gradients.hero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.readingCard}
-        >
-          <View style={styles.readingGlow} />
-          <Text style={styles.readingLabel}>
-            {categories.find((c) => c.id === activeCategory)?.label} Reading
-          </Text>
-          <Text style={styles.readingText}>{reading}</Text>
-        </LinearGradient>
-      </Animated.View>
+        {/* Reading card */}
+        <Animated.View entering={FadeInUp.duration(500).delay(200)} key={activeCategory}>
+          <Card variant="gradient" padding="lg">
+            <Eyebrow color={colors.white}>
+              {CATEGORIES.find((c) => c.id === activeCategory)?.label} Reading
+            </Eyebrow>
+            <Text style={styles.readingText}>{reading}</Text>
+            {horoscope && (
+              <Text style={styles.affirmation}>{horoscope.affirmation}</Text>
+            )}
+          </Card>
+        </Animated.View>
 
-      {/* Weekly Theme */}
-      <Animated.View entering={FadeInUp.duration(500).delay(300)} style={styles.themeCard}>
-        <Text style={styles.themeLabel}>This Week's Theme</Text>
-        <Text style={styles.themeText}>
-          Your year is asking you to stop waiting for permission to take up emotional space.
-          The theme is "visible growth" — not loud growth, but growth that you stop hiding.
-        </Text>
-      </Animated.View>
-    </ScrollView>
-  );
+        {/* Lucky hour */}
+        {horoscope && (
+          <Animated.View entering={FadeInUp.duration(500).delay(250)} style={styles.luckyCard}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Lucky hour
+            </Eyebrow>
+            <Text style={styles.luckyText}>
+              {horoscope.luckyHour}:00 \u2014 energy peaks here today.
+            </Text>
+          </Animated.View>
+        )}
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
+// Pressable import for back button
+import { Pressable } from 'react-native'
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bg },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
     paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
-  headerLabel: { fontSize: 12, color: theme.colors.muted, letterSpacing: 0.5 },
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
+  headerCenter: { alignItems: 'center', flex: 1 },
   headerTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 28,
-    fontWeight: '500',
-    color: theme.colors.ink,
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  chartCard: {
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    ...theme.shadows.warmSoft,
-  },
-  chartGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    right: -60,
-    top: -60,
-  },
-  chartLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: 'rgba(255,255,255,0.7)',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
+  chartCard: { marginBottom: spacing.md },
+  chartName: {
+    ...typography.scale.h2,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
   chartSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 16,
+    ...typography.scale.caption,
+    color: colors.softLavender,
   },
   moonCard: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderRadius: radii.xl,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
+    borderColor: 'rgba(123,97,255,0.12)',
+    ...shadows.card,
   },
   moonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
+    gap: spacing.sm + 2,
+    marginBottom: spacing.xs,
   },
-  moonEmoji: { fontSize: 24 },
-  moonLabel: {
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-  },
+  moonEmoji: { fontSize: 28 },
   moonPhase: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.ink,
+    ...typography.scale.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.deepSpace,
+  },
+  moonIllum: {
+    marginLeft: 'auto',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: radii.full,
+    backgroundColor: colors.lightBg,
+  },
+  moonIllumText: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.royalViolet,
   },
   moonMeaning: {
-    fontSize: 12,
-    color: theme.colors.muted,
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
     lineHeight: 20,
   },
   tabs: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  tabActive: {
-    backgroundColor: '#8B72CF',
-    borderColor: 'transparent',
-    shadowColor: 'rgba(139,114,207,0.2)',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    shadowOpacity: 1,
-    elevation: 3,
-  },
-  tabEmoji: { fontSize: 14, marginBottom: 2 },
-  tabLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.muted },
-  tabLabelActive: { color: '#FFFFFF' },
-  readingCard: {
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  readingGlow: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    right: -44,
-    top: -50,
-  },
-  readingLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 12,
-    position: 'relative',
-    zIndex: 10,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   readingText: {
-    fontSize: 14,
-    color: theme.colors.ink,
-    lineHeight: 24,
-    fontWeight: '500',
-    position: 'relative',
-    zIndex: 10,
+    ...typography.scale.body,
+    color: colors.white,
+    lineHeight: 26,
   },
-  themeCard: {
-    borderRadius: 24,
-    padding: 16,
-    backgroundColor: 'rgba(232,221,251,0.5)',
+  affirmation: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
+    fontStyle: 'italic',
+    marginTop: spacing.md,
+  },
+  luckyCard: {
+    borderRadius: radii.xl,
+    padding: spacing.md,
+    backgroundColor: colors.lightBg,
     borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.18)',
+    borderColor: 'rgba(123,97,255,0.10)',
   },
-  themeLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
+  luckyText: {
+    ...typography.scale.caption,
+    color: colors.deepSpace,
   },
-  themeText: {
-    fontSize: 13,
-    color: theme.colors.ink,
-    lineHeight: 22,
-  },
-});
+})

@@ -1,476 +1,400 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  ZoomIn,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
+// app/compatibility.tsx
 
-const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+import React, { useMemo, useState } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Input } from '@/src/design/primitives'
+import { Button } from '@/src/design/primitives'
+import { Badge } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useProfile } from '@/src/context/ProfileContext'
+import {
+  calculateNatalChart,
+  calculateCompatibility,
+  getZodiacSign,
+  getZodiacInfo,
+  ZodiacSign,
+  CompatibilityResult,
+} from '@/src/lib/astrology'
+
+const ALL_SIGNS: ZodiacSign[] = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
+]
 
 export default function CompatibilityScreen() {
-  const router = useRouter();
-  const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
-  const [name, setName] = useState('');
-  const [selectedSign, setSelectedSign] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(false);
+  const router = useRouter()
+  const { profile } = useProfile()
+  const [partnerName, setPartnerName] = useState('')
+  const [partnerSign, setPartnerSign] = useState<ZodiacSign | null>(null)
+  const [revealed, setRevealed] = useState(false)
 
-  const progress = useSharedValue(0);
+  const userSign = useMemo<ZodiacSign | null>(() => {
+    if (!profile?.birth?.date) return null
+    const [, m, d] = profile.birth.date.split('-').map(Number)
+    return getZodiacSign(m, d)
+  }, [profile])
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
-  }));
+  const result = useMemo<CompatibilityResult | null>(() => {
+    if (!userSign || !partnerSign) return null
+    return calculateCompatibility(userSign, partnerSign)
+  }, [userSign, partnerSign])
+
+  const userSignInfo = userSign ? getZodiacInfo(userSign) : null
+  const partnerSignInfo = partnerSign ? getZodiacInfo(partnerSign) : null
+  const canReveal = !!partnerSign && !!userSign
 
   const handleReveal = () => {
-    if (name.trim() && selectedSign) {
-      setStep('loading');
-      setTimeout(() => {
-        setStep('result');
-        setTimeout(() => {
-          setShowResult(true);
-          progress.value = withTiming(74, { duration: 1500 });
-        }, 100);
-      }, 1800);
-    }
-  };
+    if (canReveal) setRevealed(true)
+  }
 
-  const barStyle = useAnimatedStyle(() => ({
-    width: `${progress.value}%`,
-  }));
-
-  if (step === 'loading') {
-    return (
-      <View style={styles.loadingContainer}>
-        <Animated.View entering={FadeIn.duration(500)} style={styles.loadingCenter}>
-          <Animated.View style={[styles.loadingIconBg, pulseStyle]}>
-            <Text style={styles.loadingIcon}>✦</Text>
-          </Animated.View>
-          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-            <Text style={styles.loadingTitle}>Reading the space between you...</Text>
-          </Animated.View>
-          <Animated.View entering={FadeInUp.delay(350).duration(500)}>
-            <Text style={styles.loadingSub}>This takes feeling, not just logic</Text>
-          </Animated.View>
-        </Animated.View>
+  const ScoreRow = ({ label, score }: { label: string; score: number }) => (
+    <View style={styles.scoreRow}>
+      <Text style={styles.scoreLabel}>{label}</Text>
+      <View style={styles.scoreBarBg}>
+        <View style={[styles.scoreBarFill, { width: `${score}%` }]} />
       </View>
-    );
-  }
-
-  if (step === 'result') {
-    return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>Compatibility</Text>
-          <View style={styles.backButtonPlaceholder} />
-        </Animated.View>
-
-        {showResult && (
-          <Animated.View entering={FadeIn.duration(500)}>
-            <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.resultCenter}>
-              <Text style={styles.resultLabel}>Compatibility Reading</Text>
-              <Text style={styles.resultTitle}>Gy & {name}</Text>
-              <Text style={styles.resultSub}>Aquarius Sun · {selectedSign}</Text>
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
-            >
-              <LinearGradient
-                colors={theme.gradients.compatibility}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.scoreCard}
-              >
-                <View style={styles.scoreGlow} />
-                <Animated.View entering={ZoomIn.delay(400).duration(300)} style={styles.scoreContent}>
-                  <Text style={styles.scoreLabel}>Emotional Match</Text>
-                  <Text style={styles.scoreValue}>74%</Text>
-                  <Text style={styles.scoreSub}>Strong potential with room to grow</Text>
-                </Animated.View>
-                <View style={styles.scoreBarBg}>
-                  <Animated.View
-                    style={[styles.scoreBarFill, barStyle]}
-                  />
-                </View>
-              </LinearGradient>
-            </Animated.View>
-
-            <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.resultSection}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>🧲</Text>
-                <Text style={styles.resultSectionTitle}>What Draws You Together</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                {name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth. The attraction isn't just surface — it's two different kinds of intensity finding a rhythm.
-              </Text>
-            </Animated.View>
-
-            <Animated.View entering={FadeInUp.delay(450).duration(500)} style={styles.resultSection}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>⚡</Text>
-                <Text style={styles.resultSectionTitle}>Where Friction Lives</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                You process before you respond. They react and then reflect. This timing difference can feel like indifference to you, and like withholding to them. Naming this gap early prevents it from becoming resentment.
-              </Text>
-            </Animated.View>
-
-            <Animated.View entering={FadeInUp.delay(550).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>🌱</Text>
-                <Text style={styles.resultSectionTitle}>Growth Together</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                The best version of this connection isn't about avoiding friction — it's about not going silent when it arrives. If you can both say the hard thing early, this becomes a relationship that deepens with time instead of just continuing.
-              </Text>
-            </Animated.View>
-
-            <Animated.View entering={FadeInUp.delay(650).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.15)' }]}>
-              <Text style={styles.quoteText}>
-                "Compatibility isn't about being the same. It's about whether you can grow in the same direction without losing yourself."
-              </Text>
-            </Animated.View>
-          </Animated.View>
-        )}
-      </ScrollView>
-    );
-  }
+      <Text style={styles.scoreValue}>{score}%</Text>
+    </View>
+  )
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerLabel}>Compatibility</Text>
-        <View style={styles.backButtonPlaceholder} />
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.center}>
-        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={[styles.iconBg, { backgroundColor: '#DDEDDC' }]}>
-          <Text style={styles.icon}>🔗</Text>
-        </Animated.View>
-        <Text style={styles.label}>Decode Chemistry</Text>
-        <Text style={styles.title}>How do you two connect?</Text>
-        <Text style={styles.desc}>
-          Enter their name and zodiac sign. We'll show you what happens when your patterns meet theirs.
-        </Text>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Their name</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. Jordan"
-          placeholderTextColor={theme.colors.muted + '80'}
-          style={styles.input}
-        />
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Their zodiac sign</Text>
-        <View style={styles.signGrid}>
-          {zodiacSigns.map((sign, i) => (
-            <Animated.View
-              key={sign}
-              entering={FadeInUp.delay(400 + i * 30).duration(300)}
-              style={{ width: '23%' }}
-            >
-              <TouchableOpacity
-                onPress={() => setSelectedSign(sign)}
-                style={[
-                  styles.signBtn,
-                  selectedSign === sign && styles.signBtnActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.signBtnText,
-                    selectedSign === sign && styles.signBtnTextActive,
-                  ]}
-                >
-                  {sign}
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Compatibility
+            </Eyebrow>
+            <Text style={styles.headerTitle}>How your signs meet.</Text>
+          </View>
+          <View style={styles.backPlaceholder} />
         </View>
-      </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(700).duration(500)}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={!name.trim() || !selectedSign}
-          onPress={handleReveal}
-        >
-          <LinearGradient
-            colors={name.trim() && selectedSign ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.button, (!name.trim() || !selectedSign) && styles.buttonDisabled]}
-          >
-            <Text style={styles.buttonText}>Reveal Compatibility</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-    </ScrollView>
-  );
+        {/* Inputs */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)} style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Their name (optional)</Text>
+          <Input
+            value={partnerName}
+            onChangeText={setPartnerName}
+            placeholder="e.g. Jordan"
+          />
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.duration(500).delay(100)} style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Their sign</Text>
+          <View style={styles.signGrid}>
+            {ALL_SIGNS.map((sign) => {
+              const info = getZodiacInfo(sign)
+              const selected = partnerSign === sign
+              return (
+                <Pressable
+                  key={sign}
+                  onPress={() => setPartnerSign(sign)}
+                  style={[styles.signBtn, selected && styles.signBtnActive]}
+                >
+                  <Text style={styles.signSymbol}>{info.symbol}</Text>
+                  <Text
+                    style={[styles.signBtnText, selected && styles.signBtnTextActive]}
+                  >
+                    {info.name}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </Animated.View>
+
+        {!revealed && (
+          <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+            <Button onPress={handleReveal} size="lg" fullWidth disabled={!canReveal}>
+              Reveal
+            </Button>
+            {!canReveal && userSign && (
+              <Text style={styles.hint}>Pick their sign to reveal.</Text>
+            )}
+            {!userSign && (
+              <Text style={styles.hint}>Add your birth date to unlock compatibility.</Text>
+            )}
+          </Animated.View>
+        )}
+
+        {/* Result */}
+        {revealed && result && (
+          <View style={styles.resultSection}>
+            <Animated.View entering={FadeInUp.duration(500)} style={styles.resultHeader}>
+              <Eyebrow color={colors.royalViolet} showLine={false}>
+                Compatibility Reading
+              </Eyebrow>
+              <Text style={styles.resultTitle}>
+                {partnerName.trim() || 'You'} & {userSignInfo?.name}
+              </Text>
+              <Text style={styles.resultSub}>
+                {userSignInfo?.name} Sun \u00B7 {partnerSignInfo?.name} Sun
+              </Text>
+            </Animated.View>
+
+            {/* Overall score card */}
+            <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+              <Card variant="gradient" padding="lg" style={styles.scoreCard}>
+                <Eyebrow color={colors.white}>Overall match</Eyebrow>
+                <Text style={styles.scoreBig}>{result.overallScore}%</Text>
+                <Text style={styles.scoreSummary}>{result.summary}</Text>
+                <View style={styles.scoresGroup}>
+                  <View style={styles.scoreLine}>
+                    <Text style={styles.scoreLineLabel}>Love</Text>
+                    <Text style={styles.scoreLineValue}>{result.loveScore}%</Text>
+                  </View>
+                  <View style={styles.scoreLine}>
+                    <Text style={styles.scoreLineLabel}>Communication</Text>
+                    <Text style={styles.scoreLineValue}>{result.communicationScore}%</Text>
+                  </View>
+                  <View style={styles.scoreLine}>
+                    <Text style={styles.scoreLineLabel}>Friendship</Text>
+                    <Text style={styles.scoreLineValue}>{result.friendshipScore}%</Text>
+                  </View>
+                </View>
+              </Card>
+            </Animated.View>
+
+            {/* Detailed bars */}
+            <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+              <Card variant="light" padding="lg" style={styles.detailCard}>
+                <ScoreRow label="Love" score={result.loveScore} />
+                <ScoreRow label="Communication" score={result.communicationScore} />
+                <ScoreRow label="Friendship" score={result.friendshipScore} />
+                <ScoreRow label="Overall" score={result.overallScore} />
+              </Card>
+            </Animated.View>
+
+            {/* Strengths */}
+            <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+              <Card variant="light" padding="lg" style={styles.detailCard}>
+                <View style={styles.detailHeader}>
+                  <Text style={styles.detailEmoji}>{'\u{1F50E}'}</Text>
+                  <Eyebrow color={colors.royalViolet} showLine={false}>
+                    Strengths
+                  </Eyebrow>
+                </View>
+                {result.strengths.map((s) => (
+                  <View key={s} style={styles.listItem}>
+                    <Text style={styles.listDot}>{'\u2022'}</Text>
+                    <Text style={styles.listText}>{s}</Text>
+                  </View>
+                ))}
+              </Card>
+            </Animated.View>
+
+            {/* Challenges */}
+            <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+              <Card variant="light" padding="lg" style={styles.detailCard}>
+                <View style={styles.detailHeader}>
+                  <Text style={styles.detailEmoji}>{'\u26A1'}</Text>
+                  <Eyebrow color={colors.royalViolet} showLine={false}>
+                    Challenges
+                  </Eyebrow>
+                </View>
+                {result.challenges.map((c) => (
+                  <View key={c} style={styles.listItem}>
+                    <Text style={styles.listDot}>{'\u2022'}</Text>
+                    <Text style={styles.listText}>{c}</Text>
+                  </View>
+                ))}
+              </Card>
+            </Animated.View>
+
+            {/* Advice */}
+            <Animated.View entering={FadeInUp.duration(500).delay(250)}>
+              <Card variant="soft" padding="lg" style={styles.adviceCard}>
+                <Badge variant="astrology">Advice</Badge>
+                <Text style={styles.adviceText}>{result.advice}</Text>
+              </Card>
+            </Animated.View>
+          </View>
+        )}
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: 130,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingCenter: { alignItems: 'center' },
-  loadingIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#8B72CF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: 'rgba(139,114,207,0.25)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
-  },
-  loadingIcon: { fontSize: 24, color: '#FFFFFF' },
-  loadingTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 18,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  loadingSub: { fontSize: 12, color: theme.colors.muted, textAlign: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
-  headerLabel: { fontSize: 12, color: theme.colors.muted },
-  center: { alignItems: 'center', marginBottom: 24 },
-  iconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: 'rgba(22,167,160,0.2)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitle: {
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  icon: { fontSize: 24 },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 28,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  desc: {
-    fontSize: 13,
-    color: theme.colors.muted,
-    lineHeight: 22,
-    textAlign: 'center',
-    maxWidth: 260,
-    marginTop: 8,
-  },
-  inputSection: { marginBottom: 20 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },
-  input: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    fontSize: 14,
-    color: theme.colors.ink,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+  inputSection: { marginBottom: spacing.md },
+  inputLabel: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.deepSpace,
+    marginBottom: spacing.xs,
   },
   signGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.xs,
   },
   signBtn: {
-    width: '100%',
-    paddingVertical: 8,
-    borderRadius: 12,
+    width: '23%',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
   },
   signBtnActive: {
-    backgroundColor: '#8B72CF',
+    backgroundColor: colors.royalViolet,
     borderColor: 'transparent',
   },
-  signBtnText: { fontSize: 11, fontWeight: '700', color: theme.colors.muted },
-  signBtnTextActive: { color: '#FFFFFF' },
-  button: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
+  signSymbol: { fontSize: 16, marginBottom: 2 },
+  signBtnText: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.cosmicGray,
   },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-  resultCenter: { alignItems: 'center', marginBottom: 20 },
-  resultLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
+  signBtnTextActive: { color: colors.white },
+  hint: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+    textAlign: 'center',
+    marginTop: spacing.sm + 2,
   },
+  resultSection: { marginTop: spacing.md },
+  resultHeader: { alignItems: 'center', marginBottom: spacing.md },
   resultTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 28,
-    marginBottom: 4,
+    ...typography.scale.h2,
+    color: colors.deepSpace,
+    marginBottom: spacing.xs,
   },
-  resultSub: { fontSize: 12, color: theme.colors.muted },
-  scoreCard: {
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
+  resultSub: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
   },
-  scoreGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    right: -30,
-    top: -30,
-    opacity: 0.2,
+  scoreCard: { marginBottom: spacing.md },
+  scoreBig: {
+    ...typography.scale.h1,
+    color: colors.white,
+    marginVertical: spacing.xs,
   },
-  scoreContent: { alignItems: 'center', marginBottom: 16, position: 'relative', zIndex: 10 },
+  scoreSummary: {
+    ...typography.scale.body,
+    color: colors.pastelLilac,
+    marginBottom: spacing.md,
+  },
+  scoresGroup: { gap: spacing.xs },
+  scoreLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  scoreLineLabel: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
+  },
+  scoreLineValue: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
+  },
+  detailCard: { marginBottom: spacing.md },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 2,
+  },
   scoreLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
+    ...typography.scale.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.deepSpace,
+    width: 90,
   },
-  scoreValue: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 40,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 44,
-    marginBottom: 4,
-  },
-  scoreSub: { fontSize: 12, color: theme.colors.muted },
   scoreBarBg: {
-    width: '100%',
+    flex: 1,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(31,33,48,0.06)',
+    backgroundColor: 'rgba(123,97,255,0.10)',
     overflow: 'hidden',
   },
   scoreBarFill: {
     height: '100%',
     borderRadius: 4,
-    backgroundColor: '#8B72CF',
+    backgroundColor: colors.royalViolet,
   },
-  resultSection: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+  scoreValue: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.royalViolet,
+    width: 40,
+    textAlign: 'right',
   },
-  resultSectionHeader: {
+  detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  resultSectionEmoji: { fontSize: 16 },
-  resultSectionTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  resultSectionText: { fontSize: 13, color: theme.colors.muted, lineHeight: 22 },
-  quoteText: {
-    fontSize: 13,
-    color: theme.colors.ink,
-    lineHeight: 22,
-    fontWeight: '500',
+  detailEmoji: { fontSize: 16 },
+  listItem: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  listDot: {
+    ...typography.scale.body,
+    color: colors.royalViolet,
+    fontWeight: typography.weights.bold,
+  },
+  listText: {
+    ...typography.scale.caption,
+    color: colors.deepSpace,
+    flex: 1,
+    lineHeight: 20,
+  },
+  adviceCard: {},
+  adviceText: {
+    ...typography.scale.body,
+    color: colors.deepSpace,
+    marginTop: spacing.sm + 2,
     fontStyle: 'italic',
   },
-});
+})

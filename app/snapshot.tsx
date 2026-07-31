@@ -1,307 +1,262 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  ZoomIn,
-  Easing,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
+// app/snapshot.tsx
 
-const patternCards = [
-  { title: 'Private Processor', desc: 'You feel more than you show.' },
-  { title: 'Pattern Reader', desc: 'You notice emotional shifts quickly.' },
-  { title: 'Consistency Seeker', desc: 'You trust repeated actions more than big words.' },
-  { title: 'Quiet Intensity', desc: 'You may look calm while processing deeply.' },
-];
+import React, { useMemo, useRef } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Button } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useProfile } from '@/src/context/ProfileContext'
+import {
+  calculateNatalChart,
+  calculateLifePath,
+  getZodiacSign,
+  getZodiacInfo,
+  deriveArchetype,
+} from '@/src/lib/astrology'
+import { captureAndShare, buildShareMessage } from '@/src/lib/share'
 
 export default function SnapshotScreen() {
-  const router = useRouter();
+  const router = useRouter()
+  const { profile } = useProfile()
+  const shareRef = useRef<View>(null)
 
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: withRepeat(withTiming(-4, { duration: 1500 }), -1, true) }],
-  }));
+  const data = useMemo(() => {
+    if (!profile?.birth?.date) return null
+    const [y, m, d] = profile.birth.date.split('-').map(Number)
+    const sign = getZodiacSign(m, d)
+    const lifePath = calculateLifePath(y, m, d)
+    const archetype = deriveArchetype(sign, lifePath, profile.focus || 'purpose')
+    const zodiacInfo = getZodiacInfo(sign)
+    const natal = calculateNatalChart({
+      date: profile.birth.date,
+      time: profile.birth.time,
+      location: {
+        city: profile.birth.location.city,
+        lat: profile.birth.location.lat ?? 0,
+        lng: profile.birth.location.lng ?? 0,
+        timezone: profile.birth.location.timezone,
+      },
+    })
+    return { sign, lifePath, archetype, zodiacInfo, natal }
+  }, [profile])
+
+  const handleShare = async () => {
+    if (!data) return
+    const message = buildShareMessage('snapshot', {
+      zodiac: data.zodiacInfo.name,
+      lifePath: data.lifePath,
+      archetype: data.archetype.name,
+    })
+    await captureAndShare(shareRef as React.RefObject<View>, message)
+  }
+
+  const handleDone = () => {
+    router.replace('/(tabs)/today')
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerLabel}>Snapshot</Text>
-        <View style={styles.backButtonPlaceholder} />
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.center}>
-        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={styles.iconBg}>
-          <Text style={styles.icon}>✦</Text>
-        </Animated.View>
-        <Text style={styles.label}>First Mirror</Text>
-        <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
-        <Text style={styles.desc}>
-          We found a few patterns that may explain how you process emotion, connection, and direction.
-        </Text>
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={theme.gradients.firstMirror}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroGlow} />
-          <View style={styles.heroRow}>
-            <Animated.View style={[styles.heroAvatar, floatStyle]}>
-              <Text style={styles.heroAvatarEmoji}>🌿</Text>
-            </Animated.View>
-            <View>
-              <Text style={styles.heroLabel}>Your Core Archetype</Text>
-              <Text style={styles.heroTitle}>The Quiet Strategist</Text>
-            </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Snapshot
+            </Eyebrow>
+            <Text style={styles.headerTitle}>Your archetype, mapped.</Text>
           </View>
-          <Text style={styles.heroDesc}>
-            You tend to understand things deeply before you explain them. People may see calmness, but your inner world is usually more active than it looks.
-          </Text>
-          <View style={styles.badges}>
-            {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
-              <View key={badge} style={styles.badge}>
-                <Text style={styles.badgeText}>{badge}</Text>
+          <View style={styles.backPlaceholder} />
+        </View>
+
+        {/* Archetype hero card (shareable) */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+          <View ref={shareRef} style={styles.shareable}>
+            <Card variant="gradient" padding="lg" style={styles.heroCard}>
+              <Eyebrow color={colors.white}>Your core archetype</Eyebrow>
+              <Text style={styles.heroName}>{data?.archetype.name ?? 'The Strategist'}</Text>
+              <Text style={styles.heroTagline}>
+                {data?.archetype.tagline ?? 'Air \u00B7 Fixed \u00B7 Strategist'}
+              </Text>
+              <Text style={styles.heroDesc}>
+                {data?.archetype.description ??
+                  'Add your birth date to map your archetype.'}
+              </Text>
+              <View style={styles.badges}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {data ? `${data.zodiacInfo.name} Sun` : 'Sun sign'}
+                  </Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Life Path {data?.lifePath ?? '?'}</Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {data?.natal.moon.sign ? `${data.natal.moon.sign} Moon` : 'Moon sign'}
+                  </Text>
+                </View>
               </View>
-            ))}
+            </Card>
           </View>
-        </LinearGradient>
-      </Animated.View>
+        </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
-        <Text style={styles.sectionTitle}>What this may reveal</Text>
-      </Animated.View>
-
-      <View style={styles.grid}>
-        {patternCards.map((card, i) => (
-          <Animated.View
-            key={card.title}
-            entering={FadeInUp.delay(350 + i * 50).duration(400)}
-            style={styles.patternCard}
-          >
-            <Text style={styles.patternTitle}>{card.title}</Text>
-            <Text style={styles.patternDesc}>{card.desc}</Text>
+        {/* Patterns */}
+        {data && (
+          <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+            <Eyebrow>What this may reveal</Eyebrow>
+            <View style={styles.grid}>
+              {data.archetype.patterns.map((p) => (
+                <Card key={p} variant="light" padding="md" style={styles.patternCard}>
+                  <Text style={styles.patternTitle}>{p}</Text>
+                </Card>
+              ))}
+            </View>
           </Animated.View>
-        ))}
-      </View>
+        )}
 
-      <Animated.View entering={FadeInUp.delay(600).duration(400).easing(Easing.out(Easing.cubic))}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/(tabs)/today')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Back to Today</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
+        {/* Strengths & Growth */}
+        {data && (
+          <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+            <View style={styles.row}>
+              <Card variant="light" padding="md" style={styles.halfCard}>
+                <Eyebrow color={colors.royalViolet} showLine={false}>
+                  Strengths
+                </Eyebrow>
+                {data.archetype.strengths.map((s) => (
+                  <Text key={s} style={styles.listText}>
+                    {'\u2022'} {s}
+                  </Text>
+                ))}
+              </Card>
+              <Card variant="soft" padding="md" style={styles.halfCard}>
+                <Eyebrow color={colors.royalViolet} showLine={false}>
+                  Growth edges
+                </Eyebrow>
+                {data.archetype.growth.map((g) => (
+                  <Text key={g} style={styles.listText}>
+                    {'\u2022'} {g}
+                  </Text>
+                ))}
+              </Card>
+            </View>
+          </Animated.View>
+        )}
 
-      <Animated.View entering={FadeInUp.delay(700).duration(400).easing(Easing.out(Easing.cubic))}>
-        <Text style={styles.softCta}>
-          Your free reading is always here. Go deeper anytime.
-        </Text>
-      </Animated.View>
-    </ScrollView>
-  );
+        {/* CTAs */}
+        <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.ctas}>
+          <Button onPress={handleShare} size="lg" fullWidth>
+            Share
+          </Button>
+          <Button onPress={handleDone} variant="secondary" size="lg" fullWidth>
+            Done
+          </Button>
+        </Animated.View>
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
-  headerLabel: { fontSize: 12, color: theme.colors.muted },
-  center: { alignItems: 'center', marginBottom: 16 },
-  iconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#8B72CF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: 'rgba(139,114,207,0.25)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitle: {
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  icon: { fontSize: 24, color: '#FFFFFF' },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
+  shareable: { marginBottom: spacing.md },
+  heroCard: {},
+  heroName: {
+    ...typography.scale.h2,
+    color: colors.white,
+    marginVertical: spacing.xs,
   },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 28,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  desc: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 260,
-  },
-  heroCard: {
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    right: -30,
-    top: -30,
-    opacity: 0.2,
-  },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  heroAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroAvatarEmoji: { fontSize: 24 },
-  heroLabel: {
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  heroTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 20,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 24,
+  heroTagline: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
+    marginBottom: spacing.sm + 2,
   },
   heroDesc: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-    marginBottom: 12,
+    ...typography.scale.body,
+    color: colors.white,
+    lineHeight: 24,
+    marginBottom: spacing.md,
   },
   badges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.xs,
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 1,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.20)',
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  badgeText: { fontSize: 10, fontWeight: '500', color: '#6C5F99' },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 8,
+  badgeText: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  patternCard: {
-    width: '48%',
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+  patternCard: { width: '48%' },
+  patternTitle: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.medium,
+    color: colors.deepSpace,
   },
-  patternTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
-  patternDesc: { fontSize: 10, color: theme.colors.muted, lineHeight: 14 },
-  button: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    ...theme.shadows.primaryGlow,
+  row: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  buttonText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-  softCta: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 16,
+  halfCard: { flex: 1 },
+  listText: {
+    ...typography.scale.caption,
+    color: colors.deepSpace,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
   },
-});
+  ctas: { gap: spacing.sm },
+})

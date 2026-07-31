@@ -1,96 +1,121 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import { useTier } from '@/src/context/TierContext';
-import { useEngagement } from '@/src/hooks/useEngagement';
-import { theme } from '@/src/lib/theme';
-import { drawSingleCard, drawSpread, getPositionMeaning } from '@/src/lib/tarotEngine';
-import { TAROT_CARDS } from '@/src/lib/tarot';
+// app/tarot.tsx
 
-type Position = 'past' | 'present' | 'future';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Button } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useProfile } from '@/src/context/ProfileContext'
+import { useTier } from '@/src/context/TierContext'
+import { useEngagement } from '@/src/hooks/useEngagement'
+import {
+  calculateNatalChart,
+  calculateLifePath,
+  getZodiacSign,
+  deriveArchetype,
+} from '@/src/lib/astrology'
+import { drawSingleCard, drawSpread, getPositionMeaning } from '@/src/lib/tarotEngine'
+import { TAROT_CARDS } from '@/src/lib/tarot'
+
+type Position = 'past' | 'present' | 'future'
 
 interface DrawnCard {
-  cardId: string;
-  reversed: boolean;
-  position: Position;
+  cardId: string
+  reversed: boolean
+  position: Position
 }
 
 export default function TarotScreen() {
-  const router = useRouter();
-  const { isPremium } = useTier();
-  const engagement = useEngagement();
+  const router = useRouter()
+  const { isPremium } = useTier()
+  const engagement = useEngagement()
+  const { profile } = useProfile()
 
-  // User's archetype (hardcoded for now, can be dynamic later)
-  const archetype = 'Quiet Strategist';
+  const archetype = useMemo(() => {
+    if (!profile?.birth?.date) return 'Quiet Strategist'
+    const [y, m, d] = profile.birth.date.split('-').map(Number)
+    const sign = getZodiacSign(m, d)
+    const lifePath = calculateLifePath(y, m, d)
+    const a = deriveArchetype(sign, lifePath, profile.focus || 'purpose')
+    return a.name.replace(/^The\s+/, '')
+  }, [profile])
 
-  // Restore today's drawn cards from persisted state
-  const todayCards = engagement?.todayTarotCards || [];
+  const natal = useMemo(() => {
+    if (!profile?.birth?.date) return null
+    return calculateNatalChart({
+      date: profile.birth.date,
+      time: profile.birth.time,
+      location: {
+        city: profile.birth.location.city,
+        lat: profile.birth.location.lat ?? 0,
+        lng: profile.birth.location.lng ?? 0,
+        timezone: profile.birth.location.timezone,
+      },
+    })
+  }, [profile])
+
+  const todayCards = engagement?.todayTarotCards ?? []
   const initialDrawn: DrawnCard[] = todayCards.map((c) => ({
     cardId: c.cardId,
     reversed: c.reversed,
     position: c.position,
-  }));
+  }))
 
-  const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn);
-  const [revealedIndex, setRevealedIndex] = useState(initialDrawn.length > 0 ? initialDrawn.length - 1 : 0);
+  const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn)
+  const [revealedIndex, setRevealedIndex] = useState(
+    initialDrawn.length > 0 ? initialDrawn.length - 1 : 0,
+  )
 
   useEffect(() => {
-    // Re-sync if engagement loads after mount
     if (todayCards.length > 0 && drawnCards.length === 0) {
       const restored = todayCards.map((c) => ({
         cardId: c.cardId,
         reversed: c.reversed,
         position: c.position,
-      }));
-      setDrawnCards(restored);
-      setRevealedIndex(restored.length - 1);
+      }))
+      setDrawnCards(restored)
+      setRevealedIndex(restored.length - 1)
     }
-  }, [engagement?.todayTarotCards]);
+  }, [engagement?.todayTarotCards])
 
-  const canDraw = engagement?.canDrawTarot?.(isPremium) ?? true;
-  const drawsRemaining = engagement?.getTarotDrawsRemaining?.(isPremium) ?? (isPremium ? 3 : 1);
+  const canDraw = engagement?.canDrawTarot?.(isPremium) ?? true
+  const drawsRemaining = engagement?.getTarotDrawsRemaining?.(isPremium) ?? (isPremium ? 3 : 1)
 
   const handleDraw = useCallback(() => {
-    if (!canDraw) return;
+    if (!canDraw) return
 
     if (isPremium) {
-      // Premium: full 3-card spread
-      const spread = drawSpread(archetype, true);
+      const spread = drawSpread(archetype, true)
       const cards: DrawnCard[] = [
         { cardId: spread.past.card.id, reversed: spread.past.reversed, position: 'past' },
         { cardId: spread.present.card.id, reversed: spread.present.reversed, position: 'present' },
         { cardId: spread.future.card.id, reversed: spread.future.reversed, position: 'future' },
-      ];
-      setDrawnCards(cards);
-      setRevealedIndex(0);
-      cards.forEach((c) => engagement?.drawTarotCard?.(c.cardId, c.reversed, c.position));
+      ]
+      setDrawnCards(cards)
+      setRevealedIndex(0)
+      cards.forEach((c) => engagement?.drawTarotCard?.(c.cardId, c.reversed, c.position))
     } else {
-      // Free: single card, random position
-      const result = drawSingleCard(archetype, true);
+      const result = drawSingleCard(archetype, true)
       const card: DrawnCard = {
         cardId: result.card.id,
         reversed: result.reversed,
         position: result.position,
-      };
-      setDrawnCards([card]);
-      setRevealedIndex(0);
-      engagement?.drawTarotCard?.(card.cardId, card.reversed, card.position);
+      }
+      setDrawnCards([card])
+      setRevealedIndex(0)
+      engagement?.drawTarotCard?.(card.cardId, card.reversed, card.position)
     }
-  }, [canDraw, archetype, engagement, isPremium]);
+  }, [canDraw, archetype, engagement, isPremium])
 
   const handleRevealNext = () => {
     if (revealedIndex < drawnCards.length - 1) {
-      setRevealedIndex((prev) => prev + 1);
+      setRevealedIndex((prev) => prev + 1)
     }
-  };
+  }
 
   const handleShare = (card: DrawnCard) => {
     router.push({
@@ -100,445 +125,335 @@ export default function TarotScreen() {
         reversed: card.reversed ? '1' : '0',
         position: card.position,
       },
-    });
-  };
+    })
+  }
 
-  const getCard = (cardId: string) => TAROT_CARDS.find((c) => c.id === cardId)!;
+  const getCard = (cardId: string) => TAROT_CARDS.find((c) => c.id === cardId)!
 
-  const allRevealed = revealedIndex >= drawnCards.length - 1;
-  const isSingleCard = drawnCards.length === 1;
+  const allRevealed = revealedIndex >= drawnCards.length - 1
+  const isSingleCard = drawnCards.length === 1
+  const hasDrawn = drawnCards.length > 0
+
+  const drawLabel = !hasDrawn
+    ? 'Draw'
+    : allRevealed
+      ? canDraw
+        ? 'Draw again'
+        : 'Return tomorrow'
+      : 'Reveal'
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerLabel}>Daily Tarot</Text>
-          <Text style={styles.headerTitle}>
-            {isPremium ? 'Your three-card spread' : 'Your daily card'}
-          </Text>
-        </View>
-        <View style={styles.backButtonPlaceholder} />
-      </View>
-
-      <Text style={styles.description}>
-        {isPremium
-          ? 'A mirror of your energy — past, present, and where it leads.'
-          : 'One card. One message. Wherever you are right now.'}
-      </Text>
-
-      {/* Draw Button or Status */}
-      {drawnCards.length === 0 && (
-        <Animated.View entering={FadeInUp.duration(500)} style={styles.drawSection}>
-          <View style={styles.drawIconBg}>
-            <Text style={styles.drawIcon}>🃏</Text>
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Tarot
+            </Eyebrow>
+            <Text style={styles.headerTitle}>
+              {isPremium ? 'Your three-card spread.' : 'Your card for today.'}
+            </Text>
           </View>
-          <Text style={styles.drawTitle}>
-            {canDraw ? 'Draw your card' : 'No draws left today'}
-          </Text>
-          <Text style={styles.drawSub}>
-            {canDraw
-              ? isPremium
-                ? `${drawsRemaining} spreads remaining today`
-                : '1 free card per day'
-              : 'Come back tomorrow for a new reading'}
-          </Text>
-          {canDraw && (
-            <TouchableOpacity activeOpacity={0.85} onPress={handleDraw}>
-              <LinearGradient
-                colors={theme.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.drawButton}
+          <View style={styles.backPlaceholder} />
+        </View>
+
+        {!hasDrawn && (
+          <Animated.View entering={FadeInUp.duration(500)} style={styles.drawSection}>
+            <View style={styles.drawIconBg}>
+              <Text style={styles.drawIcon}>{'\u{1F0CF}'}</Text>
+            </View>
+            <Text style={styles.drawTitle}>
+              {canDraw ? 'Draw your card' : 'No draws left today'}
+            </Text>
+            <Text style={styles.drawSub}>
+              {canDraw
+                ? isPremium
+                  ? `${drawsRemaining} spreads remaining today`
+                  : '1 free card per day'
+                : 'Return tomorrow for a new reading'}
+            </Text>
+            {canDraw ? (
+              <Button onPress={handleDraw} size="lg" fullWidth>
+                {drawLabel}
+              </Button>
+            ) : (
+              <Text style={styles.limitMessage}>Return tomorrow</Text>
+            )}
+            {!isPremium && (
+              <Pressable
+                onPress={() => router.push('/pricing')}
+                style={styles.upgradeHint}
               >
-                <Text style={styles.drawButtonText}>
-                  {isPremium ? 'Draw Past / Present / Future' : 'Draw My Card'}
+                <Text style={styles.upgradeHintText}>
+                  {'\u2726'} Unlock your three-card spread
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-          {!isPremium && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/pricing')}
-              style={styles.upgradeHint}
-            >
-              <Text style={styles.upgradeHintText}>
-                ✦ Upgrade for the full 3-card spread
-              </Text>
-            </TouchableOpacity>
-          )}
-        </Animated.View>
-      )}
+              </Pressable>
+            )}
+          </Animated.View>
+        )}
 
-      {/* Cards — single (free) or spread (premium) */}
-      {drawnCards.length > 0 && (
-        <View style={styles.spread}>
-          {drawnCards.map((drawn, index) => {
-            const card = getCard(drawn.cardId);
-            const isRevealed = index <= revealedIndex;
+        {hasDrawn && (
+          <View style={styles.spread}>
+            {drawnCards.map((drawn, index) => {
+              const card = getCard(drawn.cardId)
+              const isRevealed = index <= revealedIndex
+              if (!isRevealed) return null
 
-            if (!isRevealed) return null;
-
-            return (
-              <Animated.View
-                key={`${drawn.position}-${drawn.cardId}`}
-                entering={FadeInUp.duration(500).delay(index * 200)}
-                style={styles.cardContainer}
-              >
-                {!isSingleCard && (
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardPosition}>{drawn.position}</Text>
-                    <Text style={styles.cardPositionMeaning}>
-                      {getPositionMeaning(drawn.position)}
-                    </Text>
-                  </View>
-                )}
-
-                <LinearGradient
-                  colors={theme.gradients.hero}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardBody}
+              return (
+                <Animated.View
+                  key={`${drawn.position}-${drawn.cardId}`}
+                  entering={FadeInUp.duration(500).delay(index * 200)}
                 >
-                  <View style={styles.cardGlow} />
-                  <View style={styles.cardEmojiRow}>
-                    <Text style={[styles.cardEmoji, drawn.reversed && styles.cardEmojiReversed]}>
-                      {card.emoji}
-                    </Text>
-                    {drawn.reversed && (
-                      <View style={styles.reversedBadge}>
-                        <Text style={styles.reversedBadgeText}>Reversed</Text>
+                  <Card variant="gradient" padding="lg" style={styles.cardBody}>
+                    {!isSingleCard && (
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardPosition}>{drawn.position}</Text>
+                        <Text style={styles.cardPositionMeaning}>
+                          {getPositionMeaning(drawn.position)}
+                        </Text>
                       </View>
                     )}
-                  </View>
-                  <Text style={styles.cardName}>
-                    {card.name}
-                  </Text>
-                  <Text style={styles.cardKeywords}>
-                    {drawn.reversed ? card.keywords.reversed : card.keywords.upright}
-                  </Text>
-                  <Text style={styles.cardMeaning}>
-                    {isPremium ? card.meaning.premium : card.meaning.free}
-                  </Text>
-                </LinearGradient>
-
-                <TouchableOpacity
-                  style={styles.shareBtn}
-                  onPress={() => handleShare(drawn)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.shareBtnText}>Share to Story →</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
-
-          {/* Reveal Next Button (only for premium multi-card) */}
-          {!allRevealed && !isSingleCard && (
-            <TouchableOpacity activeOpacity={0.85} onPress={handleRevealNext}>
-              <LinearGradient
-                colors={theme.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.revealButton}
-              >
-                <Text style={styles.revealButtonText}>
-                  Reveal {drawnCards[revealedIndex + 1]?.position}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-          {allRevealed && (
-            <View style={styles.completeMessage}>
-              <Text style={styles.completeText}>
-                {isPremium ? 'Your reading is complete.' : 'Your card is revealed.'}
-              </Text>
-              <Text style={styles.completeSub}>
-                {canDraw
-                  ? isPremium
-                    ? 'Draw again or return tomorrow.'
-                    : 'Come back tomorrow for a new card.'
-                  : 'Return tomorrow for a new reading.'}
-              </Text>
-              {canDraw && (
-                <TouchableOpacity activeOpacity={0.85} onPress={handleDraw}>
-                  <LinearGradient
-                    colors={theme.gradients.primary}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.drawAgainButton}
-                  >
-                    <Text style={styles.drawAgainText}>
-                      {isPremium ? 'Draw Again' : 'Draw Another Card'}
+                    <View style={styles.cardEmojiRow}>
+                      <Text
+                        style={[styles.cardEmoji, drawn.reversed && styles.cardEmojiReversed]}
+                      >
+                        {card.emoji}
+                      </Text>
+                      {drawn.reversed && (
+                        <View style={styles.reversedBadge}>
+                          <Text style={styles.reversedBadgeText}>Reversed</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.cardName}>{card.name}</Text>
+                    <Text style={styles.cardKeywords}>
+                      {drawn.reversed ? card.keywords.reversed : card.keywords.upright}
                     </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              {!isPremium && (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => router.push('/pricing')}
-                  style={styles.upgradeHint}
-                >
-                  <Text style={styles.upgradeHintText}>
-                    ✦ Upgrade for the full 3-card spread
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-    </ScrollView>
-  );
+                    <Text style={styles.cardMeaning}>
+                      {isPremium ? card.meaning.premium : card.meaning.free}
+                    </Text>
+                  </Card>
+                  <Pressable
+                    style={styles.shareBtn}
+                    onPress={() => handleShare(drawn)}
+                  >
+                    <Text style={styles.shareBtnText}>Share {'\u2192'}</Text>
+                  </Pressable>
+                </Animated.View>
+              )
+            })}
+
+            {!allRevealed && !isSingleCard && (
+              <Button onPress={handleRevealNext} size="md" fullWidth>
+                {drawLabel} {drawnCards[revealedIndex + 1]?.position}
+              </Button>
+            )}
+
+            {allRevealed && (
+              <View style={styles.completeMessage}>
+                <Text style={styles.completeText}>
+                  {isPremium ? 'Your reading is complete.' : 'Your card is revealed.'}
+                </Text>
+                <Text style={styles.completeSub}>
+                  {canDraw
+                    ? isPremium
+                      ? 'Draw again or return tomorrow.'
+                      : 'Come back tomorrow for a new card.'
+                    : 'Return tomorrow for a new reading.'}
+                </Text>
+                {canDraw && (
+                  <Button onPress={handleDraw} size="md" fullWidth>
+                    {drawLabel}
+                  </Button>
+                )}
+                {!isPremium && (
+                  <Pressable
+                    onPress={() => router.push('/pricing')}
+                    style={styles.upgradeHint}
+                  >
+                    <Text style={styles.upgradeHintText}>
+                      {'\u2726'} Unlock your three-card spread
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {natal && (
+          <View style={styles.chartNote}>
+            <Eyebrow>Your chart</Eyebrow>
+            <Text style={styles.chartNoteText}>
+              Readings tuned to {archetype}.
+            </Text>
+          </View>
+        )}
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
     paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
   headerCenter: { alignItems: 'center', flex: 1 },
-  headerLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
-  },
   headerTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  description: {
-    fontSize: 14,
-    color: theme.colors.muted,
-    lineHeight: 23,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  drawSection: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
+  drawSection: { alignItems: 'center', paddingVertical: spacing.xl },
   drawIconBg: {
     width: 80,
     height: 80,
     borderRadius: 32,
-    backgroundColor: '#E8DDFB',
+    backgroundColor: colors.pastelLilac,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    ...theme.shadows.warmSm,
+    marginBottom: spacing.md,
+    ...shadows.card,
   },
   drawIcon: { fontSize: 36 },
   drawTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 4,
+    ...typography.scale.h3,
+    color: colors.deepSpace,
+    marginBottom: spacing.xs,
   },
   drawSub: {
-    fontSize: 13,
-    color: theme.colors.muted,
-    marginBottom: 24,
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+    marginBottom: spacing.lg,
   },
-  drawButton: {
-    minHeight: 54,
-    borderRadius: 27,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  drawButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  limitMessage: {
+    ...typography.scale.body,
+    color: colors.cosmicGray,
+    paddingVertical: spacing.md,
   },
   upgradeHint: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(232,221,251,0.5)',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.full,
+    backgroundColor: colors.lightBg,
     borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.2)',
+    borderColor: colors.pastelLilac,
   },
   upgradeHintText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B72CF',
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.royalViolet,
   },
-  spread: { gap: 16 },
-  cardContainer: {
-    marginBottom: 8,
-  },
+  spread: { gap: spacing.md },
+  cardBody: { marginBottom: spacing.sm },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   cardPosition: {
-    fontSize: 11,
-    letterSpacing: 1.2,
-    color: '#8B72CF',
+    ...typography.scale.eyebrow,
+    color: colors.white,
     textTransform: 'uppercase',
-    fontWeight: '800',
   },
   cardPositionMeaning: {
-    fontSize: 12,
-    color: theme.colors.muted,
-  },
-  cardBody: {
-    borderRadius: 24,
-    padding: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  cardGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    right: -30,
-    top: -30,
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
   },
   cardEmojiRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 2,
   },
-  cardEmoji: {
-    fontSize: 40,
-  },
-  cardEmojiReversed: {
-    transform: [{ rotate: '180deg' }],
-  },
+  cardEmoji: { fontSize: 40 },
+  cardEmojiReversed: { transform: [{ rotate: '180deg' }] },
   reversedBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(244,199,210,0.6)',
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   reversedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#8B72CF',
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
   },
   cardName: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 4,
+    ...typography.scale.h3,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
   cardKeywords: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    marginBottom: 12,
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
+    marginBottom: spacing.sm + 2,
     fontStyle: 'italic',
   },
   cardMeaning: {
-    fontSize: 14,
-    color: theme.colors.ink,
-    lineHeight: 23,
-    fontWeight: '500',
+    ...typography.scale.body,
+    color: colors.white,
   },
   shareBtn: {
-    marginTop: 12,
-    paddingVertical: 10,
+    marginTop: spacing.xs,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   shareBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B72CF',
-  },
-  revealButton: {
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    ...theme.shadows.primaryGlow,
-  },
-  revealButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.royalViolet,
   },
   completeMessage: {
     alignItems: 'center',
-    paddingVertical: 24,
-    gap: 8,
+    paddingVertical: spacing.lg,
+    gap: spacing.xs,
   },
   completeText: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 18,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 4,
+    ...typography.scale.h3,
+    color: colors.deepSpace,
+    marginBottom: spacing.xs,
   },
   completeSub: {
-    fontSize: 13,
-    color: theme.colors.muted,
-    marginBottom: 16,
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+    marginBottom: spacing.md,
   },
-  drawAgainButton: {
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
+  chartNote: { marginTop: spacing.lg },
+  chartNoteText: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
   },
-  drawAgainText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-});
+})

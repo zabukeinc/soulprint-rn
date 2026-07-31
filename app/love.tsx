@@ -1,276 +1,209 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  ZoomIn,
-  Easing,
-} from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
+// app/love.tsx
 
-const insights = [
-  {
-    title: 'Your Attachment Style',
-    emoji: '🪢',
-    content: 'You lean toward secure-anxious. You want closeness deeply, but you monitor it. You\'re loyal to a fault, but you rehearse abandonment when things feel too stable.',
-  },
-  {
-    title: 'How You Give Love',
-    emoji: '💝',
-    content: 'Through noticing. You remember the small things. Not grand gestures — quiet consistencies. You show love by being emotionally present even when you\'re tired.',
-  },
-  {
-    title: 'What You Actually Need',
-    emoji: '🌱',
-    content: 'Emotional consistency over intensity. You don\'t need someone to prove their love dramatically. You need them to show up the same way tomorrow.',
-  },
-  {
-    title: 'Your Love Trigger',
-    emoji: '⚡',
-    content: 'Silence. When someone pulls away without explanation, your mind fills in the worst version. It\'s not distrust — it\'s emotional memory trying to protect you.',
-  },
-  {
-    title: 'Your Growth Edge',
-    emoji: '🧭',
-    content: 'Asking for what you need before resentment builds. You often wait until you\'re sure it\'s "worth asking" — but the asking itself is what makes it worth it.',
-  },
-];
+import React, { useMemo, useState } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Button } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useProfile } from '@/src/context/ProfileContext'
+import { calculateNatalChart, getZodiacInfo } from '@/src/lib/astrology'
 
-export default function LoveReadingScreen() {
-  const router = useRouter();
-  const [feedback, setFeedback] = useState<string | null>(null);
+type Feedback = 'yes' | 'somewhat' | 'no' | null
+
+const FEEDBACK_OPTIONS: { id: Feedback; label: string }[] = [
+  { id: 'yes', label: 'Yes' },
+  { id: 'somewhat', label: 'Somewhat' },
+  { id: 'no', label: 'Not quite' },
+]
+
+export default function LoveScreen() {
+  const router = useRouter()
+  const { profile } = useProfile()
+  const [feedback, setFeedback] = useState<Feedback>(null)
+
+  const natal = useMemo(() => {
+    if (!profile?.birth?.date) return null
+    return calculateNatalChart({
+      date: profile.birth.date,
+      time: profile.birth.time,
+      location: {
+        city: profile.birth.location.city,
+        lat: profile.birth.location.lat ?? 0,
+        lng: profile.birth.location.lng ?? 0,
+        timezone: profile.birth.location.timezone,
+      },
+    })
+  }, [profile])
+
+  const venus = natal?.venus
+  const venusInfo = venus ? getZodiacInfo(venus.sign) : null
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerLabel}>Love Pattern</Text>
-        <View style={styles.backButtonPlaceholder} />
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInUp.delay(100).duration(500).easing(Easing.out(Easing.cubic))}
-        style={styles.center}
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={ZoomIn.delay(200).duration(300)} style={styles.iconBg}>
-          <Text style={styles.icon}>💕</Text>
-        </Animated.View>
-        <Text style={styles.label}>Love Pattern Reading</Text>
-        <Text style={styles.title}>How you love, and what you need in return</Text>
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInUp.delay(300).duration(500).easing(Easing.out(Easing.cubic))}
-      >
-        <LinearGradient
-          colors={theme.gradients.love}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroGlow} />
-          <Text style={styles.heroText}>
-            You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.
-          </Text>
-        </LinearGradient>
-      </Animated.View>
-
-      <View style={styles.insights}>
-        {insights.map((insight, i) => (
-          <Animated.View
-            key={insight.title}
-            entering={FadeInUp.delay(400 + i * 100).duration(500).easing(Easing.out(Easing.cubic))}
-          >
-            <View style={styles.insightCard}>
-              <View style={styles.insightHeader}>
-                <Text style={styles.insightEmoji}>{insight.emoji}</Text>
-                <Text style={styles.insightTitle}>{insight.title}</Text>
-              </View>
-              <Text style={styles.insightText}>{insight.content}</Text>
-            </View>
-          </Animated.View>
-        ))}
-      </View>
-
-      {(
-        <Animated.View
-          entering={FadeInUp.duration(500)}
-          style={styles.feedbackCard}
-        >
-          <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
-          <View style={styles.feedbackRow}>
-            {['Yes, surprisingly', 'A little', 'Not really'].map((opt, i) => (
-              <Animated.View
-                key={opt}
-                entering={FadeIn.delay(100 + i * 80).duration(400)}
-                style={{ flex: 1 }}
-              >
-                <TouchableOpacity
-                  onPress={() => setFeedback(opt)}
-                  style={[
-                    styles.feedbackBtn,
-                    feedback === opt && styles.feedbackBtnActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.feedbackBtnText,
-                      feedback === opt && styles.feedbackBtnTextActive,
-                    ]}
-                  >
-                    {opt}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Love
+            </Eyebrow>
+            <Text style={styles.headerTitle}>How you love and why.</Text>
           </View>
+          <View style={styles.backPlaceholder} />
+        </View>
+
+        {/* Venus hero */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)}>
+          <Card variant="gradient" padding="lg" style={styles.heroCard}>
+            <Eyebrow color={colors.white}>
+              {venusInfo ? `Venus in ${venusInfo.name}` : 'Venus sign'}
+            </Eyebrow>
+            <Text style={styles.heroText}>
+              {venus?.meaning ?? 'Add your birth date to reveal how you love.'}
+            </Text>
+          </Card>
         </Animated.View>
-      )}
-    </ScrollView>
-  );
+
+        {/* Venus traits */}
+        {venusInfo && (
+          <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+            <Card variant="light" padding="lg" style={styles.traitsCard}>
+              <Eyebrow>Venus traits</Eyebrow>
+              <View style={styles.traitRow}>
+                {venusInfo.traits.map((trait) => (
+                  <View key={trait} style={styles.traitBadge}>
+                    <Text style={styles.traitBadgeText}>{trait}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.traitDesc}>
+                {venusInfo.element} \u00B7 {venusInfo.modality} \u2014 ruled by{' '}
+                {venusInfo.rulingPlanet}.
+              </Text>
+            </Card>
+          </Animated.View>
+        )}
+
+        {/* Feedback */}
+        <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+          <Card variant="soft" padding="lg" style={styles.feedbackCard}>
+            <Text style={styles.feedbackLabel}>Does this resonate?</Text>
+            <View style={styles.feedbackRow}>
+              {FEEDBACK_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.id}
+                  variant={feedback === opt.id ? 'primary' : 'secondary'}
+                  size="sm"
+                  fullWidth
+                  onPress={() => setFeedback(opt.id)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </View>
+            {feedback && (
+              <Text style={styles.feedbackNote}>
+                {feedback === 'yes'
+                  ? 'Noted. We\u2019ll tune future readings to this.'
+                  : feedback === 'somewhat'
+                    ? 'Thanks \u2014 we\u2019ll refine the signal.'
+                    : 'Got it. We\u2019ll adjust the lens.'}
+              </Text>
+            )}
+          </Card>
+        </Animated.View>
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
-  headerLabel: { fontSize: 12, color: theme.colors.muted },
-  center: { alignItems: 'center', marginBottom: 20 },
-  iconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    backgroundColor: '#F4C7D2',
-    shadowColor: 'rgba(244,199,210,0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitle: {
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  icon: { fontSize: 24 },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 28,
-    textAlign: 'center',
-  },
-  heroCard: {
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    right: -30,
-    top: -30,
-    opacity: 0.2,
-  },
+  heroCard: { marginBottom: spacing.md },
   heroText: {
-    fontSize: 13,
-    color: theme.colors.ink,
-    lineHeight: 24,
-    fontWeight: '500',
-    position: 'relative',
-    zIndex: 10,
+    ...typography.scale.bodyLarge,
+    color: colors.white,
+    lineHeight: 28,
   },
-  insights: { gap: 12 },
-  insightCard: {
-    borderRadius: 24,
-    padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  insightHeader: {
+  traitsCard: { marginBottom: spacing.md },
+  traitRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm + 2,
   },
-  insightEmoji: { fontSize: 16 },
-  insightTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  lockedTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.muted },
-  insightText: { fontSize: 13, color: theme.colors.muted, lineHeight: 22 },
-  feedbackCard: {
-    borderRadius: 24,
-    padding: 16,
-    marginTop: 16,
-    backgroundColor: 'rgba(221,237,220,0.5)',
+  traitBadge: {
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.full,
+    backgroundColor: colors.lightBg,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
+    borderColor: colors.pastelLilac,
   },
+  traitBadgeText: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.royalViolet,
+  },
+  traitDesc: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+  },
+  feedbackCard: {},
   feedbackLabel: {
-    fontSize: 11,
-    color: theme.colors.muted,
-    marginBottom: 8,
+    ...typography.scale.body,
+    fontWeight: typography.weights.medium,
+    color: colors.deepSpace,
+    marginBottom: spacing.sm + 2,
   },
-  feedbackRow: { flexDirection: 'row', gap: 8 },
-  feedbackBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    alignItems: 'center',
+  feedbackRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
-  feedbackBtnActive: {
-    backgroundColor: '#8B72CF',
-    borderColor: 'transparent',
+  feedbackNote: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+    marginTop: spacing.sm + 2,
+    fontStyle: 'italic',
   },
-  feedbackBtnText: { fontSize: 10, fontWeight: '500', color: theme.colors.muted },
-  feedbackBtnTextActive: { color: '#FFFFFF' },
-});
+})

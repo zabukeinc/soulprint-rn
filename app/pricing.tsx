@@ -1,364 +1,324 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeInUp,
-  FadeIn,
-  FadeOutUp,
-  ZoomIn,
-  Layout,
-  Easing,
-} from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
+// app/pricing.tsx
 
-const features = {
-  monthly: [
-    'Complete emotional blueprint',
-    'Love, career & growth patterns',
-    'Shadow self exploration',
-    'Weekly personalized insights',
-  ],
-  annually: [
-    'Complete emotional blueprint',
-    'Love, career & growth patterns',
-    'Shadow self exploration',
-    '12-month theme guidance',
-    'Weekly personalized insights',
-    'Priority support',
-  ],
-};
+import React, { useState } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeInUp } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives'
+import { Card } from '@/src/design/primitives'
+import { Button } from '@/src/design/primitives'
+import { Badge } from '@/src/design/primitives'
+import { Eyebrow } from '@/src/design/primitives'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
+import { useTier } from '@/src/context/TierContext'
+
+type Plan = 'monthly' | 'annual'
+
+const FEATURES = [
+  'Full natal chart',
+  'Weekly personalized readings',
+  'Compatibility with any sign',
+  'Three-card daily tarot',
+  'Unlimited journal history',
+]
 
 export default function PricingScreen() {
-  const router = useRouter();
-  const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
+  const router = useRouter()
+  const { upgrade } = useTier()
+  const [plan, setPlan] = useState<Plan>('annual')
+
+  const price = plan === 'monthly' ? '9' : '6'
+  const priceSub = plan === 'monthly' ? '/month' : '/month'
+
+  const handleStartPremium = () => {
+    upgrade()
+    router.back()
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeIn.duration(400)}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInUp.duration(500)}
-        style={styles.center}
+    <Screen>
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Go deeper</Text>
-        <Text style={styles.subtitle}>Weekly readings, relationship tools, and your full year ahead.</Text>
-      </Animated.View>
-
-      {/* Toggle — flattened structure, text sits directly on the gradient or bg */}
-      <View style={styles.toggle}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setSelected('monthly')}
-          style={styles.toggleBtnBase}
-        >
-          {selected === 'monthly' ? (
-            <LinearGradient
-              colors={theme.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.toggleGradient}
-            >
-              <Text style={styles.toggleTextActive}>Monthly</Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.toggleInactive}>
-              <Text style={styles.toggleText}>Monthly</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setSelected('annually')}
-          style={styles.toggleBtnBase}
-        >
-          {selected === 'annually' ? (
-            <LinearGradient
-              colors={theme.gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.toggleGradient}
-            >
-              <Text style={styles.toggleTextActive}>Annually</Text>
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>Save!</Text>
-              </View>
-            </LinearGradient>
-          ) : (
-            <View style={styles.toggleInactive}>
-              <Text style={styles.toggleText}>Annually</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* AnimatePresence-like content switch */}
-      <Animated.View
-        key={selected}
-        entering={FadeInUp.duration(300).easing(Easing.out(Easing.cubic))}
-        exiting={FadeOutUp.duration(200)}
-        layout={Layout.easing(Easing.out(Easing.cubic)).duration(300)}
-        style={styles.planWrapper}
-      >
-        <LinearGradient
-          colors={theme.gradients.hero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.planCard}
-        >
-          <View style={styles.planGlow} />
-          <View style={styles.planHeader}>
-            <View>
-              <Text style={styles.planLabel}>Selected plan</Text>
-              <Text style={styles.planName}>{selected}</Text>
-            </View>
-            <View style={styles.planPriceBox}>
-              <Text style={styles.planPrice}>${selected === 'monthly' ? '9' : '6'}</Text>
-              <Text style={styles.planPriceSub}>per month</Text>
-            </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Eyebrow color={colors.royalViolet} showLine={false}>
+              Premium
+            </Eyebrow>
+            <Text style={styles.headerTitle}>Astrovy Premium</Text>
           </View>
-
-          {selected === 'annually' && (
-            <Animated.View
-              entering={ZoomIn.duration(300)}
-              style={styles.yearlyInfo}
-            >
-              <Text style={styles.yearlyText}>
-                <Text style={styles.yearlyBold}>$72 billed yearly</Text>
-                <Text style={styles.yearlyMuted}> (Save $36)</Text>
-              </Text>
-            </Animated.View>
-          )}
-
-          <View style={styles.cancelRow}>
-            <View style={styles.cancelDot} />
-            <Text style={styles.cancelText}>Cancel anytime</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.featuresCard}>
-          <Text style={styles.featuresTitle}>What you unlock:</Text>
-          {features[selected].map((item, i) => (
-            <Animated.View
-              key={`${selected}-${item}`}
-              entering={FadeInUp.delay(i * 80).duration(400)}
-              style={styles.featureRow}
-            >
-              <View style={styles.featureDot} />
-              <Text style={styles.featureText}>{item}</Text>
-            </Animated.View>
-          ))}
+          <View style={styles.backPlaceholder} />
         </View>
-      </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-        <TouchableOpacity activeOpacity={0.85}>
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaButton}
+        {/* Subtitle */}
+        <Animated.View entering={FadeInUp.duration(500)} style={styles.subtitleWrap}>
+          <Text style={styles.subtitle}>
+            Every reading, every week, every sign {'\u2014'} yours.
+          </Text>
+        </Animated.View>
+
+        {/* Plan toggle */}
+        <Animated.View entering={FadeInUp.duration(500).delay(50)} style={styles.toggle}>
+          <Pressable
+            onPress={() => setPlan('monthly')}
+            style={[styles.toggleBtn, plan === 'monthly' && styles.toggleBtnActive]}
           >
-            <Text style={styles.ctaText}>Go deeper</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
+            <Text
+              style={[
+                styles.toggleText,
+                plan === 'monthly' && styles.toggleTextActive,
+              ]}
+            >
+              Monthly
+            </Text>
+            <Text
+              style={[
+                styles.toggleSub,
+                plan === 'monthly' && styles.toggleSubActive,
+              ]}
+            >
+              $9/mo
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPlan('annual')}
+            style={[styles.toggleBtn, plan === 'annual' && styles.toggleBtnActive]}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                plan === 'annual' && styles.toggleTextActive,
+              ]}
+            >
+              Annual
+            </Text>
+            <Text
+              style={[
+                styles.toggleSub,
+                plan === 'annual' && styles.toggleSubActive,
+              ]}
+            >
+              $6/mo
+            </Text>
+            {plan === 'annual' && (
+              <View style={styles.saveBadge}>
+                <Text style={styles.saveBadgeText}>Save $36</Text>
+              </View>
+            )}
+          </Pressable>
+        </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.secondaryCta}>Stay with my free reading</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </ScrollView>
-  );
+        {/* Price card */}
+        <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+          <Card variant="gradient" padding="lg" style={styles.priceCard}>
+            <Eyebrow color={colors.white}>Selected plan</Eyebrow>
+            <View style={styles.priceRow}>
+              <View>
+                <Text style={styles.planName}>
+                  {plan === 'monthly' ? 'Monthly' : 'Annual'}
+                </Text>
+                <Text style={styles.planSub}>
+                  {plan === 'monthly' ? 'Billed monthly' : '$72 billed yearly'}
+                </Text>
+              </View>
+              <View style={styles.priceBox}>
+                <Text style={styles.price}>${price}</Text>
+                <Text style={styles.priceSub}>{priceSub}</Text>
+              </View>
+            </View>
+            <View style={styles.cancelRow}>
+              <View style={styles.cancelDot} />
+              <Text style={styles.cancelText}>Cancel anytime</Text>
+            </View>
+          </Card>
+        </Animated.View>
+
+        {/* Features */}
+        <Animated.View entering={FadeInUp.duration(500).delay(150)}>
+          <Card variant="light" padding="lg" style={styles.featuresCard}>
+            <Eyebrow>What you unlock</Eyebrow>
+            {FEATURES.map((feature) => (
+              <View key={feature} style={styles.featureRow}>
+                <View style={styles.featureDot} />
+                <Text style={styles.featureText}>{feature}</Text>
+              </View>
+            ))}
+          </Card>
+        </Animated.View>
+
+        {/* CTAs */}
+        <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.ctas}>
+          <Button onPress={handleStartPremium} size="lg" fullWidth>
+            Start Premium
+          </Button>
+          <Pressable onPress={() => router.back()} style={styles.secondaryBtn}>
+            <Text style={styles.secondaryText}>Maybe later</Text>
+          </Pressable>
+        </Animated.View>
+      </Animated.ScrollView>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    ...theme.shadows.warmSoft,
+    ...shadows.card,
   },
-  backIcon: { fontSize: 16, color: theme.colors.ink },
-  center: { alignItems: 'center', marginBottom: 16 },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 26,
-    marginBottom: 4,
+  backIcon: { fontSize: 18, color: colors.deepSpace, fontWeight: '700' },
+  backPlaceholder: { width: 40 },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitle: {
+    ...typography.scale.h3,
+    color: colors.deepSpace,
   },
-  subtitle: { fontSize: 11, color: theme.colors.muted },
+  subtitleWrap: { alignItems: 'center', marginBottom: spacing.lg },
+  subtitle: {
+    ...typography.scale.body,
+    color: colors.cosmicGray,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
   toggle: {
     flexDirection: 'row',
-    borderRadius: 24,
-    padding: 4,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    gap: spacing.xs,
+    padding: spacing.xs,
+    backgroundColor: colors.white,
+    borderRadius: radii.xxl,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    marginBottom: 20,
+    borderColor: 'rgba(123,97,255,0.12)',
+    marginBottom: spacing.md,
   },
-  toggleBtnBase: {
+  toggleBtn: {
     flex: 1,
-    borderRadius: 20,
-  },
-  toggleGradient: {
-    paddingVertical: 10,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
     position: 'relative',
-    minHeight: 40,
   },
-  toggleInactive: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
+  toggleBtnActive: {
+    backgroundColor: colors.royalViolet,
   },
-  toggleText: { fontSize: 12, fontWeight: '500', color: theme.colors.muted },
-  toggleTextActive: { fontSize: 12, fontWeight: '500', color: '#FFFFFF' },
+  toggleText: {
+    ...typography.scale.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.cosmicGray,
+  },
+  toggleTextActive: { color: colors.white },
+  toggleSub: {
+    ...typography.scale.caption,
+    color: colors.cosmicGray,
+    marginTop: 2,
+  },
+  toggleSubActive: { color: colors.pastelLilac },
   saveBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    paddingHorizontal: 8,
+    top: -6,
+    right: -6,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 10,
-    backgroundColor: '#F4C7D2',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    shadowColor: 'rgba(244,199,210,0.5)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    shadowOpacity: 1,
-    elevation: 3,
+    borderRadius: radii.full,
+    backgroundColor: colors.pastelLilac,
+    borderWidth: 2,
+    borderColor: colors.white,
   },
-  saveBadgeText: { fontSize: 8, fontWeight: '800', color: '#8B72CF' },
-  planWrapper: {},
-  planCard: {
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    minHeight: 180,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
+  saveBadgeText: {
+    fontSize: 9,
+    fontWeight: typography.weights.extrabold,
+    color: colors.royalViolet,
   },
-  planGlow: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    right: -30,
-    top: -30,
-  },
-  planHeader: {
+  priceCard: { marginBottom: spacing.md },
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  planLabel: {
-    fontSize: 10,
-    color: theme.colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 2,
+    alignItems: 'flex-end',
+    marginVertical: spacing.sm,
   },
   planName: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    textTransform: 'capitalize',
+    ...typography.scale.h2,
+    color: colors.white,
   },
-  planPriceBox: { alignItems: 'flex-end' },
-  planPrice: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 32,
-    fontWeight: '700',
-    color: theme.colors.ink,
+  planSub: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
   },
-  planPriceSub: { fontSize: 10, color: theme.colors.muted },
-  yearlyInfo: {
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    marginBottom: 12,
+  priceBox: { alignItems: 'flex-end' },
+  price: {
+    fontFamily: typography.families.heading,
+    fontSize: 40,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
   },
-  yearlyText: { fontSize: 11, color: theme.colors.ink },
-  yearlyBold: { fontWeight: '700' },
-  yearlyMuted: { color: theme.colors.muted },
-  cancelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cancelDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A7A0' },
-  cancelText: { fontSize: 11, color: theme.colors.muted },
-  featuresCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSm,
+  priceSub: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
   },
-  featuresTitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 12,
+  cancelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
+  cancelDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#16A7A0',
+  },
+  cancelText: {
+    ...typography.scale.caption,
+    color: colors.pastelLilac,
+  },
+  featuresCard: { marginBottom: spacing.md },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 2,
   },
-  featureDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16A7A0' },
-  featureText: { fontSize: 12, color: theme.colors.muted },
-  ctaButton: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
+  featureDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.royalViolet,
+  },
+  featureText: {
+    ...typography.scale.body,
+    color: colors.deepSpace,
+  },
+  ctas: { gap: spacing.sm },
+  secondaryBtn: {
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    ...theme.shadows.primaryGlow,
   },
-  ctaText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-  secondaryCta: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    fontWeight: '500',
-    textAlign: 'center',
-    paddingVertical: 12,
+  secondaryText: {
+    ...typography.scale.body,
+    color: colors.cosmicGray,
+    fontWeight: typography.weights.medium,
   },
-});
+})
