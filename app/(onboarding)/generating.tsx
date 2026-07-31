@@ -1,263 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  ZoomIn,
-  withRepeat,
-  withTiming,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
-import ProgressDots from '@/src/components/ProgressDots';
-import { theme } from '@/src/lib/theme';
+// app/(onboarding)/generating.tsx
 
-const stages = [
-  { id: 1, text: 'Reading your birth date...', delay: 600 },
-  { id: 2, text: 'Placing your location into the chart...', delay: 1400 },
-  { id: 3, text: 'Listening to your current focus...', delay: 2200 },
-  { id: 4, text: 'Preparing your first emotional mirror...', delay: 3000 },
-];
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Button } from '@/src/design/primitives/Button'
+import { StarField } from '@/src/design/primitives/StarField'
+import { colors, typography, spacing } from '@/src/design/tokens'
+
+const STAGES = [
+  { delay: 0, text: 'Reading your chart...' },
+  { delay: 800, text: 'Mapping your patterns...' },
+  { delay: 1600, text: 'Finding your archetype...' },
+  { delay: 2400, text: 'Almost there...' },
+]
 
 export default function GeneratingScreen() {
-  const router = useRouter();
-  const [currentStage, setCurrentStage] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
-
-  const rotate = useSharedValue(0);
+  const router = useRouter()
+  const [stage, setStage] = useState(0)
+  const [done, setDone] = useState(false)
 
   useEffect(() => {
-    stages.forEach((stage) => {
-      setTimeout(() => {
-        setCurrentStage(stage.id);
-      }, stage.delay);
-    });
-
-    setTimeout(() => {
-      setIsComplete(true);
-    }, 4000);
-
-    rotate.value = withRepeat(
-      withTiming(360, { duration: 3000 }),
-      -1,
-      false
-    );
-  }, []);
-
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotate.value}deg` }],
-  }));
+    const timers: ReturnType<typeof setTimeout>[] = []
+    STAGES.forEach((s, i) => {
+      timers.push(setTimeout(() => setStage(i), s.delay))
+    })
+    timers.push(setTimeout(() => setDone(true), 3200))
+    return () => timers.forEach(clearTimeout)
+  }, [])
 
   return (
-    <View style={styles.container}>
-      {!isComplete ? (
-        <Animated.View entering={FadeIn.duration(400)} style={styles.loadingContainer}>
-          <View style={styles.center}>
-            <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
-              <Animated.Text style={[styles.icon, spinStyle]}>✦</Animated.Text>
-            </Animated.View>
-            <Text style={styles.loadingLabel}>Preparing your first Soulprint</Text>
-            <Text style={styles.loadingTitle}>
-              We're turning your pattern into language.
-            </Text>
-          </View>
-
-          <View style={styles.stages}>
-            {stages.map((stage) => (
-              <Animated.View
-                key={stage.id}
-                entering={FadeInUp.delay(stage.delay / 2).duration(500)}
-                style={[
-                  styles.stageRow,
-                  {
-                    opacity: currentStage >= stage.id ? 1 : 0.4,
-                    backgroundColor:
-                      currentStage >= stage.id
-                        ? 'rgba(255,255,255,0.95)'
-                        : 'rgba(255,255,255,0.5)',
-                    borderColor:
-                      currentStage >= stage.id
-                        ? 'rgba(139,114,207,0.25)'
-                        : 'rgba(31,33,48,0.06)',
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.stageDot,
-                    {
-                      backgroundColor:
-                        currentStage >= stage.id ? '#16A7A0' : 'rgba(31,33,48,0.15)',
-                    },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.stageText,
-                    {
-                      color:
-                        currentStage >= stage.id ? theme.colors.ink : theme.colors.muted,
-                    },
-                  ]}
-                >
-                  {stage.text}
+    <Screen dark>
+      <StarField />
+      <View style={styles.container}>
+        <View style={styles.stageArea}>
+          {STAGES.map((s, i) => (
+            stage >= i && (
+              <Animated.View key={i} entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)}>
+                <Text style={[styles.stageText, i === stage ? styles.stageActive : styles.stageInactive]}>
+                  {s.text}
                 </Text>
               </Animated.View>
-            ))}
-          </View>
+            )
+          ))}
+        </View>
 
-          <ProgressDots total={6} current={5} />
-        </Animated.View>
-      ) : (
-        <Animated.View
-          entering={ZoomIn.duration(300)}
-          style={styles.completeContainer}
-        >
-          <Animated.View entering={ZoomIn.delay(100).duration(300)} style={styles.iconBg}>
-            <Text style={styles.icon}>✦</Text>
+        {done && (
+          <Animated.View entering={FadeIn.duration(400)}>
+            <Button fullWidth size="lg" onPress={() => router.push('/(onboarding)/first-mirror')}>
+              See what the stars say
+            </Button>
           </Animated.View>
-          <Text style={styles.completeLabel}>Your Soulprint is ready</Text>
-          <Text style={styles.completeTitle}>Your first reflection is ready.</Text>
-          <Text style={styles.completeDesc}>
-            Take a moment to see what your pattern reveals about you today.
-          </Text>
-
-          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/(onboarding)/first-mirror')}
-            >
-              <LinearGradient
-                colors={theme.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.button}
-              >
-                <Text style={styles.buttonText}>See your Soulprint</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
-    </View>
-  );
+        )}
+      </View>
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-  },
-  center: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    backgroundColor: '#8B72CF',
-    shadowColor: 'rgba(139,114,207,0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 32,
-    shadowOpacity: 1,
-    elevation: 8,
-  },
-  icon: {
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-  loadingLabel: {
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  loadingTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -0.6,
-    lineHeight: 26,
-    textAlign: 'center',
-  },
-  stages: {
-    gap: 8,
-    flex: 1,
-  },
-  stageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-  },
-  stageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  stageText: {
-    fontSize: 12,
-  },
-  completeContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completeLabel: {
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  completeTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -0.6,
-    lineHeight: 26,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  completeDesc: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 240,
-    marginBottom: 24,
-  },
-  button: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-});
+  container: { flex: 1, justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.xxxl, paddingBottom: spacing.xxxl },
+  stageArea: { flex: 1, justifyContent: 'center', gap: spacing.md },
+  stageText: { ...typography.scale.h3, textAlign: 'center' },
+  stageActive: { color: colors.white },
+  stageInactive: { color: colors.softLavender, opacity: 0.4 },
+})

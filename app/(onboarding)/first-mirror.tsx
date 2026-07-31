@@ -1,349 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeInUp,
-  FadeIn,
-  ZoomIn,
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
-import { theme } from '@/src/lib/theme';
+// app/(onboarding)/first-mirror.tsx
 
-const patternCards = [
-  { title: 'Private Processor', desc: 'You feel more than you show.' },
-  { title: 'Pattern Reader', desc: 'You notice emotional shifts quickly.' },
-  { title: 'Consistency Seeker', desc: 'You trust repeated actions more than big words.' },
-  { title: 'Quiet Intensity', desc: 'You may look calm while processing deeply.' },
-];
+import React, { useState, useMemo } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Button } from '@/src/design/primitives/Button'
+import { Card } from '@/src/design/primitives/Card'
+import { Badge } from '@/src/design/primitives/Badge'
+import { Eyebrow } from '@/src/design/primitives/Eyebrow'
+import { useProfile } from '@/src/context/ProfileContext'
+import { calculateNatalChart, deriveArchetype, calculateLifePath, getZodiacInfo, getZodiacSign } from '@/src/lib/astrology'
+import { colors, typography, spacing, radii } from '@/src/design/tokens'
+
+const FEEDBACK_OPTIONS = [
+  { id: 'accurate', label: "Yes, that's me" },
+  { id: 'partial', label: 'Somewhat' },
+  { id: 'inaccurate', label: 'Not quite' },
+] as const
 
 export default function FirstMirrorScreen() {
-  const router = useRouter();
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const router = useRouter()
+  const { profile, setFirstMirrorFeedback, finalizeProfile } = useProfile()
+  const [feedback, setFeedback] = useState<string | null>(null)
 
-  const floatY = useSharedValue(0);
-  useEffect(() => {
-    floatY.value = withRepeat(
-      withTiming(-4, { duration: 1500 }),
-      -1,
-      true
-    );
-  }, []);
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: floatY.value }],
-  }));
+  const { archetype, zodiacInfo, lifePath } = useMemo(() => {
+    if (!profile?.birth?.date) {
+      return { archetype: null, zodiacInfo: null, lifePath: null }
+    }
+    const [year, month, day] = profile.birth.date.split('-').map(Number)
+    const sign = getZodiacSign(month, day)
+    const lp = calculateLifePath(year, month, day)
+    const natal = calculateNatalChart({
+      date: profile.birth.date,
+      time: profile.birth.time,
+      location: {
+        city: profile.birth.location.city,
+        lat: profile.birth.location.lat || 0,
+        lng: profile.birth.location.lng || 0,
+        timezone: profile.birth.location.timezone,
+      },
+    })
+    const arch = deriveArchetype(sign, lp, profile.focus || 'purpose')
+    return { archetype: arch, zodiacInfo: getZodiacInfo(sign), lifePath: lp }
+  }, [profile])
+
+  if (!archetype || !zodiacInfo || !lifePath) {
+    return (
+      <Screen>
+        <View style={styles.container}>
+          <Text style={styles.error}>Chart unavailable</Text>
+        </View>
+      </Screen>
+    )
+  }
+
+  const handleContinue = () => {
+    if (feedback) {
+      setFirstMirrorFeedback(feedback as 'accurate' | 'partial' | 'inaccurate')
+    }
+    finalizeProfile()
+    router.replace('/(tabs)/today')
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeInUp.duration(600)} style={styles.center}>
-        <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
-          <Text style={styles.icon}>✦</Text>
-        </Animated.View>
-        <Text style={styles.label}>First Mirror</Text>
-        <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
-        <Text style={styles.desc}>
-          We found a few patterns that may explain how you process emotion, connection, and direction.
-        </Text>
-      </Animated.View>
+    <Screen>
+      <View style={styles.container}>
+        <Text style={styles.greeting}>Hi, {profile?.name || 'friend'}</Text>
 
-      <Animated.View
-        entering={FadeInUp.delay(100).duration(500)}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroGlow} />
-        <View style={styles.heroRow}>
-          <Animated.View style={[styles.heroAvatar, floatStyle]}>
-            <Text style={styles.heroAvatarEmoji}>🌿</Text>
-          </Animated.View>
-          <View>
-            <Text style={styles.heroLabel}>Your Core Archetype</Text>
-            <Text style={styles.heroTitle}>The Quiet Strategist</Text>
-          </View>
-        </View>
-        <Text style={styles.heroDesc}>
-          You tend to understand things deeply before you explain them. People may see calmness, but your inner world is usually more active than it looks.
-        </Text>
+        <Card variant="gradient" padding="lg" style={styles.archetypeCard}>
+          <Eyebrow color={colors.white}>Your archetype</Eyebrow>
+          <Text style={styles.archetypeName}>{archetype.name}</Text>
+          <Text style={styles.archetypeTagline}>{archetype.tagline}</Text>
+        </Card>
+
         <View style={styles.badges}>
-          {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
-            <View key={badge} style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
-            </View>
-          ))}
+          <Badge variant="astrology">{zodiacInfo.name} Sun</Badge>
+          <Badge variant="premium">Life Path {lifePath}</Badge>
+          <Badge variant="free">{profile?.focus}</Badge>
         </View>
-      </Animated.View>
 
-      <Text style={styles.sectionTitle}>What this may reveal</Text>
-      <View style={styles.grid}>
-        {patternCards.map((card, i) => (
-          <Animated.View
-            key={card.title}
-            entering={FadeInUp.delay(200 + i * 50).duration(500)}
-            style={styles.patternCard}
-          >
-            <Text style={styles.patternTitle}>{card.title}</Text>
-            <Text style={styles.patternDesc}>{card.desc}</Text>
-          </Animated.View>
+        <Text style={styles.patternsTitle}>Your patterns</Text>
+        {archetype.patterns.map((pattern, i) => (
+          <Card key={i} variant="soft" padding="md" style={styles.patternCard}>
+            <Text style={styles.patternName}>{pattern}</Text>
+          </Card>
         ))}
-      </View>
 
-      <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.insightCard}>
-        <Text style={styles.insightTitle}>The part of you asking to be understood</Text>
-        <Text style={styles.insightText}>
-          You may not always want attention. But you do want to feel emotionally considered.
-        </Text>
-        <Text style={styles.insightText}>
-          When people miss the small details, it can feel louder than they realize.
-        </Text>
-      </Animated.View>
-
-      <View style={styles.feedbackSection}>
-        <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
+        <Text style={styles.feedbackQuestion}>Does this feel right?</Text>
         <View style={styles.feedbackRow}>
-          {['Yes, surprisingly', 'A little', 'Not really'].map((opt) => (
-            <TouchableOpacity
-              key={opt}
-              onPress={() => setFeedback(opt)}
-              style={[
-                styles.feedbackBtn,
-                feedback === opt && styles.feedbackBtnActive,
-              ]}
+          {FEEDBACK_OPTIONS.map((opt) => (
+            <Pressable
+              key={opt.id}
+              onPress={() => setFeedback(opt.id)}
+              style={[styles.feedbackBtn, feedback === opt.id && styles.feedbackBtnActive]}
             >
-              <Text
-                style={[
-                  styles.feedbackBtnText,
-                  feedback === opt && styles.feedbackBtnTextActive,
-                ]}
-              >
-                {opt}
-              </Text>
-            </TouchableOpacity>
+              <Text style={[styles.feedbackText, feedback === opt.id && styles.feedbackTextActive]}>{opt.label}</Text>
+            </Pressable>
           ))}
         </View>
+
+        <Button fullWidth size="lg" onPress={handleContinue}>
+          Continue
+        </Button>
       </View>
-
-      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
-        <Text style={styles.softCta}>
-          Your full blueprint lives in the Soulprint tab —
-          go deeper whenever you're ready.
-        </Text>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(600).duration(500)}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/(tabs)/today')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.mainButton}
-          >
-            <Text style={styles.mainButtonText}>Continue to Today</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-    </ScrollView>
-  );
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  center: { alignItems: 'center', marginBottom: 16 },
-  iconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#8B72CF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: 'rgba(139,114,207,0.25)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
-  },
-  icon: { fontSize: 24, color: '#FFFFFF' },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -0.6,
-    lineHeight: 28,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  desc: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 260,
-  },
-  heroCard: {
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#FFFDF7',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    right: -30,
-    top: -30,
-    opacity: 0.2,
-  },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  heroAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroAvatarEmoji: { fontSize: 24 },
-  heroLabel: {
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  heroTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 20,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    lineHeight: 24,
-  },
-  heroDesc: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  badgeText: { fontSize: 10, fontWeight: '500', color: '#6C5F99' },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    marginBottom: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  patternCard: {
-    width: '48%',
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  patternTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
-  patternDesc: { fontSize: 10, color: theme.colors.muted, lineHeight: 14 },
-  insightCard: {
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: 'rgba(232,221,251,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.2)',
-  },
-  insightTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 8 },
-  insightText: { fontSize: 12, color: theme.colors.muted, lineHeight: 20, marginBottom: 4 },
-  feedbackSection: { marginBottom: 16 },
-  feedbackLabel: {
-    fontSize: 11,
-    color: theme.colors.muted,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  feedbackRow: { flexDirection: 'row', gap: 8 },
+  container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl },
+  greeting: { ...typography.scale.h1, color: colors.deepSpace, marginBottom: spacing.lg },
+  archetypeCard: { marginBottom: spacing.lg },
+  archetypeName: { ...typography.scale.h2, color: colors.white, marginBottom: spacing.xs },
+  archetypeTagline: { ...typography.scale.body, color: colors.pastelLilac },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
+  patternsTitle: { ...typography.scale.h3, color: colors.deepSpace, marginBottom: spacing.md },
+  patternCard: { marginBottom: spacing.xs },
+  patternName: { ...typography.scale.body, color: colors.deepSpace, fontWeight: typography.weights.medium },
+  feedbackQuestion: { ...typography.scale.h3, color: colors.deepSpace, marginTop: spacing.lg, marginBottom: spacing.md },
+  feedbackRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
   feedbackBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(123,97,255,0.10)',
     alignItems: 'center',
   },
-  feedbackBtnActive: {
-    backgroundColor: '#8B72CF',
-    borderColor: 'transparent',
-  },
-  feedbackBtnText: { fontSize: 10, fontWeight: '500', color: theme.colors.muted },
-  feedbackBtnTextActive: { color: '#FFFFFF' },
-  softCta: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  mainButton: {
-    width: '100%',
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  mainButtonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-});
+  feedbackBtnActive: { backgroundColor: colors.royalViolet, borderColor: 'transparent' },
+  feedbackText: { ...typography.scale.caption, color: colors.deepSpace },
+  feedbackTextActive: { color: colors.white, fontWeight: typography.weights.semibold },
+  error: { ...typography.scale.body, color: colors.cosmicGray, textAlign: 'center', marginTop: spacing.xxxl },
+})

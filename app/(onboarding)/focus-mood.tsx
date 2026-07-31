@@ -1,190 +1,78 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp } from 'react-native-reanimated';
-import ProgressDots from '@/src/components/ProgressDots';
-import { theme } from '@/src/lib/theme';
+// app/(onboarding)/focus-mood.tsx
 
-const focusOptions = [
-  { id: 'love', label: 'Love', emoji: '💕' },
-  { id: 'lost', label: 'Feeling lost', emoji: '🌫️' },
-  { id: 'worth', label: 'Self-worth', emoji: '⭐' },
-  { id: 'career', label: 'Career', emoji: '🎯' },
-  { id: 'healing', label: 'Healing', emoji: '🌙' },
-  { id: 'purpose', label: 'Purpose', emoji: '🌟' },
-];
+import React, { useState } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Button } from '@/src/design/primitives/Button'
+import ProgressDots from '@/src/components/ProgressDots'
+import { useProfile } from '@/src/context/ProfileContext'
+import { colors, typography, spacing, radii } from '@/src/design/tokens'
 
-const GAP = 12;
-const PADDING = 20;
+const FOCUS_OPTIONS = [
+  { id: 'love', label: 'Love' },
+  { id: 'lost', label: 'Feeling lost' },
+  { id: 'self-worth', label: 'Self-worth' },
+  { id: 'career', label: 'Career' },
+  { id: 'healing', label: 'Healing' },
+  { id: 'purpose', label: 'Purpose' },
+]
 
 export default function FocusMoodScreen() {
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const [focus, setFocus] = useState<string | null>(null);
+  const router = useRouter()
+  const { setFocus } = useProfile()
+  const [focus, setLocalFocus] = useState<string | null>(null)
 
-  const cardWidth = (width - PADDING * 2 - GAP) / 2;
+  const handleContinue = () => {
+    if (!focus) return
+    setFocus(focus)
+    router.push('/(onboarding)/generating')
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.stepText}>5 of 6</Text>
-      </Animated.View>
+    <Screen>
+      <View style={styles.container}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>{"<"}</Text>
+        </Pressable>
+        <ProgressDots current={5} total={6} />
+        <Text style={styles.question}>What feels most alive right now?</Text>
 
-      <Animated.View entering={FadeInUp.delay(100).duration(500)}>
-        <Text style={styles.label}>Right now</Text>
-        <Text style={styles.title}>What needs understanding today?</Text>
-        <Text style={styles.description}>Choose one area you want to explore.</Text>
-      </Animated.View>
-
-      <View style={styles.grid}>
-        {focusOptions.map((opt, index) => {
-          const isSelected = focus === opt.id;
-          return (
-            <Animated.View
+        <View style={styles.options}>
+          {FOCUS_OPTIONS.map((opt) => (
+            <Pressable
               key={opt.id}
-              entering={FadeInUp.delay(index * 60).duration(500)}
-              style={{ width: cardWidth }}
+              onPress={() => setLocalFocus(opt.id)}
+              style={[styles.option, focus === opt.id && styles.optionActive]}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setFocus(opt.id)}
-                style={[
-                  styles.card,
-                  isSelected && styles.cardActive,
-                ]}
-              >
-                <Text style={styles.emoji}>{opt.emoji}</Text>
-                <Text style={styles.cardLabel}>{opt.label}</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
+              <Text style={[styles.optionText, focus === opt.id && styles.optionTextActive]}>{opt.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Button fullWidth size="lg" onPress={handleContinue} disabled={!focus}>
+          Continue
+        </Button>
       </View>
-
-      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={!focus}
-          onPress={() => router.push('/(onboarding)/generating')}
-        >
-          <LinearGradient
-            colors={focus ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.button, !focus && styles.buttonDisabled]}
-          >
-            <Text style={styles.buttonText}>Create My Soulprint</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-
-      <ProgressDots total={6} current={4} />
-    </ScrollView>
-  );
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: PADDING,
-    paddingTop: 40,
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+  container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  backIcon: { fontSize: 16, color: colors.deepSpace },
+  question: { ...typography.scale.h2, color: colors.deepSpace, marginBottom: spacing.lg },
+  options: { flex: 1, gap: spacing.sm },
+  option: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.lg,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    borderColor: 'rgba(123,97,255,0.10)',
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  stepText: { fontSize: 12, color: theme.colors.muted },
-  label: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 12,
-  },
-  title: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 28,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -1.2,
-    lineHeight: 32,
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 14,
-    color: theme.colors.muted,
-    lineHeight: 23,
-    marginBottom: 20,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: GAP,
-    marginBottom: 24,
-  },
-  card: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    padding: 16,
-    minHeight: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.warmSm,
-  },
-  cardActive: {
-    borderColor: 'rgba(139,114,207,0.4)',
-    backgroundColor: 'rgba(232,221,251,0.98)',
-    shadowColor: 'rgba(139,114,207,0.15)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
-    shadowOpacity: 1,
-    elevation: 6,
-  },
-  emoji: { fontSize: 28, marginBottom: 8 },
-  cardLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.ink },
-  button: {
-    width: '100%',
-    minHeight: 54,
-    borderRadius: 27,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-});
+  optionActive: { backgroundColor: colors.royalViolet, borderColor: 'transparent' },
+  optionText: { ...typography.scale.bodyLarge, color: colors.deepSpace },
+  optionTextActive: { color: colors.white, fontWeight: typography.weights.semibold },
+})

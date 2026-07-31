@@ -1,284 +1,93 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
-import SoftMascot from '@/src/components/SoftMascot';
-import ProgressDots from '@/src/components/ProgressDots';
-import { theme } from '@/src/lib/theme';
+// app/(onboarding)/birth-date.tsx
 
-const days = Array.from({ length: 31 }, (_, i) => i + 1);
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-const years = Array.from({ length: 100 }, (_, i) => 2024 - i);
+import React, { useState } from 'react'
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Button } from '@/src/design/primitives/Button'
+import ProgressDots from '@/src/components/ProgressDots'
+import { useProfile } from '@/src/context/ProfileContext'
+import { colors, typography, spacing } from '@/src/design/tokens'
+
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
+const YEARS = Array.from({ length: 100 }, (_, i) => 2024 - i)
+
+function isValidDate(day: number, month: number, year: number): boolean {
+  const date = new Date(year, month - 1, day)
+  const now = new Date()
+  return date.getMonth() === month - 1 && date.getDate() === day && date <= now
+}
 
 export default function BirthDateScreen() {
-  const router = useRouter();
-  const [day, setDay] = useState(27);
-  const [month, setMonth] = useState(1);
-  const [year, setYear] = useState(2000);
+  const router = useRouter()
+  const { setBirthDate } = useProfile()
+  const [day, setDay] = useState(27)
+  const [month, setMonth] = useState(1)
+  const [year, setYear] = useState(2000)
 
-  const selectedDate = `${day} / ${month.toString().padStart(2, '0')} / ${year}`;
+  const valid = isValidDate(day, month, year)
+
+  const handleContinue = () => {
+    if (!valid) return
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    setBirthDate(dateStr)
+    router.push('/(onboarding)/birth-time')
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.stepText}>1 of 6</Text>
-      </Animated.View>
+    <Screen>
+      <View style={styles.container}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>{"<"}</Text>
+        </Pressable>
+        <ProgressDots current={1} total={6} />
+        <Text style={styles.question}>When were you born?</Text>
 
-      <Animated.View
-        entering={FadeInUp.duration(500)}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroText}>
-          <Text style={styles.heroLabel}>Your first layer</Text>
-          <Text style={styles.heroTitle}>When did your story begin?</Text>
-          <Text style={styles.heroDesc}>
-            Your birth date helps us read your solar pattern.
-          </Text>
+        <View style={styles.pickers}>
+          <ScrollView style={styles.picker}>
+            {DAYS.map((d) => (
+              <Pressable key={d} onPress={() => setDay(d)} style={[styles.option, day === d && styles.optionActive]}>
+                <Text style={[styles.optionText, day === d && styles.optionTextActive]}>{d}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <ScrollView style={styles.picker}>
+            {MONTHS.map((m) => (
+              <Pressable key={m} onPress={() => setMonth(m)} style={[styles.option, month === m && styles.optionActive]}>
+                <Text style={[styles.optionText, month === m && styles.optionTextActive]}>{m}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <ScrollView style={styles.picker}>
+            {YEARS.map((y) => (
+              <Pressable key={y} onPress={() => setYear(y)} style={[styles.option, year === y && styles.optionActive]}>
+                <Text style={[styles.optionText, year === y && styles.optionTextActive]}>{y}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
-        <SoftMascot mood="curious" size="small" />
-        <View style={styles.heroGlow} />
-      </Animated.View>
 
-      <View style={styles.pickers}>
-        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.pickerCol}>
-          <Text style={styles.pickerLabel}>Day</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-            {days.map((d) => (
-              <TouchableOpacity
-                key={d}
-                onPress={() => setDay(d)}
-                style={[styles.pickerItem, day === d && styles.pickerItemActive]}
-              >
-                <Text style={[styles.pickerItemText, day === d && styles.pickerItemTextActive]}>
-                  {d}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
-        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.pickerCol}>
-          <Text style={styles.pickerLabel}>Month</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-            {months.map((m) => (
-              <TouchableOpacity
-                key={m}
-                onPress={() => setMonth(m)}
-                style={[styles.pickerItem, month === m && styles.pickerItemActive]}
-              >
-                <Text style={[styles.pickerItemText, month === m && styles.pickerItemTextActive]}>
-                  {m.toString().padStart(2, '0')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
-        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.pickerCol}>
-          <Text style={styles.pickerLabel}>Year</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
-            {years.map((y) => (
-              <TouchableOpacity
-                key={y}
-                onPress={() => setYear(y)}
-                style={[styles.pickerItem, year === y && styles.pickerItemActive]}
-              >
-                <Text style={[styles.pickerItemText, year === y && styles.pickerItemTextActive]}>
-                  {y}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
+        {!valid && <Text style={styles.error}>That date doesn't look right.</Text>}
+
+        <Button fullWidth size="lg" onPress={handleContinue} disabled={!valid}>
+          Continue
+        </Button>
       </View>
-
-      <Animated.View
-        key={selectedDate}
-        entering={ZoomIn.duration(300)}
-        style={styles.selectedDateCard}
-      >
-        <Text style={styles.selectedDateLabel}>Selected date</Text>
-        <Text style={styles.selectedDateValue}>{selectedDate}</Text>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/birth-time')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-      <ProgressDots total={6} current={0} />
-    </ScrollView>
-  );
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.warmSoft,
-  },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  stepText: { fontSize: 12, color: theme.colors.muted },
-  heroCard: {
-    borderRadius: 32,
-    padding: 20,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    backgroundColor: '#FFFDF7',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    minHeight: 140,
-    marginBottom: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    ...theme.shadows.warmSoft,
-  },
-  heroText: { flex: 1 },
-  heroLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -0.8,
-    lineHeight: 26,
-    marginBottom: 4,
-  },
-  heroDesc: {
-    fontSize: 12,
-    color: theme.colors.softMuted,
-    lineHeight: 17,
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(247,216,117,0.4)',
-    right: -20,
-    bottom: -30,
-    opacity: 0.3,
-  },
-  pickers: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-    height: 200,
-  },
-  pickerCol: {
-    flex: 1,
-  },
-  pickerLabel: {
-    fontSize: 10,
-    color: theme.colors.muted,
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  picker: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-  },
-  pickerItem: {
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  pickerItemActive: {
-    backgroundColor: 'rgba(139,114,207,0.1)',
-  },
-  pickerItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.ink,
-  },
-  pickerItemTextActive: {
-    color: '#8B72CF',
-    fontWeight: '700',
-  },
-  selectedDateCard: {
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 24,
-    backgroundColor: 'rgba(232,221,251,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.2)',
-  },
-  selectedDateLabel: {
-    fontSize: 11,
-    color: theme.colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  selectedDateValue: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 24,
-    fontWeight: '500',
-    color: theme.colors.ink,
-  },
-  button: {
-    width: '100%',
-    minHeight: 54,
-    borderRadius: 27,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-});
+  container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  backIcon: { fontSize: 16, color: colors.deepSpace },
+  question: { ...typography.scale.h2, color: colors.deepSpace, marginBottom: spacing.lg },
+  pickers: { flex: 1, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  picker: { flex: 1 },
+  option: { paddingVertical: spacing.sm, alignItems: 'center', borderRadius: 12 },
+  optionActive: { backgroundColor: colors.royalViolet },
+  optionText: { ...typography.scale.body, color: colors.deepSpace },
+  optionTextActive: { color: colors.white, fontWeight: typography.weights.semibold },
+  error: { ...typography.scale.caption, color: '#F43F5E', marginBottom: spacing.sm, textAlign: 'center' },
+})

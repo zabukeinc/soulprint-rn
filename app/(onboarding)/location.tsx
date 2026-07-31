@@ -1,272 +1,123 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
-import { IllustrationMood } from '@/src/components/Illustrations';
-import ProgressDots from '@/src/components/ProgressDots';
-import { theme } from '@/src/lib/theme';
+// app/(onboarding)/location.tsx
 
-const cities = [
-  { name: 'Bandung, Indonesia', flag: '🇮🇩', vibe: 'warm' },
-  { name: 'Jakarta, Indonesia', flag: '🇮🇩', vibe: 'calm' },
-  { name: 'Surabaya, Indonesia', flag: '🇮🇩', vibe: 'bright' },
-  { name: 'Bali, Indonesia', flag: '🇮🇩', vibe: 'warm' },
-  { name: 'Yogyakarta, Indonesia', flag: '🇮🇩', vibe: 'deep' },
-  { name: 'New York, USA', flag: '🇺🇸', vibe: 'bright' },
-  { name: 'Los Angeles, USA', flag: '🇺🇸', vibe: 'calm' },
-  { name: 'London, UK', flag: '🇬🇧', vibe: 'deep' },
-  { name: 'Tokyo, Japan', flag: '🇯🇵', vibe: 'calm' },
-  { name: 'Sydney, Australia', flag: '🇦🇺', vibe: 'bright' },
-];
+import React, { useState } from 'react'
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Screen } from '@/src/design/primitives/Screen'
+import { Button } from '@/src/design/primitives/Button'
+import ProgressDots from '@/src/components/ProgressDots'
+import { useProfile } from '@/src/context/ProfileContext'
+import { colors, typography, spacing, radii } from '@/src/design/tokens'
 
-function CityItem({ city, isSelected, onPress, index }: any) {
-  return (
-    <Animated.View
-      entering={FadeInUp.delay(index * 50).duration(500)}
-    >
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onPress}
-        style={[
-          styles.cityItem,
-          isSelected && styles.cityItemActive,
-        ]}
-      >
-        <Text style={styles.cityFlag}>{city.flag}</Text>
-        <Text style={styles.cityName}>{city.name}</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
+const CITIES = [
+  { city: 'Bandung',     country: 'Indonesia',    timezone: 'Asia/Jakarta',        lat: -6.9175,  lng: 107.6191 },
+  { city: 'Jakarta',     country: 'Indonesia',    timezone: 'Asia/Jakarta',        lat: -6.2088,  lng: 106.8456 },
+  { city: 'Surabaya',    country: 'Indonesia',    timezone: 'Asia/Jakarta',        lat: -7.2575,  lng: 112.7521 },
+  { city: 'Bali',        country: 'Indonesia',    timezone: 'Asia/Makassar',       lat: -8.3405,  lng: 115.0920 },
+  { city: 'Yogyakarta',  country: 'Indonesia',    timezone: 'Asia/Jakarta',        lat: -7.7956,  lng: 110.3695 },
+  { city: 'New York',    country: 'USA',          timezone: 'America/New_York',    lat: 40.7128,  lng: -74.0060 },
+  { city: 'Los Angeles', country: 'USA',          timezone: 'America/Los_Angeles', lat: 34.052,  lng: -118.2437 },
+  { city: 'London',      country: 'UK',           timezone: 'Europe/London',       lat: 51.5074,  lng: -0.1278 },
+  { city: 'Tokyo',       country: 'Japan',        timezone: 'Asia/Tokyo',          lat: 35.6762,  lng: 139.6503 },
+  { city: 'Sydney',      country: 'Australia',    timezone: 'Australia/Sydney',    lat: -33.8688, lng: 151.2093 },
+]
 
 export default function LocationScreen() {
-  const router = useRouter();
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState(0);
+  const router = useRouter()
+  const { setLocation } = useProfile()
+  const [search, setSearch] = useState('')
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(0)
 
-  const filteredCities = cities.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const selectedCity = cities[selected];
+  const filtered = CITIES.filter((c) =>
+    c.city.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const handleContinue = () => {
+    if (selectedIdx === null) return
+    const city = CITIES[selectedIdx]
+    setLocation({
+      city: city.city,
+      country: city.country,
+      timezone: city.timezone,
+      lat: city.lat,
+      lng: city.lng,
+    })
+    router.push('/(onboarding)/mbti')
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.stepText}>3 of 6</Text>
-      </Animated.View>
+    <Screen>
+      <View style={styles.container}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>{"<"}</Text>
+        </Pressable>
+        <ProgressDots current={3} total={6} />
+        <Text style={styles.question}>Where were you born?</Text>
 
-      <Animated.View entering={FadeInUp.duration(500)} style={styles.heroCard}>
-        <View style={styles.heroText}>
-          <Text style={styles.heroLabel}>Place matters</Text>
-          <Text style={styles.heroTitle}>Where were you born?</Text>
-          <Text style={styles.heroDesc}>Location grounds your reading in context.</Text>
-        </View>
-        <IllustrationMood mood={selectedCity.vibe} />
-        <View style={styles.heroGlow} />
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.searchBox}>
-        <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
+          style={styles.search}
+          placeholder="Search cities..."
+          placeholderTextColor={colors.cosmicGray + '80'}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search city or country"
-          placeholderTextColor={theme.colors.muted + '80'}
-          style={styles.searchInput}
         />
-      </Animated.View>
 
-      <Animated.View
-        key={selectedCity.name}
-        entering={FadeIn.duration(500)}
-        style={styles.selectedCard}
-      >
-        <Text style={styles.selectedFlag}>{selectedCity.flag}</Text>
-        <View style={styles.selectedInfo}>
-          <Text style={styles.selectedLabel}>Selected</Text>
-          <Text style={styles.selectedName}>{selectedCity.name}</Text>
-        </View>
-        <Text style={styles.pinIcon}>📍</Text>
-      </Animated.View>
+        <ScrollView style={styles.list}>
+          {filtered.map((c) => {
+            const originalIdx = CITIES.indexOf(c)
+            return (
+              <Pressable
+                key={`${c.city}-${c.country}`}
+                onPress={() => setSelectedIdx(originalIdx)}
+                style={[styles.cityItem, selectedIdx === originalIdx && styles.cityItemActive]}
+              >
+                <Text style={[styles.cityName, selectedIdx === originalIdx && styles.cityNameActive]}>{c.city}</Text>
+                <Text style={[styles.cityCountry, selectedIdx === originalIdx && styles.cityCountryActive]}>{c.country}</Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
 
-      <View style={styles.list}>
-        {filteredCities.map((city, index) => {
-          const idx = cities.indexOf(city);
-          const isSelected = selected === idx;
-          return (
-            <CityItem
-              key={city.name}
-              city={city}
-              isSelected={isSelected}
-              onPress={() => setSelected(idx)}
-              index={index}
-            />
-          );
-        })}
+        <Button fullWidth size="lg" onPress={handleContinue} disabled={selectedIdx === null}>
+          Continue
+        </Button>
       </View>
-
-      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/mbti')}
-        >
-          <LinearGradient
-            colors={theme.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-      <ProgressDots total={6} current={2} />
-    </ScrollView>
-  );
+    </Screen>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+  container: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  backIcon: { fontSize: 16, color: colors.deepSpace },
+  question: { ...typography.scale.h2, color: colors.deepSpace, marginBottom: spacing.lg },
+  search: {
+    ...typography.scale.body,
+    color: colors.deepSpace,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.warmSoft,
+    borderColor: 'rgba(123,97,255,0.10)',
+    marginBottom: spacing.md,
   },
-  backIcon: { fontSize: 18, color: theme.colors.ink },
-  stepText: { fontSize: 12, color: theme.colors.muted },
-  heroCard: {
-    borderRadius: 32,
-    padding: 20,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    backgroundColor: '#FFFDF7',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    minHeight: 160,
-    marginBottom: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    ...theme.shadows.warmSoft,
-  },
-  heroText: { flex: 1 },
-  heroLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontFamily: theme.fonts.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: theme.colors.ink,
-    letterSpacing: -0.8,
-    lineHeight: 26,
-    marginBottom: 4,
-  },
-  heroDesc: { fontSize: 12, color: theme.colors.softMuted, lineHeight: 17 },
-  heroGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(247,216,117,0.4)',
-    right: -30,
-    bottom: -40,
-    opacity: 0.3,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    ...theme.shadows.warmSm,
-  },
-  searchIcon: { fontSize: 16 },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.ink,
-  },
-  selectedCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(232,221,251,0.9)',
-    borderWidth: 2,
-    borderColor: 'rgba(139,114,207,0.3)',
-    ...theme.shadows.warmSm,
-  },
-  selectedFlag: { fontSize: 24 },
-  selectedInfo: { flex: 1 },
-  selectedLabel: { fontSize: 12, color: theme.colors.muted, marginBottom: 2 },
-  selectedName: { fontSize: 14, fontWeight: '700', color: theme.colors.ink },
-  pinIcon: { fontSize: 16, color: '#8B72CF' },
-  list: { gap: 8, marginBottom: 20 },
+  list: { flex: 1 },
   cityItem: {
-    borderRadius: 24,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.lg,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    ...theme.shadows.warmSm,
+    borderColor: 'rgba(123,97,255,0.06)',
   },
   cityItemActive: {
-    borderColor: 'rgba(139,114,207,0.35)',
-    backgroundColor: 'rgba(232,221,251,0.98)',
+    backgroundColor: colors.royalViolet,
+    borderColor: 'transparent',
   },
-  cityFlag: { fontSize: 20 },
-  cityName: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  button: {
-    width: '100%',
-    minHeight: 54,
-    borderRadius: 27,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.primaryGlow,
-  },
-  buttonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
-});
+  cityName: { ...typography.scale.body, fontWeight: typography.weights.semibold, color: colors.deepSpace },
+  cityNameActive: { color: colors.white },
+  cityCountry: { ...typography.scale.caption, color: colors.cosmicGray },
+  cityCountryActive: { color: colors.pastelLilac },
+})
