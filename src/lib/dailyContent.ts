@@ -56,10 +56,10 @@ export const weeklyReadings = [
 ];
 
 export const moodAlerts: Record<string, string> = {
-  Steady: "You've been steady for 3 days. That consistency is worth naming — and trusting.",
-  Emotional: "You've felt emotional 3 days in a row. Something is asking to be understood, not just felt.",
-  Restless: "Restlessness has visited 3 times this week. The chase might be a distraction from the real question.",
-  Numb: "Numbness for 3 days isn't nothing — it's a body asking for a different kind of attention.",
+  Steady: "Three steady days. That consistency is worth trusting.",
+  Tender: "Three tender days. Something is asking to be understood.",
+  Restless: "Restlessness three times this week. The chase may be a distraction.",
+  Quiet: "Three quiet days. Your body is asking for something different.",
 };
 
 export function getDailyIndex() {
