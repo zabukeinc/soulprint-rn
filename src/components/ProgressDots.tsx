@@ -1,9 +1,12 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+// src/components/ProgressDots.tsx
+
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
+import { colors, spacing } from '@/src/design/tokens'
 
 interface ProgressDotsProps {
-  total: number;
-  current: number;
+  total: number
+  current: number
 }
 
 export default function ProgressDots({ total, current }: ProgressDotsProps) {
@@ -14,31 +17,29 @@ export default function ProgressDots({ total, current }: ProgressDotsProps) {
           key={i}
           style={[
             styles.dot,
-            i <= current && styles.activeDot,
+            i < current && styles.activeDot,
           ]}
         />
       ))}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(31,33,48,0.08)',
+    backgroundColor: 'rgba(123,97,255,0.15)',
   },
   activeDot: {
-    backgroundColor: '#8B72CF',
+    backgroundColor: colors.royalViolet,
     width: 24,
-    borderRadius: 4,
   },
-});
+})

@@ -1,23 +1,24 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import BottomNav from '@/src/components/BottomNav';
-import { usePathname, useRouter } from 'expo-router';
+// app/(tabs)/_layout.tsx
 
-const tabRoutes = ['today', 'soulprint', 'decode', 'mirror', 'profile'];
+import React from 'react'
+import { Tabs } from 'expo-router'
+import BottomNav from '@/src/components/BottomNav'
+import { usePathname, useRouter } from 'expo-router'
 
 function CustomBottomTabBar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const currentScreen = pathname.replace('/', '') || 'today';
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const currentScreen = pathname.split('/').pop() || 'today'
 
   return (
     <BottomNav
       currentScreen={currentScreen}
       onNavigate={(screen) => {
-        router.navigate(`/(tabs)/${screen}`);
+        router.navigate(`/(tabs)/${screen}`)
       }}
     />
-  );
+  )
 }
 
 export default function TabsLayout() {
@@ -35,5 +36,5 @@ export default function TabsLayout() {
       <Tabs.Screen name="mirror" />
       <Tabs.Screen name="profile" />
     </Tabs>
-  );
+  )
 }

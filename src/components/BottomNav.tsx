@@ -1,134 +1,91 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Sparkles, BookOpen, Heart, User } from 'lucide-react-native';
-import { theme } from '@/src/lib/theme';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+// src/components/BottomNav.tsx
 
-const tabs = [
-  { id: 'today', label: 'Today', icon: Home },
-  { id: 'soulprint', label: 'Soul', icon: Sparkles },
-  { id: 'decode', label: 'Decode', icon: BookOpen },
-  { id: 'mirror', label: 'Mirror', icon: Heart },
-  { id: 'profile', label: 'Profile', icon: User },
-];
+import React from 'react'
+import { View, Pressable, Text, StyleSheet } from 'react-native'
+import { Sun, Star, BookOpen, Moon, User } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { colors, typography, spacing, radii, shadows } from '@/src/design/tokens'
 
 interface BottomNavProps {
-  currentScreen: string;
-  onNavigate: (screen: string) => void;
+  currentScreen: string
+  onNavigate: (screen: string) => void
 }
 
+const TABS = [
+  { id: 'today',     icon: Sun,      label: 'Today' },
+  { id: 'soulprint', icon: Star,     label: 'Astro' },
+  { id: 'decode',    icon: BookOpen, label: 'Decode' },
+  { id: 'mirror',    icon: Moon,     label: 'Mirror' },
+  { id: 'profile',   icon: User,     label: 'Profile' },
+]
+
 export default function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets()
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingBottom: Math.max(insets.bottom, 8),
-          shadowColor: 'rgba(99,82,60,0.13)',
-          shadowOffset: { width: 0, height: 12 },
-          shadowRadius: 36,
-          shadowOpacity: 1,
-          elevation: 10,
-        },
-      ]}
-    >
-      <View style={styles.inner}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = currentScreen === tab.id;
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+      <View style={styles.nav}>
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const active = currentScreen === tab.id
           return (
-            <TouchableOpacity
+            <Pressable
               key={tab.id}
-              activeOpacity={0.8}
               onPress={() => onNavigate(tab.id)}
               style={styles.tab}
             >
-              <View
-                style={[
-                  styles.iconBg,
-                  {
-                    backgroundColor: isActive
-                      ? 'transparent'
-                      : 'transparent',
-                    borderWidth: isActive ? 0 : 1,
-                    borderColor: isActive ? 'transparent' : 'rgba(31,33,48,0.12)',
-                  },
-                ]}
-              >
-                {isActive ? (
-                  <View style={styles.activeIconBg}>
-                    <Icon size={14} color="#FFFFFF" />
-                  </View>
-                ) : (
-                  <Icon size={14} color={theme.colors.softMuted} />
-                )}
+              <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+                <Icon size={20} color={active ? colors.white : colors.cosmicGray} />
               </View>
-              <Text
-                style={[
-                  styles.label,
-                  { color: isActive ? theme.colors.ink : theme.colors.softMuted },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
+              <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
+            </Pressable>
+          )
         })}
       </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 12,
-    left: 16,
-    right: 16,
-    zIndex: 40,
-    borderRadius: 26,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.md,
   },
-  inner: {
-    height: 68,
+  nav: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    backgroundColor: colors.white,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    ...shadows.card,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    gap: 4,
+    gap: 2,
   },
-  iconBg: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeIconBg: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#8B72CF',
+  iconWrapActive: {
+    backgroundColor: colors.royalViolet,
   },
   label: {
+    ...typography.scale.caption,
     fontSize: 10,
-    fontWeight: '700',
+    color: colors.cosmicGray,
   },
-});
+  labelActive: {
+    color: colors.royalViolet,
+    fontWeight: typography.weights.semibold,
+  },
+})
