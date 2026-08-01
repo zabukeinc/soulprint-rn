@@ -393,18 +393,18 @@ export default function TodayScreen() {
 
       <Animated.View entering={FadeInUp.duration(500).delay(700)}>
         <TouchableOpacity
-          style={styles.soulprintLink}
-          onPress={() => router.push('/(tabs)/soulprint')}
+          style={styles.astrovyLink}
+          onPress={() => router.push('/(tabs)/astrovy')}
           activeOpacity={0.85}
         >
-          <View style={styles.soulprintIcon}>
-            <Text style={styles.soulprintIconText}>✦</Text>
+          <View style={styles.astrovyIcon}>
+            <Text style={styles.astrovyIconText}>✦</Text>
           </View>
-          <View style={styles.soulprintText}>
-            <Text style={styles.soulprintTitle}>View your Soulprint</Text>
-            <Text style={styles.soulprintSub}>Your complete emotional blueprint</Text>
+          <View style={styles.astrovyText}>
+            <Text style={styles.astrovyTitle}>View your Astrovy</Text>
+            <Text style={styles.astrovySub}>Your complete emotional blueprint</Text>
           </View>
-          <Text style={styles.soulprintArrow}>→</Text>
+          <Text style={styles.astrovyArrow}>→</Text>
         </TouchableOpacity>
       </Animated.View>
     </ScrollView>
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
   horoscopeTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
   horoscopeSub: { fontSize: 12, color: theme.colors.muted },
   horoscopeArrow: { fontSize: 16, color: theme.colors.muted },
-  soulprintLink: {
+  astrovyLink: {
     borderRadius: 24,
     padding: 16,
     flexDirection: 'row',
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(31,33,48,0.08)',
     ...theme.shadows.warmSm,
   },
-  soulprintIcon: {
+  astrovyIcon: {
     width: 44,
     height: 44,
     borderRadius: 18,
@@ -782,9 +782,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.06)',
   },
-  soulprintIconText: { fontSize: 18 },
-  soulprintText: { flex: 1 },
-  soulprintTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  soulprintSub: { fontSize: 12, color: theme.colors.muted },
-  soulprintArrow: { fontSize: 16, color: theme.colors.muted },
+  astrovyIconText: { fontSize: 18 },
+  astrovyText: { flex: 1 },
+  astrovyTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
+  astrovySub: { fontSize: 12, color: theme.colors.muted },
+  astrovyArrow: { fontSize: 16, color: theme.colors.muted },
 });

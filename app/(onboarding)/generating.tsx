@@ -13,16 +13,17 @@ import Animated, {
 } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
-
-const stages = [
-  { id: 1, text: 'Reading your birth date...', delay: 600 },
-  { id: 2, text: 'Placing your location into the chart...', delay: 1400 },
-  { id: 3, text: 'Listening to your current focus...', delay: 2200 },
-  { id: 4, text: 'Preparing your first emotional mirror...', delay: 3000 },
-];
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 export default function GeneratingScreen() {
   const router = useRouter();
+  const { data } = useOnboarding();
+  const stages = [
+    { id: 1, text: `Reading your birth date${data.birthDate ? ` (${data.birthDate})` : ''}...`, delay: 600 },
+    { id: 2, text: `Placing ${data.birthPlace?.name ?? 'your birthplace'} into the chart...`, delay: 1400 },
+    { id: 3, text: 'Listening to your current focus...', delay: 2200 },
+    { id: 4, text: 'Preparing your first emotional mirror...', delay: 3000 },
+  ];
   const [currentStage, setCurrentStage] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -58,7 +59,7 @@ export default function GeneratingScreen() {
             <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
               <Animated.Text style={[styles.icon, spinStyle]}>✦</Animated.Text>
             </Animated.View>
-            <Text style={styles.loadingLabel}>Preparing your first Soulprint</Text>
+            <Text style={styles.loadingLabel}>Preparing your first Astrovy</Text>
             <Text style={styles.loadingTitle}>
               We're turning your pattern into language.
             </Text>
@@ -108,7 +109,7 @@ export default function GeneratingScreen() {
             ))}
           </View>
 
-          <ProgressDots total={6} current={5} />
+          <ProgressDots total={7} current={6} />
         </Animated.View>
       ) : (
         <Animated.View
@@ -118,7 +119,7 @@ export default function GeneratingScreen() {
           <Animated.View entering={ZoomIn.delay(100).duration(300)} style={styles.iconBg}>
             <Text style={styles.icon}>✦</Text>
           </Animated.View>
-          <Text style={styles.completeLabel}>Your Soulprint is ready</Text>
+          <Text style={styles.completeLabel}>Your Astrovy is ready</Text>
           <Text style={styles.completeTitle}>Your first reflection is ready.</Text>
           <Text style={styles.completeDesc}>
             Take a moment to see what your pattern reveals about you today.
@@ -135,7 +136,7 @@ export default function GeneratingScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.button}
               >
-                <Text style={styles.buttonText}>See your Soulprint</Text>
+                <Text style={styles.buttonText}>See your Astrovy</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>

@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 const focusOptions = [
   { id: 'love', label: 'Love', emoji: '💕' },
@@ -27,6 +28,7 @@ const PADDING = 20;
 
 export default function FocusMoodScreen() {
   const router = useRouter();
+  const { update } = useOnboarding();
   const { width } = useWindowDimensions();
   const [focus, setFocus] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export default function FocusMoodScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.stepText}>5 of 6</Text>
+        <Text style={styles.stepText}>6 of 7</Text>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
@@ -80,7 +82,10 @@ export default function FocusMoodScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           disabled={!focus}
-          onPress={() => router.push('/(onboarding)/generating')}
+          onPress={() => {
+            update({ focusMood: focus });
+            router.push('/(onboarding)/generating');
+          }}
         >
           <LinearGradient
             colors={focus ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
@@ -88,12 +93,12 @@ export default function FocusMoodScreen() {
             end={{ x: 1, y: 1 }}
             style={[styles.button, !focus && styles.buttonDisabled]}
           >
-            <Text style={styles.buttonText}>Create My Soulprint</Text>
+            <Text style={styles.buttonText}>Create My Astrovy</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
-      <ProgressDots total={6} current={4} />
+      <ProgressDots total={7} current={5} />
     </ScrollView>
   );
 }

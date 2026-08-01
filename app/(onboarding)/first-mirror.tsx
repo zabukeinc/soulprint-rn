@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 const patternCards = [
   { title: 'Private Processor', desc: 'You feel more than you show.' },
@@ -22,6 +23,7 @@ const patternCards = [
 
 export default function FirstMirrorScreen() {
   const router = useRouter();
+  const { data } = useOnboarding();
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const floatY = useSharedValue(0);
@@ -47,7 +49,9 @@ export default function FirstMirrorScreen() {
           <Text style={styles.icon}>✦</Text>
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
-        <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
+        <Text style={styles.title}>
+          Hi {data.name || 'friend'}, your first Astrovy is ready.
+        </Text>
         <Text style={styles.desc}>
           We found a few patterns that may explain how you process emotion, connection, and direction.
         </Text>
@@ -130,7 +134,7 @@ export default function FirstMirrorScreen() {
 
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <Text style={styles.softCta}>
-          Your full blueprint lives in the Soulprint tab —
+          Your full blueprint lives in the Astrovy tab —
           go deeper whenever you're ready.
         </Text>
       </Animated.View>

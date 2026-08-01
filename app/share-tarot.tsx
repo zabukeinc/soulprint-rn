@@ -47,7 +47,7 @@ export default function ShareTarotScreen() {
           <View style={styles.blobBottom} />
 
           {/* Small brand header */}
-          <Text style={styles.brand}>SOULPRINT</Text>
+          <Text style={styles.brand}>ASTROVY</Text>
 
           {/* Big emoji */}
           <Text style={[styles.emoji, isReversed && styles.emojiReversed]}>
@@ -79,7 +79,7 @@ export default function ShareTarotScreen() {
 
           {/* Decorative footer line */}
           <View style={styles.footerLine} />
-          <Text style={styles.footerBrand}>soulprint.app</Text>
+          <Text style={styles.footerBrand}>astrovy.app</Text>
         </LinearGradient>
       </View>
 

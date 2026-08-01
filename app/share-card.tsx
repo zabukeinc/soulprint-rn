@@ -42,7 +42,7 @@ export default function ShareCardScreen() {
           You do not need constant attention. You need emotional consistency.
         </Text>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardBrand}>Soulprint</Text>
+          <Text style={styles.cardBrand}>Astrovy</Text>
           <Text style={styles.cardTagline}>Decode your emotional blueprint.</Text>
         </View>
       </Animated.View>

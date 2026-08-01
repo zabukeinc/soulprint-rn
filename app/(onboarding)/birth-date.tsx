@@ -6,6 +6,7 @@ import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
 import SoftMascot from '@/src/components/SoftMascot';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -13,6 +14,7 @@ const years = Array.from({ length: 100 }, (_, i) => 2024 - i);
 
 export default function BirthDateScreen() {
   const router = useRouter();
+  const { update } = useOnboarding();
   const [day, setDay] = useState(27);
   const [month, setMonth] = useState(1);
   const [year, setYear] = useState(2000);
@@ -32,7 +34,7 @@ export default function BirthDateScreen() {
         >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.stepText}>1 of 6</Text>
+        <Text style={styles.stepText}>2 of 7</Text>
       </Animated.View>
 
       <Animated.View
@@ -113,7 +115,12 @@ export default function BirthDateScreen() {
       <Animated.View entering={FadeInUp.delay(400).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/birth-time')}
+          onPress={() => {
+            update({
+              birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+            });
+            router.push('/(onboarding)/birth-time');
+          }}
         >
           <LinearGradient
             colors={theme.gradients.primary}
@@ -125,7 +132,7 @@ export default function BirthDateScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
-      <ProgressDots total={6} current={0} />
+      <ProgressDots total={7} current={1} />
     </ScrollView>
   );
 }

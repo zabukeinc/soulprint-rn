@@ -32,7 +32,7 @@ export const theme = {
     theme12: ['#9FD9D0', '#DDEDDC'] as const,
     decodeLove: ['#F4C7D2', '#E8DDFB'] as const,
     decodeCompatibility: ['#DDEDDC', '#DFF2EC'] as const,
-    decodeSoulprint: ['#E8DDFB', '#F8DCCB'] as const,
+    decodeAstrovy: ['#E8DDFB', '#F8DCCB'] as const,
     profileGradient: ['#16A7A0', '#8EDBD0'] as const,
     streak: ['rgba(247,216,117,0.3)', 'rgba(248,220,203,0.3)'] as const,
   },

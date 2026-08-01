@@ -224,7 +224,7 @@ export default function MirrorScreen() {
             <Text style={styles.savedIconText}>✦</Text>
           </View>
           <View style={styles.savedText}>
-            <Text style={styles.savedName}>Free Soulprint Snapshot</Text>
+            <Text style={styles.savedName}>Free Astrovy Snapshot</Text>
             <Text style={styles.savedDesc}>Your first mirror</Text>
           </View>
           <Text style={styles.savedArrow}>→</Text>
@@ -251,7 +251,7 @@ export default function MirrorScreen() {
           </View>
           <View style={styles.savedText}>
             <View style={styles.savedHeaderRow}>
-              <Text style={styles.savedName}>Full Soulprint</Text>
+              <Text style={styles.savedName}>Full Astrovy</Text>
               {!isPremium && (
                 <View style={styles.lockedBadge}>
                   <Text style={styles.lockedBadgeText}>Locked</Text>

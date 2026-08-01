@@ -183,7 +183,7 @@ export default function ProfileScreen() {
 
         <Animated.View entering={FadeInUp.duration(500).delay(360)} style={styles.settingRow}>
           <View>
-            <Text style={styles.settingTitle}>About Soulprint</Text>
+            <Text style={styles.settingTitle}>About Astrovy</Text>
             <Text style={styles.settingDesc}>Version 1.0 · Built with care</Text>
           </View>
           <Text style={styles.settingArrow}>→</Text>

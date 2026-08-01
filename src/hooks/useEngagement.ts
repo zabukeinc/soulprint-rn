@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getWeeklyReadingIndex } from '@/src/lib/dailyContent';
 
-const STORAGE_KEY = 'soulprint_engagement';
+const STORAGE_KEY = 'astrovy_engagement';
 
 interface JournalEntry {
   id: number;

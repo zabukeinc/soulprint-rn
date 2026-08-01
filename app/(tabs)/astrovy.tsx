@@ -93,7 +93,7 @@ const sections = [
   },
 ];
 
-export default function SoulprintScreen() {
+export default function AstrovyScreen() {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { isPremium } = useTier();
@@ -112,7 +112,7 @@ export default function SoulprintScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerLabel}>Your identity map</Text>
-            <Text style={styles.headerTitle}>Gy's Soulprint</Text>
+            <Text style={styles.headerTitle}>Gy's Astrovy</Text>
           </View>
           <View style={styles.headerIcon}>
             <Text style={styles.headerIconText}>✦</Text>

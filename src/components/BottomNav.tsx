@@ -11,7 +11,7 @@ import Animated, {
 
 const tabs = [
   { id: 'today', label: 'Today', icon: Home },
-  { id: 'soulprint', label: 'Soul', icon: Sparkles },
+  { id: 'astrovy', label: 'Soul', icon: Sparkles },
   { id: 'decode', label: 'Decode', icon: BookOpen },
   { id: 'mirror', label: 'Mirror', icon: Heart },
   { id: 'profile', label: 'Profile', icon: User },

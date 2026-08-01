@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "soulprint-rn",
-    "slug": "soulprint-rn",
+    "name": "astrovy-rn",
+    "slug": "astrovy-rn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,7 +26,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "soulprint",
+    "scheme": "astrovy",
     "plugins": [
       "expo-router"
     ]

@@ -10,6 +10,7 @@ export default function OnboardingLayout() {
       }}
     >
       <Stack.Screen name="welcome" />
+      <Stack.Screen name="name" />
       <Stack.Screen name="birth-date" />
       <Stack.Screen name="birth-time" />
       <Stack.Screen name="location" />

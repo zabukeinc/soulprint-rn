@@ -5,9 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 export default function BirthTimeScreen() {
   const router = useRouter();
+  const { update } = useOnboarding();
   const [time, setTime] = useState('23:59');
 
   // Simplified time picker using hour/minute selectors
@@ -30,7 +32,7 @@ export default function BirthTimeScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.stepText}>2 of 6</Text>
+        <Text style={styles.stepText}>3 of 7</Text>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
@@ -90,7 +92,10 @@ export default function BirthTimeScreen() {
       <Animated.View entering={FadeInUp.delay(400).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/location')}
+          onPress={() => {
+            update({ birthTime: time });
+            router.push('/(onboarding)/location');
+          }}
         >
           <LinearGradient
             colors={theme.gradients.primary}
@@ -106,13 +111,16 @@ export default function BirthTimeScreen() {
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => router.push('/(onboarding)/location')}
+          onPress={() => {
+            update({ birthTime: null });
+            router.push('/(onboarding)/location');
+          }}
         >
           <Text style={styles.skipButtonText}>Skip for now</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      <ProgressDots total={6} current={1} />
+      <ProgressDots total={7} current={2} />
     </ScrollView>
   );
 }

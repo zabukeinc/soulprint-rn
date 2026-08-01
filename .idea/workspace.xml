@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="bbf7d0aa-488a-49a4-9e09-379b52829016" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/birth-date.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/birth-date.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/birth-time.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/birth-time.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/first-mirror.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/first-mirror.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/focus-mood.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/focus-mood.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/generating.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/generating.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/location.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/location.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/mbti.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/mbti.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(onboarding)/welcome.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(onboarding)/welcome.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/decode.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/decode.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/mirror.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/mirror.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/astrovy.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/astrovy.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/today.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/today.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/compatibility.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/compatibility.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/love.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/love.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/pricing.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/pricing.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/share-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/share-card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/snapshot.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/snapshot.tsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="3DkQUhP6FPeteYqQvuOAWxw3qhm" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "com.android.tools.idea.streaming.zoom.toolbar.visible": "false",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/regyanax/Documents/projects/astrovy/astrovy-rn",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="bbf7d0aa-488a-49a4-9e09-379b52829016" name="Changes" comment="" />
+      <created>1778823604586</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1778823604586</updated>
+    </task>
+    <servers />
+  </component>
+</project>

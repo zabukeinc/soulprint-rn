@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 const mbtiOptions = [
   { type: 'INFJ', label: 'Advocate', symbol: '🧠', color: '#E8DDFB' },
@@ -36,6 +37,7 @@ const PADDING = 20;
 
 export default function MbtiScreen() {
   const router = useRouter();
+  const { update } = useOnboarding();
   const { width } = useWindowDimensions();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -52,14 +54,14 @@ export default function MbtiScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.stepText}>4 of 6</Text>
+        <Text style={styles.stepText}>5 of 7</Text>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
         <Text style={styles.label}>Optional self-language</Text>
         <Text style={styles.title}>Do you know your MBTI?</Text>
         <Text style={styles.description}>
-          If you already use MBTI, Soulprint can weave it gently into your reading.
+          If you already use MBTI, Astrovy can weave it gently into your reading.
         </Text>
       </Animated.View>
 
@@ -95,7 +97,10 @@ export default function MbtiScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           disabled={!selected}
-          onPress={() => router.push('/(onboarding)/focus-mood')}
+          onPress={() => {
+            update({ mbti: selected === "I'm not sure" ? null : selected });
+            router.push('/(onboarding)/focus-mood');
+          }}
         >
           <LinearGradient
             colors={selected ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
@@ -111,13 +116,16 @@ export default function MbtiScreen() {
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => router.push('/(onboarding)/focus-mood')}
+          onPress={() => {
+            update({ mbti: null });
+            router.push('/(onboarding)/focus-mood');
+          }}
         >
           <Text style={styles.skipButtonText}>Skip and test later</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      <ProgressDots total={6} current={3} />
+      <ProgressDots total={7} current={4} />
     </ScrollView>
   );
 }

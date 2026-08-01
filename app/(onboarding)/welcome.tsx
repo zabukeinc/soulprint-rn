@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,9 +8,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { IllustrationLogo } from '@/src/components/Illustrations';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { clear, hydrated } = useOnboarding();
+  useEffect(() => {
+    if (hydrated) clear(); // restart resets answers; gated to avoid hydration race
+  }, [hydrated]);
 
   return (
     <ScrollView
@@ -25,7 +30,7 @@ export default function WelcomeScreen() {
 
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.textCenter}>
           <Text style={styles.subtitle}>Welcome to your inner map</Text>
-          <Text style={styles.title}>Soulprint</Text>
+          <Text style={styles.title}>Astrovy</Text>
           <Text style={styles.description}>
             A gentle space to understand your patterns, your emotional rhythm, and the parts of yourself that are still learning how to be heard.
           </Text>
@@ -45,7 +50,7 @@ export default function WelcomeScreen() {
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/birth-date')}
+          onPress={() => router.push('/(onboarding)/name')}
         >
           <LinearGradient
             colors={theme.gradients.primary}

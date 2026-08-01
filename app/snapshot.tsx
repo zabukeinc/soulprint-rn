@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { useOnboarding } from '@/src/context/OnboardingContext';
 
 const patternCards = [
   { title: 'Private Processor', desc: 'You feel more than you show.' },
@@ -22,6 +23,7 @@ const patternCards = [
 
 export default function SnapshotScreen() {
   const router = useRouter();
+  const { data } = useOnboarding();
 
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: withRepeat(withTiming(-4, { duration: 1500 }), -1, true) }],
@@ -46,7 +48,9 @@ export default function SnapshotScreen() {
           <Text style={styles.icon}>✦</Text>
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
-        <Text style={styles.title}>Hi Gy, your first Soulprint is ready.</Text>
+        <Text style={styles.title}>
+          Hi {data.name || 'friend'}, your first Astrovy is ready.
+        </Text>
         <Text style={styles.desc}>
           We found a few patterns that may explain how you process emotion, connection, and direction.
         </Text>

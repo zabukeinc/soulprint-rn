@@ -9,9 +9,9 @@ import { theme } from '@/src/lib/theme';
 
 const features = [
   {
-    id: 'soulprint',
+    id: 'astrovy',
     icon: Star,
-    title: 'Full Soulprint',
+    title: 'Full Astrovy',
     description: 'Your complete emotional blueprint.',
     gradient: ['#E8DDFB', '#F8DCCB'] as const,
   },

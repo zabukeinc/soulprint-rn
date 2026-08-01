@@ -1,4 +1,4 @@
-# Soulprint — React Native
+# Astrovy — React Native
 
 > A warm, private self-discovery app — now on mobile.
 
@@ -46,7 +46,7 @@ app/
 ├── (tabs)/                     # Main app tabs (with bottom nav)
 │   ├── _layout.tsx             # Custom bottom tab bar
 │   ├── today.tsx
-│   ├── soulprint.tsx
+│   ├── astrovy.tsx
 │   ├── decode.tsx
 │   ├── mirror.tsx
 │   └── profile.tsx
@@ -84,11 +84,11 @@ Every screen, color, shadow, gradient, and radius is an exact match to the web p
 ## Navigation
 
 - **Onboarding flow**: `welcome → birth-date → birth-time → location → mbti → focus-mood → generating → first-mirror → (tabs)/today`
-- **Main tabs**: Today, Soulprint, Decode, Mirror, Profile
+- **Main tabs**: Today, Astrovy, Decode, Mirror, Profile
 - **Detail screens**: Love, Compatibility, Share Card, Snapshot, Pricing (pushed on top of tabs)
 
 ## State
 
 - **TierContext**: Free/Premium toggle (in-memory, synced across all screens)
 - **useEngagement**: Streaks, mood history, journal entries, reflection count (persisted via AsyncStorage)
-# soulprint-rn
+# astrovy-rn
