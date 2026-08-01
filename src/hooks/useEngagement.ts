@@ -1,256 +1,189 @@
-import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getWeeklyReadingIndex } from '@/src/lib/dailyContent';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiRequest } from '@/src/lib/api';
+import * as backend from '@/src/services/backend';
+import type { JournalEntry, MirrorPayload, TarotDraw, TodayPayload } from '@/src/services/backend';
 
-const STORAGE_KEY = 'astrovy_engagement';
+type TarotPosition = 'past' | 'present' | 'future';
 
-interface JournalEntry {
-  id: number;
-  text: string;
-  date: string;
-  prompt: string;
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-interface MoodEntry {
-  mood: string;
-  date: string;
-  time: string;
+function fallbackStreakDays() {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return {
+      date: date.toISOString().slice(0, 10),
+      day: date.toLocaleDateString('en', { weekday: 'short' }).charAt(0),
+      active: false,
+    };
+  });
 }
 
-interface TarotDraw {
-  cardId: string;
-  reversed: boolean;
-  position: 'past' | 'present' | 'future';
-  date: string;
+function toMoodHistory(mirror: MirrorPayload | null) {
+  return (
+    mirror?.days
+      .filter((day) => day.mood)
+      .map((day) => ({
+        mood: day.mood as string,
+        date: day.date,
+        time: '',
+      }))
+      .reverse() ?? []
+  );
 }
 
-interface EngagementState {
-  streak: number;
-  lastCheckIn: string | null;
-  journalEntries: JournalEntry[];
-  moodHistory: MoodEntry[];
-  unlockedReadings: string[];
-  reflections: number;
-  lastWeeklyReadingDate: string | null;
-  dismissedWeeklyReading: boolean;
-  // Tarot
-  tarotDrawsToday: number;
-  lastTarotDate: string | null;
-  todayTarotCards: TarotDraw[];
-}
-
-const DEFAULT_STATE: EngagementState = {
-  streak: 0,
-  lastCheckIn: null,
-  journalEntries: [],
-  moodHistory: [],
-  unlockedReadings: [],
-  reflections: 0,
-  lastWeeklyReadingDate: null,
-  dismissedWeeklyReading: false,
-  tarotDrawsToday: 0,
-  lastTarotDate: null,
-  todayTarotCards: [],
-};
-
-function getToday() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function getYesterday() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
-}
-
-async function loadState(): Promise<EngagementState> {
-  try {
-    const saved = await AsyncStorage.getItem(STORAGE_KEY);
-    if (saved) return { ...DEFAULT_STATE, ...JSON.parse(saved) };
-  } catch {}
-  return { ...DEFAULT_STATE };
-}
-
-async function saveState(state: EngagementState) {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
+function normalizeTarot(draw: TarotDraw) {
+  return {
+    cardId: draw.cardId,
+    reversed: draw.reversed,
+    position: draw.position as TarotPosition,
+    date: draw.date,
+    backend: draw,
+  };
 }
 
 export function useEngagement() {
-  const [state, setState] = useState<EngagementState>(DEFAULT_STATE);
+  const [today, setToday] = useState<TodayPayload | null>(null);
+  const [mirror, setMirror] = useState<MirrorPayload | null>(null);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [tarotState, setTarotState] = useState<backend.TarotState | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    loadState().then((s) => {
-      setState(s);
-      setLoaded(true);
-    });
+  const refresh = useCallback(async () => {
+    const [todayPayload, mirrorPayload, journalPayload, tarotPayload] = await Promise.all([
+      backend.getToday(),
+      backend.getMirror(),
+      backend.listJournalEntries(),
+      backend.getTarotToday(),
+    ]);
+    setToday(todayPayload);
+    setMirror(mirrorPayload);
+    setJournalEntries(journalPayload.data);
+    setTarotState(tarotPayload);
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (loaded) {
-      saveState(state);
-    }
-  }, [state, loaded]);
+    refresh().catch(() => setLoaded(true));
+  }, [refresh]);
 
-  const checkInToday = useCallback(() => {
-    const today = getToday();
-    if (state.lastCheckIn === today) return state;
-
-    let newStreak = state.streak;
-    if (state.lastCheckIn === getYesterday()) {
-      newStreak = state.streak + 1;
-    } else if (state.lastCheckIn !== today) {
-      newStreak = 1;
-    }
-
-    const newState = { ...state, streak: newStreak, lastCheckIn: today };
-    setState(newState);
-    return newState;
-  }, [state]);
-
-  const addJournalEntry = useCallback((text: string) => {
-    const entry: JournalEntry = {
-      id: Date.now(),
-      text,
-      date: getToday(),
-      prompt: 'What do I need but avoid asking for?',
-    };
-    const newState = {
-      ...state,
-      journalEntries: [entry, ...state.journalEntries],
-      reflections: state.reflections + 1,
-    };
-    setState(newState);
-    return newState;
-  }, [state]);
-
-  const addMood = useCallback((mood: string) => {
-    const entry: MoodEntry = {
-      mood,
-      date: getToday(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    const newState = {
-      ...state,
-      moodHistory: [entry, ...state.moodHistory],
-    };
-    setState(newState);
-    return newState;
-  }, [state]);
-
-  const unlockReading = useCallback((readingId: string) => {
-    if (state.unlockedReadings.includes(readingId)) return state;
-    const newState = {
-      ...state,
-      unlockedReadings: [...state.unlockedReadings, readingId],
-    };
-    setState(newState);
-    return newState;
-  }, [state]);
-
-  const canUnlock = useCallback((requiredReflections = 3) => {
-    return state.reflections >= requiredReflections;
-  }, [state.reflections]);
-
-  const reflectionsNeeded = useCallback((required = 3) => {
-    return Math.max(0, required - state.reflections);
-  }, [state.reflections]);
-
-  const clearAllData = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch {}
-    setState({ ...DEFAULT_STATE });
-  }, []);
-
-  const drawTarotCard = useCallback(
-    (cardId: string, reversed: boolean, position: 'past' | 'present' | 'future') => {
-      const today = getToday();
-      const draw: TarotDraw = { cardId, reversed, position, date: today };
-
-      setState((prev) => {
-        const isNewDay = prev.lastTarotDate !== today;
-        return {
-          ...prev,
-          lastTarotDate: today,
-          tarotDrawsToday: isNewDay ? 1 : prev.tarotDrawsToday + 1,
-          todayTarotCards: isNewDay
-            ? [draw]
-            : [...prev.todayTarotCards, draw],
-        };
-      });
+  const addMood = useCallback(
+    async (mood: string) => {
+      const result = await backend.createCheckIn(mood);
+      setToday((prev) =>
+        prev
+          ? {
+              ...prev,
+              checkedInToday: true,
+              todayMood: result.checkIn.mood,
+              streak: result.streak,
+              moodResponse: result.moodResponse as TodayPayload['moodResponse'],
+              patternAlert: result.patternAlert as TodayPayload['patternAlert'],
+            }
+          : prev
+      );
+      await refresh().catch(() => {});
+      return result;
     },
-    []
+    [refresh]
   );
 
-  const canDrawTarot = useCallback(
-    (isPremium: boolean) => {
-      const today = getToday();
-      const isNewDay = state.lastTarotDate !== today;
-      const drawsToday = isNewDay ? 0 : state.tarotDrawsToday;
-      const limit = isPremium ? 3 : 1;
-      return drawsToday < limit;
+  const checkInToday = useCallback(async () => {
+    if (today?.checkedInToday) return today;
+    return addMood(today?.todayMood ?? 'steady');
+  }, [addMood, today]);
+
+  const addJournalEntry = useCallback(
+    async (text: string, prompt = today?.journal.prompt ?? 'What do I need but avoid asking for?') => {
+      const result = await backend.createJournalEntry(text, prompt);
+      setJournalEntries((prev) => [result.entry, ...prev]);
+      setMirror((prev) => (prev ? { ...prev, reflections: result.reflections } : prev));
+      return result;
     },
-    [state.lastTarotDate, state.tarotDrawsToday]
+    [today?.journal.prompt]
+  );
+
+  const clearAllData = useCallback(async () => {
+    setToday(null);
+    setMirror(null);
+    setJournalEntries([]);
+    setTarotState(null);
+  }, []);
+
+  const drawTarotCard = useCallback(async () => {
+    const result = await backend.createTarotDraw('single');
+    setTarotState(result);
+    return result;
+  }, []);
+
+  const drawTarotSpread = useCallback(async () => {
+    const result = await backend.createTarotDraw('three');
+    setTarotState(result);
+    return result;
+  }, []);
+
+  const canDrawTarot = useCallback(
+    (_isPremium: boolean) => (tarotState?.drawsRemaining ?? 1) > 0,
+    [tarotState?.drawsRemaining]
   );
 
   const getTarotDrawsRemaining = useCallback(
-    (isPremium: boolean) => {
-      const today = getToday();
-      const isNewDay = state.lastTarotDate !== today;
-      const drawsToday = isNewDay ? 0 : state.tarotDrawsToday;
-      const limit = isPremium ? 3 : 1;
-      return Math.max(0, limit - drawsToday);
-    },
-    [state.lastTarotDate, state.tarotDrawsToday]
+    (_isPremium: boolean) => tarotState?.drawsRemaining ?? 1,
+    [tarotState?.drawsRemaining]
   );
 
-  const getConsecutiveMood = useCallback(() => {
-    if (state.moodHistory.length < 3) return null;
-    const recent = state.moodHistory.slice(0, 3);
-    const firstMood = recent[0].mood;
-    const allSame = recent.every((m) => m.mood === firstMood);
-    return allSame ? firstMood : null;
-  }, [state.moodHistory]);
+  const getConsecutiveMood = useCallback(() => mirror?.moodPattern?.topMood ?? null, [mirror?.moodPattern?.topMood]);
 
   const getWeeklyReadingStatus = useCallback(() => {
-    const weekStart = getWeeklyReadingIndex().toString();
-    const isNewWeek = state.lastWeeklyReadingDate !== weekStart;
-    return { isNewWeek, weekStart };
-  }, [state.lastWeeklyReadingDate]);
+    const reading = today?.weeklyReading;
+    return { isNewWeek: Boolean(reading?.isNew), weekStart: String(reading?.id ?? todayIso()) };
+  }, [today?.weeklyReading]);
 
-  const markWeeklyReadingSeen = useCallback(() => {
-    const weekStart = getWeeklyReadingIndex().toString();
-    setState((prev) => ({ ...prev, lastWeeklyReadingDate: weekStart, dismissedWeeklyReading: false }));
-  }, []);
+  const markWeeklyReadingSeen = useCallback(() => {}, []);
 
-  const dismissWeeklyReading = useCallback(() => {
-    setState((prev) => ({ ...prev, dismissedWeeklyReading: true }));
-  }, []);
+  const dismissWeeklyReading = useCallback(async () => {
+    const id = today?.weeklyReading?.id;
+    if (!id) return;
+    await apiRequest<void>(`/readings/weekly/${id}/dismiss`, { method: 'POST' });
+    await refresh().catch(() => {});
+  }, [refresh, today?.weeklyReading]);
 
   const getStreakDays = useCallback(() => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const dayName = d.toLocaleDateString('en', { weekday: 'short' }).charAt(0);
-      const hadCheckIn = state.moodHistory.some((m) => m.date === dateStr);
-      days.push({ date: dateStr, day: dayName, active: hadCheckIn });
-    }
-    return days;
-  }, [state.moodHistory]);
+    if (!mirror?.days) return fallbackStreakDays();
+    return mirror.days.map((day) => ({
+      date: day.date,
+      day: day.dayLetter,
+      active: day.checkedIn,
+    }));
+  }, [mirror?.days]);
+
+  const moodHistory = useMemo(() => toMoodHistory(mirror), [mirror]);
+  const todayTarotCards = useMemo(() => tarotState?.draws.map(normalizeTarot) ?? [], [tarotState?.draws]);
 
   return {
-    ...state,
+    loaded,
+    streak: today?.streak ?? mirror?.streak ?? 0,
+    lastCheckIn: today?.checkedInToday ? today.date : null,
+    journalEntries,
+    moodHistory,
+    unlockedReadings: mirror?.savedReadings.filter((reading) => reading.unlocked).map((reading) => reading.key) ?? [],
+    reflections: mirror?.reflections ?? journalEntries.length,
+    lastWeeklyReadingDate: today?.weeklyReading?.id ?? null,
+    dismissedWeeklyReading: Boolean(today?.weeklyReading?.dismissed),
+    tarotDrawsToday: todayTarotCards.length,
+    lastTarotDate: todayTarotCards.length ? todayIso() : null,
+    todayTarotCards,
+    todayPayload: today,
+    mirrorPayload: mirror,
+    tarotPayload: tarotState,
     checkInToday,
     addJournalEntry,
     addMood,
-    unlockReading,
-    canUnlock,
-    reflectionsNeeded,
+    unlockReading: () => {},
+    canUnlock: (requiredReflections = 3) => (mirror?.reflections ?? journalEntries.length) >= requiredReflections,
+    reflectionsNeeded: (required = 3) => Math.max(0, required - (mirror?.reflections ?? journalEntries.length)),
     getStreakDays,
     clearAllData,
     getConsecutiveMood,
@@ -258,6 +191,7 @@ export function useEngagement() {
     markWeeklyReadingSeen,
     dismissWeeklyReading,
     drawTarotCard,
+    drawTarotSpread,
     canDrawTarot,
     getTarotDrawsRemaining,
   };

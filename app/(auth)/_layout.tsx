@@ -1,8 +1,9 @@
-import { Redirect } from 'expo-router';
+import React from 'react';
+import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/src/context/AuthContext';
 
-export default function Index() {
+export default function AuthLayout() {
   const { hydrated, user, profileComplete } = useAuth();
 
   if (!hydrated) {
@@ -13,6 +14,7 @@ export default function Index() {
     );
   }
 
-  if (!user) return <Redirect href="/(auth)" />;
-  return <Redirect href={profileComplete ? '/(tabs)/today' : '/(onboarding)/welcome'} />;
+  if (user) return <Redirect href={profileComplete ? '/(tabs)/today' : '/(onboarding)/welcome'} />;
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

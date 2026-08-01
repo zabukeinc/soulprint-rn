@@ -7,10 +7,10 @@ import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 
 const moodEmojis: Record<string, string> = {
-  Steady: '💛',
-  Emotional: '🌊',
-  Restless: '⚡',
-  Numb: '🧊',
+  steady: '💛',
+  tender: '🌊',
+  restless: '⚡',
+  quiet: '🧊',
 };
 
 function getLast7Days() {
@@ -42,7 +42,7 @@ export default function MirrorScreen() {
     moodByDate[m.date] = m.mood;
   });
 
-  const reflectionByDate: Record<string, { id: number; text: string; date: string; prompt: string }> = {};
+  const reflectionByDate: Record<string, { id: string; text: string; date: string; prompt: string }> = {};
   reflections.forEach((r) => {
     reflectionByDate[r.date] = r;
   });

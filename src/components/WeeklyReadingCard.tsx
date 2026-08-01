@@ -3,17 +3,20 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/src/lib/theme';
-import { getWeeklyReading } from '@/src/lib/dailyContent';
 
 interface Props {
   visible: boolean;
   onDismiss: () => void;
+  reading?: { title?: string; body?: string } | null;
 }
 
-export default function WeeklyReadingCard({ visible, onDismiss }: Props) {
+export default function WeeklyReadingCard({ visible, onDismiss, reading }: Props) {
   if (!visible) return null;
 
-  const reading = getWeeklyReading();
+  const visibleReading = reading ?? {
+    title: 'Your weekly reflection is preparing.',
+    body: 'Check back when your backend reading has synced.',
+  };
 
   return (
     <Animated.View entering={FadeInUp.duration(500)} style={styles.container}>
@@ -25,8 +28,8 @@ export default function WeeklyReadingCard({ visible, onDismiss }: Props) {
       >
         <View style={styles.glow} />
         <Text style={styles.label}>This week's reflection</Text>
-        <Text style={styles.title}>{reading.title}</Text>
-        <Text style={styles.body}>{reading.body}</Text>
+        <Text style={styles.title}>{visibleReading.title}</Text>
+        <Text style={styles.body}>{visibleReading.body}</Text>
         <TouchableOpacity onPress={onDismiss} activeOpacity={0.8}>
           <Text style={styles.dismiss}>Acknowledge →</Text>
         </TouchableOpacity>

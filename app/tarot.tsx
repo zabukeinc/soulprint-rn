@@ -12,7 +12,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
-import { drawSingleCard, drawSpread, getPositionMeaning } from '@/src/lib/tarotEngine';
+import { getPositionMeaning } from '@/src/lib/tarotEngine';
 import { TAROT_CARDS } from '@/src/lib/tarot';
 
 type Position = 'past' | 'present' | 'future';
@@ -21,6 +21,10 @@ interface DrawnCard {
   cardId: string;
   reversed: boolean;
   position: Position;
+  name?: string;
+  emoji?: string;
+  keywords?: unknown;
+  meaning?: string;
 }
 
 export default function TarotScreen() {
@@ -28,15 +32,16 @@ export default function TarotScreen() {
   const { isPremium } = useTier();
   const engagement = useEngagement();
 
-  // User's archetype (hardcoded for now, can be dynamic later)
-  const archetype = 'Quiet Strategist';
-
   // Restore today's drawn cards from persisted state
   const todayCards = engagement?.todayTarotCards || [];
   const initialDrawn: DrawnCard[] = todayCards.map((c) => ({
     cardId: c.cardId,
     reversed: c.reversed,
     position: c.position,
+    name: c.backend?.name,
+    emoji: c.backend?.emoji,
+    keywords: c.backend?.keywords,
+    meaning: c.backend?.meaning,
   }));
 
   const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn);
@@ -60,31 +65,21 @@ export default function TarotScreen() {
 
   const handleDraw = useCallback(() => {
     if (!canDraw) return;
-
-    if (isPremium) {
-      // Premium: full 3-card spread
-      const spread = drawSpread(archetype, true);
-      const cards: DrawnCard[] = [
-        { cardId: spread.past.card.id, reversed: spread.past.reversed, position: 'past' },
-        { cardId: spread.present.card.id, reversed: spread.present.reversed, position: 'present' },
-        { cardId: spread.future.card.id, reversed: spread.future.reversed, position: 'future' },
-      ];
+    const draw = isPremium ? engagement?.drawTarotSpread?.() : engagement?.drawTarotCard?.();
+    draw?.then((result: any) => {
+      const cards = result.draws.map((card: any) => ({
+        cardId: card.cardId,
+        reversed: card.reversed,
+        position: card.position,
+        name: card.name,
+        emoji: card.emoji,
+        keywords: card.keywords,
+        meaning: card.meaning,
+      }));
       setDrawnCards(cards);
       setRevealedIndex(0);
-      cards.forEach((c) => engagement?.drawTarotCard?.(c.cardId, c.reversed, c.position));
-    } else {
-      // Free: single card, random position
-      const result = drawSingleCard(archetype, true);
-      const card: DrawnCard = {
-        cardId: result.card.id,
-        reversed: result.reversed,
-        position: result.position,
-      };
-      setDrawnCards([card]);
-      setRevealedIndex(0);
-      engagement?.drawTarotCard?.(card.cardId, card.reversed, card.position);
-    }
-  }, [canDraw, archetype, engagement, isPremium]);
+    });
+  }, [canDraw, engagement, isPremium]);
 
   const handleRevealNext = () => {
     if (revealedIndex < drawnCards.length - 1) {
@@ -103,7 +98,22 @@ export default function TarotScreen() {
     });
   };
 
-  const getCard = (cardId: string) => TAROT_CARDS.find((c) => c.id === cardId)!;
+  const getCard = (drawn: DrawnCard) => {
+    const fallback = TAROT_CARDS.find((c) => c.id === drawn.cardId);
+    const keywords = Array.isArray(drawn.keywords)
+      ? drawn.keywords.join(', ')
+      : fallback
+        ? drawn.reversed
+          ? fallback.keywords.reversed
+          : fallback.keywords.upright
+        : '';
+    return {
+      name: drawn.name ?? fallback?.name ?? drawn.cardId,
+      emoji: drawn.emoji ?? fallback?.emoji ?? '✦',
+      keywords,
+      meaning: drawn.meaning ?? (fallback ? (isPremium ? fallback.meaning.premium : fallback.meaning.free) : ''),
+    };
+  };
 
   const allRevealed = revealedIndex >= drawnCards.length - 1;
   const isSingleCard = drawnCards.length === 1;
@@ -182,7 +192,7 @@ export default function TarotScreen() {
       {drawnCards.length > 0 && (
         <View style={styles.spread}>
           {drawnCards.map((drawn, index) => {
-            const card = getCard(drawn.cardId);
+            const card = getCard(drawn);
             const isRevealed = index <= revealedIndex;
 
             if (!isRevealed) return null;
@@ -223,10 +233,10 @@ export default function TarotScreen() {
                     {card.name}
                   </Text>
                   <Text style={styles.cardKeywords}>
-                    {drawn.reversed ? card.keywords.reversed : card.keywords.upright}
+                    {card.keywords}
                   </Text>
                   <Text style={styles.cardMeaning}>
-                    {isPremium ? card.meaning.premium : card.meaning.free}
+                    {card.meaning}
                   </Text>
                 </LinearGradient>
 

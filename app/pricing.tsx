@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { getProducts } from '@/src/services/backend';
 
 const features = {
   monthly: [
@@ -32,6 +33,22 @@ const features = {
 export default function PricingScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
+  const [serverProducts, setServerProducts] = useState<Array<Record<string, any>> | null>(null);
+  const [serverFeatures, setServerFeatures] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    getProducts()
+      .then((payload) => {
+        setServerProducts(payload.products);
+        setServerFeatures(payload.features);
+      })
+      .catch(() => {});
+  }, []);
+
+  const selectedProduct = serverProducts?.find((product) =>
+    selected === 'monthly' ? product.period === 'monthly' : product.period === 'annual'
+  );
+  const displayFeatures = serverFeatures ?? features[selected];
 
   return (
     <ScrollView
@@ -122,7 +139,7 @@ export default function PricingScreen() {
               <Text style={styles.planName}>{selected}</Text>
             </View>
             <View style={styles.planPriceBox}>
-              <Text style={styles.planPrice}>${selected === 'monthly' ? '9' : '6'}</Text>
+              <Text style={styles.planPrice}>${selectedProduct?.monthlyEquivalent ?? selectedProduct?.price ?? (selected === 'monthly' ? '9' : '6')}</Text>
               <Text style={styles.planPriceSub}>per month</Text>
             </View>
           </View>
@@ -147,7 +164,7 @@ export default function PricingScreen() {
 
         <View style={styles.featuresCard}>
           <Text style={styles.featuresTitle}>What you unlock:</Text>
-          {features[selected].map((item, i) => (
+          {displayFeatures.map((item, i) => (
             <Animated.View
               key={`${selected}-${item}`}
               entering={FadeInUp.delay(i * 80).duration(400)}

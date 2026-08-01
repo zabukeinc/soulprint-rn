@@ -19,9 +19,32 @@ function polarToCartesian(centerX: number, centerY: number, radius: number, angl
 
 interface Props {
   size?: number;
+  planets?: Array<{
+    planet: string;
+    symbol?: string;
+    degree: number;
+    sign: string;
+    house?: number | null;
+    meaning?: string;
+  }>;
+  centerLabel?: string;
+  centerMeta?: string;
 }
 
-export default function NatalChart({ size = 280 }: Props) {
+const planetSymbols: Record<string, string> = {
+  sun: '☉',
+  moon: '☽',
+  mercury: '☿',
+  venus: '♀',
+  mars: '♂',
+  jupiter: '♃',
+  saturn: '♄',
+  uranus: '♅',
+  neptune: '♆',
+  pluto: '♇',
+};
+
+export default function NatalChart({ size = 280, planets, centerLabel = 'Your Sun', centerMeta = 'Natal chart' }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const chartSize = Math.min(size, screenWidth - 80);
   const center = chartSize / 2;
@@ -29,7 +52,17 @@ export default function NatalChart({ size = 280 }: Props) {
   const innerRadius = outerRadius * 0.68;
   const planetRadius = outerRadius * 0.82;
 
-  const [selectedPlanet, setSelectedPlanet] = useState<typeof natalPlanets[0] | null>(null);
+  const chartPlanets = planets?.length
+    ? planets.map((planet) => ({
+        name: planet.planet,
+        symbol: planetSymbols[planet.planet] ?? planet.symbol ?? '•',
+        degree: planet.degree,
+        sign: planet.sign,
+        house: planet.house ?? '-',
+        meaning: planet.meaning ?? `${planet.planet} in ${planet.sign}`,
+      }))
+    : natalPlanets;
+  const [selectedPlanet, setSelectedPlanet] = useState<typeof chartPlanets[0] | null>(null);
 
   return (
     <View style={styles.wrapper}>
@@ -93,9 +126,9 @@ export default function NatalChart({ size = 280 }: Props) {
 
         {/* Center info */}
         <View style={[styles.centerInfo, { left: center - innerRadius + 8, top: center - innerRadius + 8, width: (innerRadius - 8) * 2, height: (innerRadius - 8) * 2 }]}>
-          <Text style={styles.centerSign}>♒</Text>
-          <Text style={styles.centerLabel}>Aquarius Sun</Text>
-          <Text style={styles.centerMeta}>Life Path 7</Text>
+          <Text style={styles.centerSign}>✦</Text>
+          <Text style={styles.centerLabel}>{centerLabel}</Text>
+          <Text style={styles.centerMeta}>{centerMeta}</Text>
         </View>
 
         {/* Zodiac sign labels on outer ring */}
@@ -145,7 +178,7 @@ export default function NatalChart({ size = 280 }: Props) {
         })}
 
         {/* Planets */}
-        {natalPlanets.map((planet) => {
+        {chartPlanets.map((planet) => {
           const pos = polarToCartesian(center, center, planetRadius, planet.degree);
           const isSelected = selectedPlanet?.name === planet.name;
           return (

@@ -1,28 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
+import { useAuth } from '@/src/context/AuthContext';
+import { getMe } from '@/src/services/backend';
 import { theme } from '@/src/lib/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { isPremium, toggleTier } = useTier();
+  const { signOut } = useAuth();
   const engagement = useEngagement();
+  const [profile, setProfile] = useState<any | null>(null);
+  const [astro, setAstro] = useState<any | null>(null);
+
+  useEffect(() => {
+    getMe()
+      .then((me) => {
+        setProfile(me.profile);
+        setAstro(me.astro);
+      })
+      .catch(() => {});
+  }, []);
+
+  const name = profile?.name ?? 'You';
+  const initial = name.charAt(0).toUpperCase() || 'A';
+  const sunSign = astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : 'Sun Sign';
+  const lifePath = astro?.lifePath ? `Life Path ${astro.lifePath}` : 'Life Path';
+  const birthCity = profile?.birthPlace?.city ?? 'Birth place';
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'This will erase all your reflections, moods, and progress. This action cannot be undone.',
+      'Reset local session',
+      'This signs you out and clears the local view. Real account deletion requires a password confirmation flow.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Sign out',
           style: 'destructive',
           onPress: async () => {
             await engagement?.clearAllData?.();
-            router.replace('/(onboarding)/welcome');
+            await signOut();
+            router.replace('/(auth)');
           },
         },
       ]
@@ -47,21 +68,21 @@ export default function ProfileScreen() {
       <Animated.View entering={FadeInUp.duration(500).delay(50)} style={styles.profileCard}>
         <View style={styles.profileRow}>
           <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>G</Text>
+            <Text style={styles.profileAvatarText}>{initial}</Text>
           </View>
           <View>
-            <Text style={styles.profileName}>Gy</Text>
+            <Text style={styles.profileName}>{name}</Text>
             <Text style={styles.profileMeta}>
-              Aquarius Sun · Life Path 7 · Deep tone
+              {sunSign} · {lifePath} · Deep tone
             </Text>
           </View>
         </View>
         <View style={styles.badges}>
           <View style={[styles.badge, { backgroundColor: '#F8DCCB' }]}>
-            <Text style={styles.badgeText}>Love focus</Text>
+            <Text style={styles.badgeText}>{profile?.focus ?? 'Focus'}</Text>
           </View>
           <View style={[styles.badge, { backgroundColor: '#DDEDDC' }]}>
-            <Text style={styles.badgeText}>Bandung</Text>
+            <Text style={styles.badgeText}>{birthCity}</Text>
           </View>
           <View
             style={[
@@ -200,7 +221,7 @@ export default function ProfileScreen() {
 
       <Animated.View entering={FadeInUp.duration(500).delay(450)}>
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
-          <Text style={styles.deleteText}>Delete Account</Text>
+          <Text style={styles.deleteText}>Sign Out</Text>
         </TouchableOpacity>
       </Animated.View>
     </ScrollView>

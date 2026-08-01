@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
+import { getAstrovyReading, getMe } from '@/src/services/backend';
 
 const sections = [
   {
@@ -97,6 +98,45 @@ export default function AstrovyScreen() {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { isPremium } = useTier();
+  const [profile, setProfile] = useState<any | null>(null);
+  const [astro, setAstro] = useState<any | null>(null);
+  const [reading, setReading] = useState<any | null>(null);
+
+  useEffect(() => {
+    Promise.all([getMe(), getAstrovyReading()])
+      .then(([me, astrovy]) => {
+        setProfile(me.profile);
+        setAstro(me.astro);
+        setReading(astrovy);
+      })
+      .catch(() => {});
+  }, []);
+
+  const visibleSections = useMemo(() => {
+    const backendSections = reading?.sections;
+    if (!Array.isArray(backendSections)) return sections;
+    return backendSections.map((section: any, index: number) => {
+      const fallback = sections[index] ?? sections[0];
+      return {
+        ...fallback,
+        id: String(section.key ?? fallback.id),
+        title: String(section.title ?? fallback.title),
+        preview: String(section.core ?? fallback.preview),
+        content: {
+          core: String(section.core ?? fallback.content.core),
+          pattern: String(section.pattern ?? fallback.content.pattern),
+          insight: String(section.insight ?? fallback.content.insight),
+          affirmation: String(section.affirmation ?? fallback.content.affirmation),
+        },
+      };
+    });
+  }, [reading]);
+
+  const name = profile?.name ?? 'You';
+  const archetype = astro?.archetype?.name ?? reading?.archetype?.name ?? 'Your Core Archetype';
+  const sunSign = astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : 'Sun Sign';
+  const lifePath = astro?.lifePath ? `Life Path ${astro.lifePath}` : 'Life Path';
+  const focus = profile?.focus ? `${profile.focus} focus` : 'Focus';
 
   const toggleSection = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -112,7 +152,7 @@ export default function AstrovyScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerLabel}>Your identity map</Text>
-            <Text style={styles.headerTitle}>Gy's Astrovy</Text>
+            <Text style={styles.headerTitle}>{name}'s Astrovy</Text>
           </View>
           <View style={styles.headerIcon}>
             <Text style={styles.headerIconText}>✦</Text>
@@ -122,7 +162,7 @@ export default function AstrovyScreen() {
 
       <Animated.View entering={FadeInUp.duration(500).delay(50)}>
         <Text style={styles.intro}>
-          We see you, Gy. Here's what your emotional blueprint looks like — the patterns that shape how you connect, decide, and grow.
+          We see you, {name}. Here's what your emotional blueprint looks like — the patterns that shape how you connect, decide, and grow.
         </Text>
       </Animated.View>
 
@@ -135,12 +175,12 @@ export default function AstrovyScreen() {
         >
           <View style={styles.heroGlow} />
           <Text style={styles.heroLabel}>Core Archetype</Text>
-          <Text style={styles.heroTitle}>The Quiet Strategist</Text>
+          <Text style={styles.heroTitle}>{archetype}</Text>
           <Text style={styles.heroDesc}>
-            You process deeply, move carefully, and often understand the room before you explain yourself.
+            {astro?.archetype?.tagline ?? 'You process deeply, move carefully, and often understand the room before you explain yourself.'}
           </Text>
           <View style={styles.heroBadges}>
-            {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
+            {[sunSign, lifePath, focus].map((badge) => (
               <View key={badge} style={styles.heroBadge}>
                 <Text style={styles.heroBadgeText}>{badge}</Text>
               </View>
@@ -157,7 +197,7 @@ export default function AstrovyScreen() {
       </Animated.View>
 
       <View style={styles.sections}>
-        {sections.map((section, index) => {
+        {visibleSections.map((section, index) => {
           const isExpanded = expandedId === section.id;
 
           return (

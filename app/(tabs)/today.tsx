@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +6,6 @@ import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'reac
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 import { useTier } from '@/src/context/TierContext';
-import { getTodaySignal, getTodayInsight, getTodayMove } from '@/src/lib/dailyContent';
 import VisualStreakTracker from '@/src/components/VisualStreakTracker';
 import PatternAlertCard from '@/src/components/PatternAlertCard';
 import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
@@ -28,38 +27,23 @@ function getTimeEmoji() {
 }
 
 const moods = [
-  { emoji: '💛', label: 'Steady' },
-  { emoji: '🌊', label: 'Emotional' },
-  { emoji: '⚡', label: 'Restless' },
-  { emoji: '🧊', label: 'Numb' },
+  { id: 'steady', emoji: '💛', label: 'Steady' },
+  { id: 'tender', emoji: '🌊', label: 'Tender' },
+  { id: 'restless', emoji: '⚡', label: 'Restless' },
+  { id: 'quiet', emoji: '🧊', label: 'Quiet' },
 ];
 
 const moodResponses: Record<string, string> = {
-  Steady: "You're grounded today. A good day to reflect on what's working — and trust it.",
-  Emotional: "Your feelings are close to the surface. That's not a flaw — it's information.",
-  Restless: "Something wants your attention. Don't chase the answer — sit with the question.",
-  Numb: "Numbness is still a signal. Your body may be asking for rest, not distraction.",
+  steady: "You're grounded today. A good day to reflect on what's working — and trust it.",
+  tender: "Your feelings are close to the surface. That's not a flaw — it's information.",
+  restless: "Something wants your attention. Don't chase the answer — sit with the question.",
+  quiet: "Quietness is still a signal. Your body may be asking for rest, not distraction.",
 };
-
-const journalPrompts = [
-  'What do I need but avoid asking for?',
-  'What pattern keeps showing up that I keep ignoring?',
-  'If I were honest with myself right now, what would I say?',
-  'What am I performing today that I don\'t actually want to do?',
-  'What would I do differently if I wasn\'t afraid of being seen?',
-  'What emotion have I been sitting on all week?',
-  'What would the person I\'m becoming do right now?',
-];
-
-function getDayIndex() {
-  return (new Date().getDate() + new Date().getMonth()) % 7;
-}
 
 export default function TodayScreen() {
   const router = useRouter();
   const engagement = useEngagement();
   const { isPremium } = useTier();
-  const dayIdx = getDayIndex();
 
   const [selectedMood, setSelectedMood] = useState<string | null>(
     engagement?.moodHistory?.[0]?.mood || null
@@ -70,25 +54,37 @@ export default function TodayScreen() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  useEffect(() => {
-    if (engagement) engagement.checkInToday();
-  }, []);
-
-  const signal = getTodaySignal();
-  const insight = getTodayInsight();
-  const move = getTodayMove();
-  const prompt = journalPrompts[dayIdx];
+  const dailyReading = engagement.todayPayload?.dailyReading;
+  const signal = dailyReading?.signal ?? {
+    title: 'Preparing your signal',
+    sub: 'Your backend reading will appear here after sync.',
+  };
+  const insight = dailyReading?.insight ?? 'Your first insight is being prepared.';
+  const move = dailyReading?.move ?? 'Return to your breath and choose one honest action.';
+  const attribution = dailyReading?.attribution ?? '';
+  const prompt = engagement.todayPayload?.journal.prompt ?? 'What do I need but avoid asking for?';
   const streak = engagement?.streak || 0;
   const lastReflection = engagement?.journalEntries?.[0];
+  const energies = engagement.todayPayload?.energies ?? [
+    { label: 'Calm', value: 0.72 },
+    { label: 'Direct', value: 0.85 },
+    { label: 'Testing', value: 0.4 },
+  ];
 
-  const handleMoodSelect = (mood: string) => {
+  const handleMoodSelect = async (mood: string) => {
     setSelectedMood(mood);
-    if (engagement) engagement.addMood(mood);
+    try {
+      await engagement.addMood(mood);
+    } catch (error) {
+      setToastMessage(error instanceof Error ? error.message : 'Mood could not be saved.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
-  const handleSaveJournal = () => {
+  const handleSaveJournal = async () => {
     if (journalText.trim() && engagement) {
-      engagement.addJournalEntry(journalText);
+      await engagement.addJournalEntry(journalText, prompt);
       setJournalSaved(true);
       setToastMessage('Reflection saved.');
       setShowToast(true);
@@ -130,7 +126,7 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{getTimeGreeting()} {getTimeEmoji()}</Text>
-            <Text style={styles.name}>Gy</Text>
+            <Text style={styles.name}>{engagement.todayPayload?.user.name ?? 'You'}</Text>
           </View>
           <View style={styles.headerRight}>
             {streak > 0 && (
@@ -158,17 +154,17 @@ export default function TodayScreen() {
             style={{ flex: 1 }}
           >
             <TouchableOpacity
-              onPress={() => handleMoodSelect(mood.label)}
+              onPress={() => handleMoodSelect(mood.id)}
               style={[
                 styles.moodBtn,
-                selectedMood === mood.label && styles.moodBtnActive,
+                selectedMood === mood.id && styles.moodBtnActive,
               ]}
             >
               <Text style={styles.moodEmoji}>{mood.emoji}</Text>
               <Text
                 style={[
                   styles.moodLabel,
-                  selectedMood === mood.label && styles.moodLabelActive,
+                  selectedMood === mood.id && styles.moodLabelActive,
                 ]}
               >
                 {mood.label}
@@ -193,6 +189,7 @@ export default function TodayScreen() {
       {showWeeklyCard && (
         <WeeklyReadingCard
           visible={true}
+          reading={engagement.todayPayload?.weeklyReading}
           onDismiss={() => engagement?.dismissWeeklyReading?.()}
         />
       )}
@@ -244,11 +241,7 @@ export default function TodayScreen() {
           </View>
         </Animated.View>
         <View style={styles.energyRow}>
-          {[
-            { label: 'Calm', sub: 'emotional weather', width: '72%' as const, colors: ['#8B72CF', '#16A7A0'] as const },
-            { label: 'Direct', sub: 'best move', width: '85%' as const, colors: ['#E8A87C', '#F7D875'] as const },
-            { label: 'Testing', sub: 'avoid', width: '40%' as const, colors: ['#F4C7D2', '#8B72CF'] as const },
-          ].map((item, index) => (
+          {energies.map((item, index) => (
             <Animated.View
               key={item.label}
               entering={FadeInUp.duration(500).delay(300 + index * 80)}
@@ -259,12 +252,12 @@ export default function TodayScreen() {
                   <View
                     style={[
                       styles.energyBarFill,
-                      { width: item.width, backgroundColor: item.colors[0] },
+                      { width: `${Math.round(item.value * 100)}%`, backgroundColor: ['#8B72CF', '#E8A87C', '#F4C7D2'][index % 3] },
                     ]}
                   />
                 </View>
                 <Text style={styles.energyLabel}>{item.label}</Text>
-                <Text style={styles.energySub}>{item.sub}</Text>
+                <Text style={styles.energySub}>{index === 0 ? 'emotional weather' : index === 1 ? 'best move' : 'avoid'}</Text>
               </View>
             </Animated.View>
           ))}
@@ -286,7 +279,7 @@ export default function TodayScreen() {
         <Animated.View entering={FadeInUp.duration(500).delay(450)}>
           <View style={styles.insightCard}>
             <Text style={styles.insightText}>{insight}</Text>
-            <Text style={styles.insightSub}>— for Aquarius Sun, Life Path 7</Text>
+            {!!attribution && <Text style={styles.insightSub}>— {attribution}</Text>}
           </View>
         </Animated.View>
       </View>

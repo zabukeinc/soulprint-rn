@@ -17,7 +17,7 @@ import { useOnboarding } from '@/src/context/OnboardingContext';
 const focusOptions = [
   { id: 'love', label: 'Love', emoji: '💕' },
   { id: 'lost', label: 'Feeling lost', emoji: '🌫️' },
-  { id: 'worth', label: 'Self-worth', emoji: '⭐' },
+  { id: 'self-worth', label: 'Self-worth', emoji: '⭐' },
   { id: 'career', label: 'Career', emoji: '🎯' },
   { id: 'healing', label: 'Healing', emoji: '🌙' },
   { id: 'purpose', label: 'Purpose', emoji: '🌟' },

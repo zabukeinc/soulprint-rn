@@ -1,7 +1,21 @@
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '@/src/context/AuthContext';
 
 export default function OnboardingLayout() {
+  const { hydrated, user } = useAuth();
+
+  if (!hydrated) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!user) return <Redirect href="/(auth)" />;
+
   return (
     <Stack
       screenOptions={{

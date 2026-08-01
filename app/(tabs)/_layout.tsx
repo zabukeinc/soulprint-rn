@@ -1,7 +1,9 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import BottomNav from '@/src/components/BottomNav';
 import { usePathname, useRouter } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '@/src/context/AuthContext';
 
 const tabRoutes = ['today', 'astrovy', 'decode', 'mirror', 'profile'];
 
@@ -21,6 +23,19 @@ function CustomBottomTabBar() {
 }
 
 export default function TabsLayout() {
+  const { hydrated, user, profileComplete } = useAuth();
+
+  if (!hydrated) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!user) return <Redirect href="/(auth)" />;
+  if (!profileComplete) return <Redirect href="/(onboarding)/welcome" />;
+
   return (
     <Tabs
       tabBar={() => <CustomBottomTabBar />}

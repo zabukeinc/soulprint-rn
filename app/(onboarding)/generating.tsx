@@ -14,10 +14,14 @@ import Animated, {
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
+import { useAuth } from '@/src/context/AuthContext';
+import { submitProfile } from '@/src/services/backend';
+import { ApiError } from '@/src/lib/api';
 
 export default function GeneratingScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
+  const { hydrated, user, refreshMe, signOut } = useAuth();
   const stages = [
     { id: 1, text: `Reading your birth date${data.birthDate ? ` (${data.birthDate})` : ''}...`, delay: 600 },
     { id: 2, text: `Placing ${data.birthPlace?.name ?? 'your birthplace'} into the chart...`, delay: 1400 },
@@ -26,6 +30,7 @@ export default function GeneratingScreen() {
   ];
   const [currentStage, setCurrentStage] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const rotate = useSharedValue(0);
 
@@ -36,8 +41,24 @@ export default function GeneratingScreen() {
       }, stage.delay);
     });
 
-    setTimeout(() => {
-      setIsComplete(true);
+    const t = setTimeout(async () => {
+      try {
+        if (!hydrated) return;
+        if (!user) {
+          router.replace('/(auth)');
+          return;
+        }
+        await submitProfile(data);
+        await refreshMe();
+        setIsComplete(true);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          await signOut();
+          router.replace('/(auth)');
+          return;
+        }
+        setError(err instanceof Error ? err.message : 'Unable to prepare your Astrovy.');
+      }
     }, 4000);
 
     rotate.value = withRepeat(
@@ -45,7 +66,8 @@ export default function GeneratingScreen() {
       -1,
       false
     );
-  }, []);
+    return () => clearTimeout(t);
+  }, [data, hydrated, refreshMe, rotate, router, signOut, user]);
 
   const spinStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotate.value}deg` }],
@@ -108,6 +130,21 @@ export default function GeneratingScreen() {
               </Animated.View>
             ))}
           </View>
+
+          {error && (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setError(null);
+                  router.back();
+                }}
+              >
+                <Text style={styles.errorAction}>Review answers</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <ProgressDots total={7} current={6} />
         </Animated.View>
@@ -214,6 +251,25 @@ const styles = StyleSheet.create({
   },
   stageText: {
     fontSize: 12,
+  },
+  errorCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(184,74,98,0.25)',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#B84A62',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  errorAction: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8B72CF',
   },
   completeContainer: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { getLoveReading, submitFeedback } from '@/src/services/backend';
 
 const insights = [
   {
@@ -41,6 +42,22 @@ const insights = [
 export default function LoveReadingScreen() {
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [reading, setReading] = useState<{ hero: string; insights: typeof insights } | null>(null);
+
+  useEffect(() => {
+    getLoveReading()
+      .then((payload) => setReading({ hero: payload.hero, insights: payload.insights?.map((item: any) => ({
+        title: item.title,
+        emoji: '✦',
+        content: item.body,
+      })) ?? insights }))
+      .catch(() => setReading(null));
+  }, []);
+
+  const visibleReading = reading ?? {
+    hero: "You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.",
+    insights,
+  };
 
   return (
     <ScrollView
@@ -78,13 +95,13 @@ export default function LoveReadingScreen() {
         >
           <View style={styles.heroGlow} />
           <Text style={styles.heroText}>
-            You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.
+            {visibleReading.hero}
           </Text>
         </LinearGradient>
       </Animated.View>
 
       <View style={styles.insights}>
-        {insights.map((insight, i) => (
+        {visibleReading.insights.map((insight, i) => (
           <Animated.View
             key={insight.title}
             entering={FadeInUp.delay(400 + i * 100).duration(500).easing(Easing.out(Easing.cubic))}
@@ -114,7 +131,14 @@ export default function LoveReadingScreen() {
                 style={{ flex: 1 }}
               >
                 <TouchableOpacity
-                  onPress={() => setFeedback(opt)}
+                  onPress={() => {
+                    setFeedback(opt);
+                    submitFeedback({
+                      targetType: 'love_reading',
+                      targetId: null,
+                      value: opt === 'Yes, surprisingly' ? 'accurate' : opt === 'A little' ? 'partial' : 'inaccurate',
+                    }).catch(() => {});
+                  }}
                   style={[
                     styles.feedbackBtn,
                     feedback === opt && styles.feedbackBtnActive,

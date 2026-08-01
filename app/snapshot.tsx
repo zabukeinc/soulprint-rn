@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
+import { getAstrovyReading, getMe } from '@/src/services/backend';
 
 const patternCards = [
   { title: 'Private Processor', desc: 'You feel more than you show.' },
@@ -24,10 +25,34 @@ const patternCards = [
 export default function SnapshotScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
+  const [profile, setProfile] = React.useState<any | null>(null);
+  const [astro, setAstro] = React.useState<any | null>(null);
+  const [reading, setReading] = React.useState<any | null>(null);
+
+  React.useEffect(() => {
+    Promise.all([getMe(), getAstrovyReading()])
+      .then(([me, astrovy]) => {
+        setProfile(me.profile);
+        setAstro(me.astro);
+        setReading(astrovy);
+      })
+      .catch(() => {});
+  }, []);
 
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: withRepeat(withTiming(-4, { duration: 1500 }), -1, true) }],
   }));
+  const name = profile?.name ?? data.name ?? 'friend';
+  const archetype = astro?.archetype ?? reading?.archetype;
+  const sections = Array.isArray(reading?.sections) ? reading.sections.slice(0, 4) : [];
+  const visiblePatternCards = sections.length
+    ? sections.map((section: any) => ({ title: section.title, desc: section.core }))
+    : patternCards;
+  const badges = [
+    astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : null,
+    astro?.lifePath ? `Life Path ${astro.lifePath}` : null,
+    profile?.focus ? `${profile.focus} focus` : null,
+  ].filter(Boolean) as string[];
 
   return (
     <ScrollView
@@ -49,7 +74,7 @@ export default function SnapshotScreen() {
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>
-          Hi {data.name || 'friend'}, your first Astrovy is ready.
+          Hi {name}, your first Astrovy is ready.
         </Text>
         <Text style={styles.desc}>
           We found a few patterns that may explain how you process emotion, connection, and direction.
@@ -72,14 +97,14 @@ export default function SnapshotScreen() {
             </Animated.View>
             <View>
               <Text style={styles.heroLabel}>Your Core Archetype</Text>
-              <Text style={styles.heroTitle}>The Quiet Strategist</Text>
+              <Text style={styles.heroTitle}>{archetype?.name ?? 'Your Core Archetype'}</Text>
             </View>
           </View>
           <Text style={styles.heroDesc}>
-            You tend to understand things deeply before you explain them. People may see calmness, but your inner world is usually more active than it looks.
+            {archetype?.tagline ?? 'You tend to understand things deeply before you explain them.'}
           </Text>
           <View style={styles.badges}>
-            {['Aquarius Sun', 'Life Path 7', 'Love Focus'].map((badge) => (
+            {badges.map((badge) => (
               <View key={badge} style={styles.badge}>
                 <Text style={styles.badgeText}>{badge}</Text>
               </View>
@@ -93,7 +118,7 @@ export default function SnapshotScreen() {
       </Animated.View>
 
       <View style={styles.grid}>
-        {patternCards.map((card, i) => (
+        {visiblePatternCards.map((card: { title: string; desc: string }, i: number) => (
           <Animated.View
             key={card.title}
             entering={FadeInUp.delay(350 + i * 50).duration(400)}

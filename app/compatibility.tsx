@@ -13,6 +13,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { ApiError } from '@/src/lib/api';
+import { createCompatibilityReading } from '@/src/services/backend';
 
 const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
@@ -22,6 +24,8 @@ export default function CompatibilityScreen() {
   const [name, setName] = useState('');
   const [selectedSign, setSelectedSign] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [reading, setReading] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const progress = useSharedValue(0);
 
@@ -29,16 +33,25 @@ export default function CompatibilityScreen() {
     transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
   }));
 
-  const handleReveal = () => {
+  const handleReveal = async () => {
     if (name.trim() && selectedSign) {
       setStep('loading');
-      setTimeout(() => {
+      setError(null);
+      try {
+        const result = await createCompatibilityReading({
+          partnerName: name.trim(),
+          partnerSign: selectedSign.toLowerCase(),
+        });
+        setReading(result);
         setStep('result');
         setTimeout(() => {
           setShowResult(true);
-          progress.value = withTiming(74, { duration: 1500 });
+          progress.value = withTiming(result.scores?.overall ?? 74, { duration: 1500 });
         }, 100);
-      }, 1800);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Compatibility could not be created.');
+        setStep('input');
+      }
     }
   };
 
@@ -84,7 +97,7 @@ export default function CompatibilityScreen() {
             <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.resultCenter}>
               <Text style={styles.resultLabel}>Compatibility Reading</Text>
               <Text style={styles.resultTitle}>Gy & {name}</Text>
-              <Text style={styles.resultSub}>Aquarius Sun · {selectedSign}</Text>
+              <Text style={styles.resultSub}>{reading?.userSign ?? 'Your sign'} · {reading?.partnerSign ?? selectedSign}</Text>
             </Animated.View>
 
             <Animated.View
@@ -99,7 +112,7 @@ export default function CompatibilityScreen() {
                 <View style={styles.scoreGlow} />
                 <Animated.View entering={ZoomIn.delay(400).duration(300)} style={styles.scoreContent}>
                   <Text style={styles.scoreLabel}>Emotional Match</Text>
-                  <Text style={styles.scoreValue}>74%</Text>
+                  <Text style={styles.scoreValue}>{reading?.scores?.overall ?? 74}%</Text>
                   <Text style={styles.scoreSub}>Strong potential with room to grow</Text>
                 </Animated.View>
                 <View style={styles.scoreBarBg}>
@@ -116,7 +129,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>What Draws You Together</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                {name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth. The attraction isn't just surface — it's two different kinds of intensity finding a rhythm.
+                {reading?.sections?.attraction ?? `${name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth.`}
               </Text>
             </Animated.View>
 
@@ -126,7 +139,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>Where Friction Lives</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                You process before you respond. They react and then reflect. This timing difference can feel like indifference to you, and like withholding to them. Naming this gap early prevents it from becoming resentment.
+                {reading?.sections?.friction ?? 'Naming timing differences early prevents them from becoming resentment.'}
               </Text>
             </Animated.View>
 
@@ -136,13 +149,13 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>Growth Together</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                The best version of this connection isn't about avoiding friction — it's about not going silent when it arrives. If you can both say the hard thing early, this becomes a relationship that deepens with time instead of just continuing.
+                {reading?.sections?.growth ?? "The best version of this connection isn't about avoiding friction — it's about staying present when it arrives."}
               </Text>
             </Animated.View>
 
             <Animated.View entering={FadeInUp.delay(650).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.15)' }]}>
               <Text style={styles.quoteText}>
-                "Compatibility isn't about being the same. It's about whether you can grow in the same direction without losing yourself."
+                "{reading?.quote ?? "Compatibility isn't about being the same. It's about whether you can grow in the same direction without losing yourself."}"
               </Text>
             </Animated.View>
           </Animated.View>
@@ -176,6 +189,8 @@ export default function CompatibilityScreen() {
           Enter their name and zodiac sign. We'll show you what happens when your patterns meet theirs.
         </Text>
       </Animated.View>
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
       <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
         <Text style={styles.inputLabel}>Their name</Text>
@@ -336,6 +351,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 260,
     marginTop: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#B84A62',
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   inputSection: { marginBottom: 20 },
   inputLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },

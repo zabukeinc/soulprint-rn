@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
+import { getDailyHoroscope, getMe, getNatalChart } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
 
 const categories = [
@@ -19,8 +20,22 @@ export default function HoroscopeScreen() {
   const [activeCategory, setActiveCategory] = useState<typeof categories[number]['id']>('overview');
   const horoscope = getTodayHoroscope();
   const moon = getMoonPhase();
+  const [backendReading, setBackendReading] = useState<any | null>(null);
+  const [natal, setNatal] = useState<any | null>(null);
+  const [me, setMe] = useState<any | null>(null);
 
-  const reading = horoscope[activeCategory];
+  useEffect(() => {
+    Promise.all([getDailyHoroscope(), getNatalChart(), getMe()])
+      .then(([daily, chart, current]) => {
+        setBackendReading(daily);
+        setNatal(chart);
+        setMe(current);
+      })
+      .catch(() => setBackendReading(null));
+  }, []);
+
+  const reading = backendReading?.categories?.[activeCategory] ?? horoscope[activeCategory];
+  const moonReading = backendReading?.moonPhase ?? moon;
 
   return (
     <ScrollView
@@ -53,20 +68,25 @@ export default function HoroscopeScreen() {
           <View style={styles.chartGlow} />
           <Text style={styles.chartLabel}>Your Natal Chart</Text>
           <Text style={styles.chartSub}>Tap a planet to explore its meaning</Text>
-          <NatalChart size={260} />
+          <NatalChart
+            size={260}
+            planets={natal?.planets}
+            centerLabel={me?.astro?.sunSign ? `${me.astro.sunSign} Sun` : undefined}
+            centerMeta={me?.astro?.lifePath ? `Life Path ${me.astro.lifePath}` : undefined}
+          />
         </LinearGradient>
       </Animated.View>
 
       {/* Moon Phase */}
       <Animated.View entering={FadeInUp.duration(500).delay(150)} style={styles.moonCard}>
         <View style={styles.moonRow}>
-          <Text style={styles.moonEmoji}>{moon.emoji}</Text>
+          <Text style={styles.moonEmoji}>{moonReading.emoji === 'moon' ? '🌙' : moonReading.emoji}</Text>
           <View>
             <Text style={styles.moonLabel}>Moon Phase</Text>
-            <Text style={styles.moonPhase}>{moon.phase}</Text>
+            <Text style={styles.moonPhase}>{moonReading.name ?? moonReading.phase}</Text>
           </View>
         </View>
-        <Text style={styles.moonMeaning}>{moon.meaning}</Text>
+        <Text style={styles.moonMeaning}>{moonReading.meaning}</Text>
       </Animated.View>
 
       {/* Category Tabs */}
