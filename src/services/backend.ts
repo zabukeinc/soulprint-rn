@@ -62,6 +62,28 @@ export type TodayPayload = {
     move?: string;
     attribution?: string;
   };
+  retention?: {
+    completionScore: number;
+    completedCount: number;
+    totalCount: number;
+    summary: string;
+    nextAction: {
+      key: 'check_in' | 'journal' | 'tarot';
+      title: string;
+      body: string;
+      cta: string;
+      route: string;
+      completed: boolean;
+    };
+    steps: Array<{
+      key: 'check_in' | 'journal' | 'tarot';
+      title: string;
+      body: string;
+      cta: string;
+      route: string;
+      completed: boolean;
+    }>;
+  };
   energies?: Array<{ label: string; value: number }>;
   horoscope?: {
     moonPhase?: { name?: string; illumination?: number; meaning?: string };

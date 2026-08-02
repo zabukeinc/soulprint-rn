@@ -100,9 +100,10 @@ export function useEngagement() {
       const result = await backend.createJournalEntry(text, prompt);
       setJournalEntries((prev) => [result.entry, ...prev]);
       setMirror((prev) => (prev ? { ...prev, reflections: result.reflections } : prev));
+      await refresh().catch(() => {});
       return result;
     },
-    [today?.journal.prompt]
+    [refresh, today?.journal.prompt]
   );
 
   const clearAllData = useCallback(async () => {

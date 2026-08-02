@@ -75,6 +75,7 @@ export default function TodayScreen() {
     engagement.todayPayload?.horoscope?.primaryAspect?.aspect ?? 'best move',
     engagement.todayPayload?.horoscope?.primaryAspect?.tone ?? 'daily tone',
   ];
+  const retention = engagement.todayPayload?.retention;
 
   const handleMoodSelect = async (mood: string) => {
     setSelectedMood(mood);
@@ -95,6 +96,26 @@ export default function TodayScreen() {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
+  };
+
+  const handleNextAction = () => {
+    const action = retention?.nextAction;
+    if (!action) return;
+    if (action.key === 'journal') {
+      setExpandedJournal(true);
+      return;
+    }
+    if (action.key === 'tarot') {
+      router.push('/tarot');
+      return;
+    }
+    if (action.key === 'check_in') {
+      setToastMessage('Choose one mood above to start today.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+    if (action.completed) router.push('/(tabs)/mirror');
   };
 
   const consecutiveMood = engagement?.getConsecutiveMood?.() || null;
@@ -197,6 +218,43 @@ export default function TodayScreen() {
           reading={engagement.todayPayload?.weeklyReading}
           onDismiss={() => engagement?.dismissWeeklyReading?.()}
         />
+      )}
+
+      {retention && (
+        <Animated.View entering={FadeInUp.duration(500).delay(180)} style={styles.loopCard}>
+          <View style={styles.loopHeader}>
+            <View>
+              <Text style={styles.loopLabel}>Daily Loop</Text>
+              <Text style={styles.loopTitle}>{retention.completedCount}/{retention.totalCount} complete</Text>
+            </View>
+            <View style={styles.loopScore}>
+              <Text style={styles.loopScoreText}>{retention.completionScore}%</Text>
+            </View>
+          </View>
+          <View style={styles.loopBarBg}>
+            <View style={[styles.loopBarFill, { width: `${retention.completionScore}%` }]} />
+          </View>
+          <Text style={styles.loopSummary}>{retention.summary}</Text>
+          <View style={styles.loopSteps}>
+            {retention.steps.map((step) => (
+              <View key={step.key} style={styles.loopStep}>
+                <View style={[styles.loopDot, step.completed && styles.loopDotDone]}>
+                  <Text style={[styles.loopDotText, step.completed && styles.loopDotTextDone]}>
+                    {step.completed ? '✓' : '•'}
+                  </Text>
+                </View>
+                <Text style={[styles.loopStepText, step.completed && styles.loopStepTextDone]}>{step.title}</Text>
+              </View>
+            ))}
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleNextAction}
+            style={[styles.loopButton, retention.nextAction.completed && styles.loopButtonDone]}
+          >
+            <Text style={styles.loopButtonText}>{retention.nextAction.cta}</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       <Animated.View entering={FadeInUp.duration(500).delay(200)}>
@@ -520,6 +578,106 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(139,114,207,0.15)',
   },
   moodResponseText: { fontSize: 12, color: theme.colors.ink, lineHeight: 20 },
+  loopCard: {
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  loopHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 10,
+  },
+  loopLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#16A7A0',
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  loopTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.ink,
+  },
+  loopScore: {
+    minWidth: 52,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(221,237,220,0.68)',
+  },
+  loopScoreText: { fontSize: 12, fontWeight: '800', color: '#16A7A0' },
+  loopBarBg: {
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(31,33,48,0.06)',
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  loopBarFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#16A7A0',
+  },
+  loopSummary: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+  loopSteps: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  loopStep: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 16,
+    padding: 9,
+    backgroundColor: 'rgba(31,33,48,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.05)',
+  },
+  loopDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(139,114,207,0.14)',
+    marginBottom: 6,
+  },
+  loopDotDone: { backgroundColor: '#16A7A0' },
+  loopDotText: { fontSize: 11, color: '#8B72CF', fontWeight: '800' },
+  loopDotTextDone: { color: '#FFFFFF' },
+  loopStepText: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    lineHeight: 14,
+    fontWeight: '700',
+  },
+  loopStepTextDone: {
+    color: theme.colors.ink,
+  },
+  loopButton: {
+    minHeight: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B72CF',
+  },
+  loopButtonDone: { backgroundColor: '#16A7A0' },
+  loopButtonText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   signalCard: {
     borderRadius: theme.radius.lg,
     padding: 20,
