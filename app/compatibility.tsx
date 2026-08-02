@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,14 +15,22 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { ApiError } from '@/src/lib/api';
 import { createCompatibilityReading } from '@/src/services/backend';
+import { searchCities, type City } from '@/src/services/cities';
 
 const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
 export default function CompatibilityScreen() {
   const router = useRouter();
   const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
+  const [matchMode, setMatchMode] = useState<'full' | 'quick'>('full');
   const [name, setName] = useState('');
   const [selectedSign, setSelectedSign] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState('');
+  const [birthTime, setBirthTime] = useState('');
+  const [knowsBirthTime, setKnowsBirthTime] = useState(false);
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeResults, setPlaceResults] = useState<City[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<City | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [reading, setReading] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,15 +41,60 @@ export default function CompatibilityScreen() {
     transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
   }));
 
+  useEffect(() => {
+    let active = true;
+    if (matchMode !== 'full' || selectedPlace || placeQuery.trim().length < 2) {
+      setPlaceResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      searchCities(placeQuery)
+        .then((results) => {
+          if (active) setPlaceResults(results);
+        })
+        .catch(() => {
+          if (active) setPlaceResults([]);
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [matchMode, placeQuery, selectedPlace]);
+
+  const canReveal = name.trim().length > 0 && (
+    matchMode === 'quick'
+      ? Boolean(selectedSign)
+      : /^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim()) && Boolean(selectedPlace) && (!knowsBirthTime || /^\d{2}:\d{2}$/.test(birthTime.trim()))
+  );
+
   const handleReveal = async () => {
-    if (name.trim() && selectedSign) {
+    if (canReveal) {
       setStep('loading');
       setError(null);
       try {
-        const result = await createCompatibilityReading({
-          partnerName: name.trim(),
-          partnerSign: selectedSign.toLowerCase(),
-        });
+        const result = matchMode === 'quick'
+          ? await createCompatibilityReading({
+              partnerName: name.trim(),
+              partnerSign: selectedSign?.toLowerCase(),
+            })
+          : await createCompatibilityReading({
+              partnerName: name.trim(),
+              partnerSign: selectedSign?.toLowerCase(),
+              partnerBirthDate: birthDate.trim(),
+              partnerBirthTime: knowsBirthTime ? birthTime.trim() : null,
+              partnerBirthPlace: selectedPlace
+                ? {
+                    city: selectedPlace.name,
+                    country: selectedPlace.country,
+                    timezone: selectedPlace.timezone,
+                    lat: selectedPlace.lat,
+                    lng: selectedPlace.lng,
+                  }
+                : undefined,
+            });
         setReading(result);
         setStep('result');
         setTimeout(() => {
@@ -58,6 +111,14 @@ export default function CompatibilityScreen() {
   const barStyle = useAnimatedStyle(() => ({
     width: `${progress.value}%`,
   }));
+  const resultSections = Array.isArray(reading?.sections) ? reading.sections : [];
+  const resultSection = (key: string) => resultSections.find((section: any) => section.key === key)?.body;
+  const basis = reading?.basis ?? {};
+  const confidenceLabel = basis.confidence === 'high'
+    ? 'High confidence'
+    : basis.confidence === 'medium'
+      ? 'Medium confidence'
+      : 'Quick zodiac match';
 
   if (step === 'loading') {
     return (
@@ -97,7 +158,10 @@ export default function CompatibilityScreen() {
             <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.resultCenter}>
               <Text style={styles.resultLabel}>Compatibility Reading</Text>
               <Text style={styles.resultTitle}>Gy & {name}</Text>
-              <Text style={styles.resultSub}>{reading?.userSign ?? 'Your sign'} · {reading?.partnerSign ?? selectedSign}</Text>
+              <Text style={styles.resultSub}>{reading?.userSign ?? 'Your sign'} · {reading?.partnerSign ?? selectedSign ?? 'Calculated sign'}</Text>
+              <View style={styles.confidencePill}>
+                <Text style={styles.confidenceText}>{confidenceLabel}</Text>
+              </View>
             </Animated.View>
 
             <Animated.View
@@ -113,7 +177,7 @@ export default function CompatibilityScreen() {
                 <Animated.View entering={ZoomIn.delay(400).duration(300)} style={styles.scoreContent}>
                   <Text style={styles.scoreLabel}>Emotional Match</Text>
                   <Text style={styles.scoreValue}>{reading?.scores?.overall ?? 74}%</Text>
-                  <Text style={styles.scoreSub}>Strong potential with room to grow</Text>
+                  <Text style={styles.scoreSub}>{basis.matchType === 'full_birth_match' ? 'Birth chart compatibility' : 'Sun sign compatibility'}</Text>
                 </Animated.View>
                 <View style={styles.scoreBarBg}>
                   <Animated.View
@@ -129,7 +193,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>What Draws You Together</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                {reading?.sections?.attraction ?? `${name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth.`}
+                {resultSection('attraction') ?? `${name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth.`}
               </Text>
             </Animated.View>
 
@@ -139,7 +203,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>Where Friction Lives</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                {reading?.sections?.friction ?? 'Naming timing differences early prevents them from becoming resentment.'}
+                {resultSection('friction') ?? 'Naming timing differences early prevents them from becoming resentment.'}
               </Text>
             </Animated.View>
 
@@ -149,7 +213,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.resultSectionTitle}>Growth Together</Text>
               </View>
               <Text style={styles.resultSectionText}>
-                {reading?.sections?.growth ?? "The best version of this connection isn't about avoiding friction — it's about staying present when it arrives."}
+                {resultSection('growth') ?? "The best version of this connection isn't about avoiding friction — it's about staying present when it arrives."}
               </Text>
             </Animated.View>
 
@@ -186,11 +250,28 @@ export default function CompatibilityScreen() {
         <Text style={styles.label}>Decode Chemistry</Text>
         <Text style={styles.title}>How do you two connect?</Text>
         <Text style={styles.desc}>
-          Enter their name and zodiac sign. We'll show you what happens when your patterns meet theirs.
+          Use birth details for a deeper match, or choose a zodiac sign when you only want a quick read.
         </Text>
       </Animated.View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.modeSwitch}>
+        <TouchableOpacity
+          style={[styles.modeButton, matchMode === 'full' && styles.modeButtonActive]}
+          onPress={() => setMatchMode('full')}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.modeText, matchMode === 'full' && styles.modeTextActive]}>Full Birth Match</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeButton, matchMode === 'quick' && styles.modeButtonActive]}
+          onPress={() => setMatchMode('quick')}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.modeText, matchMode === 'quick' && styles.modeTextActive]}>Quick Match</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
         <Text style={styles.inputLabel}>Their name</Text>
@@ -203,47 +284,138 @@ export default function CompatibilityScreen() {
         />
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Their zodiac sign</Text>
-        <View style={styles.signGrid}>
-          {zodiacSigns.map((sign, i) => (
-            <Animated.View
-              key={sign}
-              entering={FadeInUp.delay(400 + i * 30).duration(300)}
-              style={{ width: '23%' }}
-            >
+      {matchMode === 'full' ? (
+        <>
+          <Animated.View entering={FadeInUp.delay(320).duration(500)} style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Their birth date</Text>
+            <TextInput
+              value={birthDate}
+              onChangeText={setBirthDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.muted + '80'}
+              style={styles.input}
+              keyboardType="numbers-and-punctuation"
+            />
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(380).duration(500)} style={styles.inputSection}>
+            <View style={styles.inlineHeader}>
+              <Text style={styles.inputLabel}>Birth time</Text>
               <TouchableOpacity
-                onPress={() => setSelectedSign(sign)}
-                style={[
-                  styles.signBtn,
-                  selectedSign === sign && styles.signBtnActive,
-                ]}
+                style={[styles.smallToggle, knowsBirthTime && styles.smallToggleActive]}
+                onPress={() => setKnowsBirthTime((value) => !value)}
+                activeOpacity={0.85}
               >
-                <Text
-                  style={[
-                    styles.signBtnText,
-                    selectedSign === sign && styles.signBtnTextActive,
-                  ]}
-                >
-                  {sign}
+                <Text style={[styles.smallToggleText, knowsBirthTime && styles.smallToggleTextActive]}>
+                  {knowsBirthTime ? 'Known' : 'Unknown'}
                 </Text>
               </TouchableOpacity>
-            </Animated.View>
-          ))}
-        </View>
-      </Animated.View>
+            </View>
+            {knowsBirthTime && (
+              <TextInput
+                value={birthTime}
+                onChangeText={setBirthTime}
+                placeholder="HH:mm"
+                placeholderTextColor={theme.colors.muted + '80'}
+                style={styles.input}
+                keyboardType="numbers-and-punctuation"
+              />
+            )}
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(440).duration(500)} style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Their birth place</Text>
+            <TextInput
+              value={placeQuery}
+              onChangeText={(value) => {
+                setPlaceQuery(value);
+                setSelectedPlace(null);
+              }}
+              placeholder="Search city"
+              placeholderTextColor={theme.colors.muted + '80'}
+              style={styles.input}
+            />
+            {selectedPlace && (
+              <Text style={styles.selectedPlaceText}>{selectedPlace.name}, {selectedPlace.country}</Text>
+            )}
+            {placeResults.length > 0 && (
+              <View style={styles.cityResults}>
+                {placeResults.map((city) => (
+                  <TouchableOpacity
+                    key={city.id}
+                    style={styles.cityRow}
+                    onPress={() => {
+                      setSelectedPlace(city);
+                      setPlaceQuery(`${city.name}, ${city.country}`);
+                      setPlaceResults([]);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.cityName}>{city.name}</Text>
+                    <Text style={styles.cityMeta}>{city.country} · {city.gmt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(500).duration(500)} style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Zodiac fallback</Text>
+            <Text style={styles.helperText}>Optional. Used only if birth details are incomplete.</Text>
+            <View style={styles.signGrid}>
+              {zodiacSigns.map((sign, i) => (
+                <Animated.View key={sign} entering={FadeInUp.delay(520 + i * 20).duration(300)} style={{ width: '23%' }}>
+                  <TouchableOpacity onPress={() => setSelectedSign(sign)} style={[styles.signBtn, selectedSign === sign && styles.signBtnActive]}>
+                    <Text style={[styles.signBtnText, selectedSign === sign && styles.signBtnTextActive]}>{sign}</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+          </Animated.View>
+        </>
+      ) : (
+        <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Their zodiac sign</Text>
+          <View style={styles.signGrid}>
+            {zodiacSigns.map((sign, i) => (
+              <Animated.View
+                key={sign}
+                entering={FadeInUp.delay(400 + i * 30).duration(300)}
+                style={{ width: '23%' }}
+              >
+                <TouchableOpacity
+                  onPress={() => setSelectedSign(sign)}
+                  style={[
+                    styles.signBtn,
+                    selectedSign === sign && styles.signBtnActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.signBtnText,
+                      selectedSign === sign && styles.signBtnTextActive,
+                    ]}
+                  >
+                    {sign}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </View>
+        </Animated.View>
+      )}
 
       <Animated.View entering={FadeInUp.delay(700).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          disabled={!name.trim() || !selectedSign}
+          disabled={!canReveal}
           onPress={handleReveal}
         >
           <LinearGradient
-            colors={name.trim() && selectedSign ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
+            colors={canReveal ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.button, (!name.trim() || !selectedSign) && styles.buttonDisabled]}
+            style={[styles.button, !canReveal && styles.buttonDisabled]}
           >
             <Text style={styles.buttonText}>Reveal Compatibility</Text>
           </LinearGradient>
@@ -359,8 +531,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
+  modeSwitch: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: 4,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    marginBottom: 18,
+  },
+  modeButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  modeButtonActive: {
+    backgroundColor: '#8B72CF',
+  },
+  modeText: { fontSize: 12, fontWeight: '800', color: theme.colors.muted, textAlign: 'center' },
+  modeTextActive: { color: '#FFFFFF' },
   inputSection: { marginBottom: 20 },
   inputLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },
+  inlineHeader: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  smallToggle: {
+    minWidth: 88,
+    minHeight: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.76)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  smallToggleActive: {
+    backgroundColor: '#16A7A0',
+    borderColor: 'transparent',
+  },
+  smallToggleText: { fontSize: 11, fontWeight: '800', color: theme.colors.muted },
+  smallToggleTextActive: { color: '#FFFFFF' },
+  helperText: { fontSize: 11, color: theme.colors.muted, lineHeight: 16, marginTop: -4, marginBottom: 10 },
   input: {
     width: '100%',
     paddingHorizontal: 16,
@@ -372,6 +591,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
   },
+  selectedPlaceText: {
+    fontSize: 11,
+    color: '#16A7A0',
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  cityResults: {
+    marginTop: 8,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  cityRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(31,33,48,0.06)',
+  },
+  cityName: { fontSize: 13, fontWeight: '800', color: theme.colors.ink },
+  cityMeta: { fontSize: 11, color: theme.colors.muted, marginTop: 2 },
   signGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -421,6 +662,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   resultSub: { fontSize: 12, color: theme.colors.muted },
+  confidencePill: {
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(232,221,251,0.48)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.12)',
+  },
+  confidenceText: { fontSize: 11, fontWeight: '800', color: '#8B72CF' },
   scoreCard: {
     borderRadius: theme.radius.lg,
     padding: 20,

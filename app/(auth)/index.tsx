@@ -19,7 +19,6 @@ import { theme } from '@/src/lib/theme';
 export default function AuthScreen() {
   const { user, hydrated, profileComplete, signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('register');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -31,8 +30,7 @@ export default function AuthScreen() {
 
   const canSubmit =
     email.trim().length > 3 &&
-    password.length >= 8 &&
-    (mode === 'login' || name.trim().length > 0);
+    password.length >= 8;
 
   const submit = async () => {
     if (!canSubmit || submitting) return;
@@ -42,7 +40,7 @@ export default function AuthScreen() {
       if (mode === 'login') {
         await signIn(email.trim(), password);
       } else {
-        await signUp(name.trim(), email.trim(), password);
+        await signUp(email.trim(), password);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unable to continue. Please try again.');
@@ -80,16 +78,6 @@ export default function AuthScreen() {
             ))}
           </View>
 
-          {mode === 'register' && (
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Name"
-              placeholderTextColor={theme.colors.muted + '80'}
-              style={styles.input}
-              autoCapitalize="words"
-            />
-          )}
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -108,6 +96,9 @@ export default function AuthScreen() {
             style={styles.input}
             secureTextEntry
           />
+          {mode === 'register' && (
+            <Text style={styles.formHint}>You’ll add your name and birth details in onboarding.</Text>
+          )}
           {error && <Text style={styles.error}>{error}</Text>}
 
           <TouchableOpacity activeOpacity={0.85} disabled={!canSubmit || submitting} onPress={submit}>
@@ -193,6 +184,7 @@ const styles = StyleSheet.create({
     color: theme.colors.ink,
     marginBottom: 10,
   },
+  formHint: { fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginBottom: 10 },
   error: { fontSize: 12, color: '#B84A62', lineHeight: 18, marginBottom: 10 },
   button: {
     width: '100%',

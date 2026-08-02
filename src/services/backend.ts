@@ -235,7 +235,7 @@ function normalizeCity(city: BackendCity): City {
   };
 }
 
-export function register(input: { name: string; email: string; password: string }) {
+export function register(input: { email: string; password: string }) {
   return apiRequest<SessionPayload>('/auth/register', {
     method: 'POST',
     body: input,
@@ -367,8 +367,9 @@ export function getNatalChart() {
 
 export function createCompatibilityReading(input: {
   partnerName?: string;
-  partnerSign: string;
+  partnerSign?: string;
   partnerBirthDate?: string;
+  partnerBirthTime?: string | null;
   partnerBirthPlace?: ProfilePayload['profile']['birthPlace'];
 }) {
   return apiRequest<any>('/compatibility/readings', {

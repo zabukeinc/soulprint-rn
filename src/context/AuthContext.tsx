@@ -7,7 +7,7 @@ type AuthContextValue = {
   hydrated: boolean;
   profileComplete: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: (input: { password?: string; confirm?: 'DELETE' }) => Promise<void>;
   refreshMe: () => Promise<void>;
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshMe]);
 
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    const session = await backend.register({ name, email, password });
+  const signUp = useCallback(async (email: string, password: string) => {
+    const session = await backend.register({ email, password });
     await authStorage.writeTokens(session.tokens);
     try {
       await refreshMe();

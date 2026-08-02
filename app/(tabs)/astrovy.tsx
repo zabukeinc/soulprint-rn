@@ -213,6 +213,32 @@ export default function AstrovyScreen() {
         </LinearGradient>
       </Animated.View>
 
+      {reading?.mbtiLens ? (
+        <Animated.View entering={FadeInUp.duration(500).delay(150)} style={styles.mbtiLensCard}>
+          <View style={styles.mbtiLensHeader}>
+            <View>
+              <Text style={styles.mbtiLensLabel}>Personality Lens</Text>
+              <Text style={styles.mbtiLensTitle}>{reading.mbtiLens.title}</Text>
+            </View>
+            <View style={styles.mbtiLensBadge}>
+              <Text style={styles.mbtiLensBadgeText}>{reading.mbtiLens.type}</Text>
+            </View>
+          </View>
+          <Text style={styles.mbtiLensText}>{reading.mbtiLens.communicationStyle}</Text>
+          <View style={styles.mbtiLensDivider} />
+          <View style={styles.mbtiLensRows}>
+            <View style={styles.mbtiLensRow}>
+              <Text style={styles.mbtiLensMeta}>Stress pattern</Text>
+              <Text style={styles.mbtiLensBody}>{reading.mbtiLens.stressPattern}</Text>
+            </View>
+            <View style={styles.mbtiLensRow}>
+              <Text style={styles.mbtiLensMeta}>Growth cue</Text>
+              <Text style={styles.mbtiLensBody}>{reading.mbtiLens.growthCue}</Text>
+            </View>
+          </View>
+        </Animated.View>
+      ) : null}
+
       {isPremium ? (
         <>
           <Animated.View entering={FadeInUp.duration(500).delay(200)}>
@@ -471,6 +497,74 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(31,33,48,0.08)',
   },
   heroBadgeText: { fontSize: 12, fontWeight: '700', color: '#6C5F99' },
+  mbtiLensCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  mbtiLensHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  mbtiLensLabel: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: '#16A7A0',
+    textTransform: 'uppercase',
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  mbtiLensTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 20,
+    fontWeight: '500',
+    color: theme.colors.ink,
+    lineHeight: 24,
+  },
+  mbtiLensBadge: {
+    minWidth: 52,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(232,221,251,0.72)',
+  },
+  mbtiLensBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8B72CF',
+  },
+  mbtiLensText: {
+    fontSize: 13,
+    color: theme.colors.ink,
+    lineHeight: 21,
+  },
+  mbtiLensDivider: {
+    height: 1,
+    backgroundColor: 'rgba(31,33,48,0.08)',
+    marginVertical: 14,
+  },
+  mbtiLensRows: { gap: 12 },
+  mbtiLensRow: { gap: 4 },
+  mbtiLensMeta: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: theme.colors.muted,
+    fontWeight: '800',
+  },
+  mbtiLensBody: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 19,
+  },
   blueprintHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

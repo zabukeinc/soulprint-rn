@@ -17,9 +17,11 @@ import { useOnboarding } from '@/src/context/OnboardingContext';
 const mbtiOptions = [
   { type: 'INFJ', label: 'Advocate', symbol: '🧠', color: '#E8DDFB' },
   { type: 'INTJ', label: 'Architect', symbol: '🏰', color: '#DDEDDC' },
+  { type: 'INTP', label: 'Thinker', symbol: '🧩', color: '#DFF2EC' },
   { type: 'INFP', label: 'Mediator', symbol: '🎨', color: '#F8DCCB' },
   { type: 'ENFJ', label: 'Protagonist', symbol: '✨', color: '#F7D875' },
   { type: 'ENTJ', label: 'Commander', symbol: '🎯', color: '#DFF2EC' },
+  { type: 'ENTP', label: 'Debater', symbol: '💡', color: '#E8DDFB' },
   { type: 'ENFP', label: 'Campaigner', symbol: '🎪', color: '#F4C7D2' },
   { type: 'ISTJ', label: 'Logistician', symbol: '📋', color: '#E8DDFB' },
   { type: 'ISFJ', label: 'Defender', symbol: '🛡️', color: '#DDEDDC' },
@@ -58,10 +60,10 @@ export default function MbtiScreen() {
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
-        <Text style={styles.label}>Optional self-language</Text>
-        <Text style={styles.title}>Do you know your MBTI?</Text>
+        <Text style={styles.label}>Optional personality lens</Text>
+        <Text style={styles.title}>Do you use MBTI?</Text>
         <Text style={styles.description}>
-          If you already use MBTI, Astrovy can weave it gently into your reading.
+          If it already feels useful, Astrovy can use it as a light wording lens. You can skip it.
         </Text>
       </Animated.View>
 
@@ -121,7 +123,7 @@ export default function MbtiScreen() {
             router.push('/(onboarding)/focus-mood');
           }}
         >
-          <Text style={styles.skipButtonText}>Skip and test later</Text>
+          <Text style={styles.skipButtonText}>Skip for now</Text>
         </TouchableOpacity>
       </Animated.View>
 
