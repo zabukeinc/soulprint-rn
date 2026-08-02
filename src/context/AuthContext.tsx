@@ -9,6 +9,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: (input: { password?: string; confirm?: 'DELETE' }) => Promise<void>;
   refreshMe: () => Promise<void>;
 };
 
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextValue>({
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
+  deleteAccount: async () => {},
   refreshMe: async () => {},
 });
 
@@ -84,9 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileComplete(false);
   }, []);
 
+  const deleteAccount = useCallback(async (input: { password?: string; confirm?: 'DELETE' }) => {
+    await backend.deleteAccount(input);
+    await authStorage.writeTokens(null);
+    setUser(null);
+    setProfileComplete(false);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, hydrated, profileComplete, signIn, signUp, signOut, refreshMe }),
-    [hydrated, profileComplete, refreshMe, signIn, signOut, signUp, user]
+    () => ({ user, hydrated, profileComplete, signIn, signUp, signOut, deleteAccount, refreshMe }),
+    [deleteAccount, hydrated, profileComplete, refreshMe, signIn, signOut, signUp, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

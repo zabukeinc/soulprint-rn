@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
-import { getProducts } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type LegalInfo } from '@/src/services/backend';
 
 const features = {
   monthly: [
@@ -35,6 +35,9 @@ export default function PricingScreen() {
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
   const [serverProducts, setServerProducts] = useState<Array<Record<string, any>> | null>(null);
   const [serverFeatures, setServerFeatures] = useState<string[] | null>(null);
+  const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
+  const [checkingRestore, setCheckingRestore] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     getProducts()
@@ -43,12 +46,47 @@ export default function PricingScreen() {
         setServerFeatures(payload.features);
       })
       .catch(() => {});
+
+    getLegalInfo()
+      .then(setLegalInfo)
+      .catch(() => {});
   }, []);
 
   const selectedProduct = serverProducts?.find((product) =>
     selected === 'monthly' ? product.period === 'monthly' : product.period === 'annual'
   );
   const displayFeatures = serverFeatures ?? features[selected];
+  const manageSubscriptionUrl = Platform.OS === 'ios'
+    ? legalInfo.subscriptions.appleManageUrl
+    : legalInfo.subscriptions.googleManageUrl;
+
+  const openExternal = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) throw new Error('Unsupported URL');
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Could not open link', url);
+    }
+  };
+
+  const handlePurchase = () => {
+    setStatusMessage('Purchases are not enabled in this build yet. Apple and Google verification endpoints are ready on the backend, but the store SDK still needs to be connected.');
+  };
+
+  const handleRestore = async () => {
+    setCheckingRestore(true);
+    setStatusMessage(null);
+    try {
+      const entitlement = await getEntitlement();
+      const active = entitlement.tier === 'premium' && ['active', 'grace'].includes(entitlement.status);
+      setStatusMessage(active ? 'Premium access is active on this account.' : 'No active premium entitlement was found on this account yet.');
+    } catch {
+      setStatusMessage('Could not check your entitlement. Please try again when your connection is stable.');
+    } finally {
+      setCheckingRestore(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -178,7 +216,7 @@ export default function PricingScreen() {
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-        <TouchableOpacity activeOpacity={0.85}>
+        <TouchableOpacity activeOpacity={0.85} onPress={handlePurchase}>
           <LinearGradient
             colors={theme.gradients.primary}
             start={{ x: 0, y: 0 }}
@@ -189,6 +227,32 @@ export default function PricingScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.purchaseActions}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={handleRestore}
+          disabled={checkingRestore}
+          activeOpacity={0.85}
+        >
+          {checkingRestore ? <ActivityIndicator color={theme.colors.ink} /> : <Text style={styles.secondaryButtonText}>Restore purchases</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => {
+            void openExternal(manageSubscriptionUrl);
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.secondaryButtonText}>Manage subscription</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {statusMessage && (
+        <Animated.View entering={FadeInUp.duration(250)} style={styles.statusBox}>
+          <Text style={styles.statusText}>{statusMessage}</Text>
+        </Animated.View>
+      )}
 
       <Animated.View entering={FadeInUp.delay(300).duration(500)}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -371,6 +435,42 @@ const styles = StyleSheet.create({
     ...theme.shadows.primaryGlow,
   },
   ctaText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
+  purchaseActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 22,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  secondaryButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: theme.colors.ink,
+    textAlign: 'center',
+  },
+  statusBox: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(221,237,220,0.34)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  statusText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
   secondaryCta: {
     fontSize: 12,
     color: theme.colors.muted,

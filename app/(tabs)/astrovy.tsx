@@ -137,6 +137,30 @@ export default function AstrovyScreen() {
   const sunSign = astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : 'Sun Sign';
   const lifePath = astro?.lifePath ? `Life Path ${astro.lifePath}` : 'Life Path';
   const focus = profile?.focus ? `${profile.focus} focus` : 'Focus';
+  const emotionalSection = visibleSections[0];
+  const loveSection = visibleSections[1];
+  const growthSection = visibleSections[4] ?? visibleSections[2];
+  const freeSnapshot = [
+    {
+      label: 'Core Pattern',
+      title: emotionalSection?.title ?? 'Emotional Blueprint',
+      body: emotionalSection?.content.core ?? 'Your emotional blueprint is syncing from the backend.',
+    },
+    {
+      label: 'Connection Style',
+      title: loveSection?.title ?? 'Love Pattern',
+      body: loveSection?.preview ?? 'Your connection pattern will appear here once your Soulprint is ready.',
+    },
+    {
+      label: 'Next Growth Edge',
+      title: growthSection?.title ?? 'Growth Direction',
+      body: growthSection?.preview ?? 'Your growth direction will appear here once your Soulprint is ready.',
+    },
+  ];
+  const unlockMap = visibleSections.map((section, index) => ({
+    section,
+    state: index === 0 ? 'Open' : index === 1 ? 'Preview' : 'Premium',
+  }));
 
   const toggleSection = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -189,70 +213,70 @@ export default function AstrovyScreen() {
         </LinearGradient>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-        <View style={styles.blueprintHeader}>
-          <Text style={styles.blueprintTitle}>Your Blueprint</Text>
-          <Text style={styles.blueprintSub}>Tap to explore</Text>
-        </View>
-      </Animated.View>
+      {isPremium ? (
+        <>
+          <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+            <View style={styles.blueprintHeader}>
+              <Text style={styles.blueprintTitle}>Your Blueprint</Text>
+              <Text style={styles.blueprintSub}>Tap to explore</Text>
+            </View>
+          </Animated.View>
 
-      <View style={styles.sections}>
-        {visibleSections.map((section, index) => {
-          const isExpanded = expandedId === section.id;
+          <View style={styles.sections}>
+            {visibleSections.map((section, index) => {
+              const isExpanded = expandedId === section.id;
 
-          return (
-            <Animated.View
-              key={section.id}
-              entering={FadeInUp.duration(500).delay(250 + index * 80)}
-            >
-              <View>
-                <TouchableOpacity
-                  onPress={() => toggleSection(section.id)}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.sectionBtn,
-                    {
-                      backgroundColor: isExpanded
-                        ? 'rgba(255,255,255,0.9)'
-                        : 'rgba(255,255,255,0.74)',
-                      borderColor: isExpanded
-                        ? 'rgba(139,114,207,0.18)'
-                        : 'rgba(31,33,48,0.08)',
-                    },
-                  ]}
+              return (
+                <Animated.View
+                  key={section.id}
+                  entering={FadeInUp.duration(500).delay(250 + index * 80)}
                 >
-                  <View style={styles.sectionRow}>
-                    <LinearGradient
-                      colors={section.gradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.sectionIconBg}
+                  <View>
+                    <TouchableOpacity
+                      onPress={() => toggleSection(section.id)}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.sectionBtn,
+                        {
+                          backgroundColor: isExpanded
+                            ? 'rgba(255,255,255,0.9)'
+                            : 'rgba(255,255,255,0.74)',
+                          borderColor: isExpanded
+                            ? 'rgba(139,114,207,0.18)'
+                            : 'rgba(31,33,48,0.08)',
+                        },
+                      ]}
                     >
-                      <Text style={styles.sectionIcon}>{section.emoji}</Text>
-                    </LinearGradient>
-                    <View style={styles.sectionText}>
-                      <Text style={styles.sectionTitle}>{section.title}</Text>
-                      {!isExpanded ? (
-                        <Text style={styles.sectionPreview} numberOfLines={1}>
-                          {section.preview}
-                        </Text>
-                      ) : (
-                        <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.expandArrow}>{isExpanded ? '▾' : '▸'}</Text>
-                  </View>
-                </TouchableOpacity>
+                      <View style={styles.sectionRow}>
+                        <LinearGradient
+                          colors={section.gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.sectionIconBg}
+                        >
+                          <Text style={styles.sectionIcon}>{section.emoji}</Text>
+                        </LinearGradient>
+                        <View style={styles.sectionText}>
+                          <Text style={styles.sectionTitle}>{section.title}</Text>
+                          {!isExpanded ? (
+                            <Text style={styles.sectionPreview} numberOfLines={1}>
+                              {section.preview}
+                            </Text>
+                          ) : (
+                            <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.expandArrow}>{isExpanded ? '▾' : '▸'}</Text>
+                      </View>
+                    </TouchableOpacity>
 
-                {isExpanded && (
-                  <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.expandedContent}>
-                    <View style={styles.detailCard}>
-                      <Text style={styles.detailLabel}>Core Pattern</Text>
-                      <Text style={styles.detailText}>{section.content.core}</Text>
-                    </View>
+                    {isExpanded && (
+                      <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.expandedContent}>
+                        <View style={styles.detailCard}>
+                          <Text style={styles.detailLabel}>Core Pattern</Text>
+                          <Text style={styles.detailText}>{section.content.core}</Text>
+                        </View>
 
-                    {isPremium ? (
-                      <>
                         <View style={[styles.detailCard, { backgroundColor: 'rgba(255,255,255,0.72)' }]}>
                           <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>How It Shows</Text>
                           <Text style={[styles.detailText, { color: theme.colors.muted }]}>{section.content.pattern}</Text>
@@ -267,26 +291,69 @@ export default function AstrovyScreen() {
                             "{section.content.affirmation}"
                           </Text>
                         </View>
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.fadeClamp}>
-                          <Text style={styles.clampedText}>{section.content.pattern}</Text>
-                          <View style={styles.fadeOverlay} />
-                        </View>
-                        <Text style={styles.goDeeper}>Go deeper to read the full pattern →</Text>
-                      </>
+                      </Animated.View>
                     )}
-                  </Animated.View>
-                )}
-              </View>
-            </Animated.View>
-          );
-        })}
-      </View>
-
-      {!isPremium && (
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </>
+      ) : (
         <Animated.View entering={FadeInUp.duration(500).delay(750)}>
+          <View style={styles.blueprintHeader}>
+            <Text style={styles.blueprintTitle}>Soul Snapshot</Text>
+            <Text style={styles.blueprintSub}>Free reading</Text>
+          </View>
+
+          <View style={styles.snapshotCard}>
+            <Text style={styles.snapshotEyebrow}>What is open now</Text>
+            <Text style={styles.snapshotTitle}>A complete first look at your Soulprint</Text>
+            <Text style={styles.snapshotBody}>
+              Your free Soul page gives you the essentials without cutting off the reading. Premium unlocks the deeper pattern work, hidden insight, and affirmation layers.
+            </Text>
+          </View>
+
+          <View style={styles.snapshotGrid}>
+            {freeSnapshot.map((item, index) => (
+              <Animated.View key={item.label} entering={FadeInUp.duration(450).delay(820 + index * 70)} style={styles.snapshotInsightCard}>
+                <Text style={styles.snapshotInsightLabel}>{item.label}</Text>
+                <Text style={styles.snapshotInsightTitle}>{item.title}</Text>
+                <Text style={styles.snapshotInsightBody}>{item.body}</Text>
+              </Animated.View>
+            ))}
+          </View>
+
+          <View style={styles.unlockCard}>
+            <View style={styles.unlockHeader}>
+              <View>
+                <Text style={styles.unlockTitle}>Full Blueprint Map</Text>
+                <Text style={styles.unlockSub}>What premium expands</Text>
+              </View>
+              <Text style={styles.unlockBadge}>6 layers</Text>
+            </View>
+
+            {unlockMap.map(({ section, state }) => (
+              <View key={section.id} style={styles.unlockRow}>
+                <LinearGradient
+                  colors={section.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.unlockIcon}
+                >
+                  <Text style={styles.unlockIconText}>{section.emoji}</Text>
+                </LinearGradient>
+                <View style={styles.unlockCopy}>
+                  <Text style={styles.unlockRowTitle}>{section.title}</Text>
+                  <Text style={styles.unlockRowSub}>{state === 'Open' ? section.preview : section.subtitle}</Text>
+                </View>
+                <View style={[styles.unlockPill, state === 'Premium' && styles.unlockPillPremium]}>
+                  <Text style={[styles.unlockPillText, state === 'Premium' && styles.unlockPillTextPremium]}>{state}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
           <TouchableOpacity onPress={() => router.push('/pricing')} activeOpacity={0.85}>
             <Text style={styles.goDeeperLink}>Go deeper with Premium →</Text>
           </TouchableOpacity>
@@ -462,35 +529,124 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   detailText: { fontSize: 13, color: theme.colors.ink, lineHeight: 22 },
-  fadeClamp: {
-    position: 'relative',
-    maxHeight: 60,
-    overflow: 'hidden',
-    borderRadius: 20,
+  snapshotCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  snapshotEyebrow: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  snapshotTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 21,
+    color: theme.colors.ink,
+    fontWeight: '500',
+    lineHeight: 25,
+    marginBottom: 8,
+  },
+  snapshotBody: {
+    fontSize: 13,
+    color: theme.colors.muted,
+    lineHeight: 21,
+  },
+  snapshotGrid: { gap: 10, marginBottom: 14 },
+  snapshotInsightCard: {
+    borderRadius: 22,
     padding: 16,
     backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.06)',
+    borderColor: 'rgba(31,33,48,0.07)',
   },
-  clampedText: {
+  snapshotInsightLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#16A7A0',
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  snapshotInsightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.ink,
+    marginBottom: 6,
+  },
+  snapshotInsightBody: {
     fontSize: 13,
     color: theme.colors.muted,
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  fadeOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+  unlockCard: {
+    borderRadius: 24,
+    padding: 14,
+    backgroundColor: 'rgba(232,221,251,0.34)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.14)',
+    gap: 8,
   },
-  goDeeper: {
+  unlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  unlockTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
+  unlockSub: { fontSize: 12, color: theme.colors.muted, marginTop: 2 },
+  unlockBadge: {
+    overflow: 'hidden',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#8B72CF',
-    marginTop: 8,
-    marginLeft: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  unlockRow: {
+    minHeight: 66,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+  },
+  unlockIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unlockIconText: { fontSize: 16 },
+  unlockCopy: { flex: 1, minWidth: 0 },
+  unlockRowTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.ink },
+  unlockRowSub: { fontSize: 11, color: theme.colors.muted, lineHeight: 16, marginTop: 2 },
+  unlockPill: {
+    minWidth: 58,
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: 'rgba(221,237,220,0.8)',
+  },
+  unlockPillPremium: {
+    backgroundColor: 'rgba(139,114,207,0.12)',
+  },
+  unlockPillText: { fontSize: 10, fontWeight: '800', color: '#16A7A0' },
+  unlockPillTextPremium: {
+    color: '#8B72CF',
   },
   goDeeperLink: {
     fontSize: 14,

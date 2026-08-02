@@ -10,6 +10,42 @@ export type Entitlement = {
   willRenew: boolean;
 };
 
+export type LegalInfo = {
+  appName: string;
+  privacyUrl: string;
+  termsUrl: string;
+  supportEmail: string;
+  accountDeletion: {
+    method: 'DELETE';
+    path: string;
+    requiresAuthentication: boolean;
+    confirmation: string;
+  };
+  subscriptions: {
+    appleManageUrl: string;
+    googleManageUrl: string;
+    note: string;
+  };
+};
+
+export const DEFAULT_LEGAL_INFO: LegalInfo = {
+  appName: 'Astrovy',
+  privacyUrl: 'https://astrovy.app/privacy',
+  termsUrl: 'https://astrovy.app/terms',
+  supportEmail: 'support@astrovy.app',
+  accountDeletion: {
+    method: 'DELETE',
+    path: '/v1/users/me',
+    requiresAuthentication: true,
+    confirmation: 'Password confirmation is required for password accounts.',
+  },
+  subscriptions: {
+    appleManageUrl: 'https://apps.apple.com/account/subscriptions',
+    googleManageUrl: 'https://play.google.com/store/account/subscriptions',
+    note: 'Deleting an account does not cancel App Store or Google Play subscriptions.',
+  },
+};
+
 export type TodayPayload = {
   date: string;
   user: { name: string };
@@ -217,6 +253,17 @@ export function login(input: { email: string; password: string }) {
 
 export function getMe() {
   return apiRequest<{ user: unknown; profile: ProfilePayload['profile'] | null; astro: any | null; entitlement: Entitlement }>('/users/me');
+}
+
+export function getLegalInfo() {
+  return apiRequest<LegalInfo>('/legal', { auth: false });
+}
+
+export function deleteAccount(input: { password?: string; confirm?: 'DELETE' }) {
+  return apiRequest<void>('/users/me', {
+    method: 'DELETE',
+    body: input,
+  });
 }
 
 export function submitProfile(data: OnboardingData) {

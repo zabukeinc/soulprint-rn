@@ -1,27 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { ActivityIndicator, Linking, Modal, TextInput, View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { useAuth } from '@/src/context/AuthContext';
-import { getMe } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, type LegalInfo } from '@/src/services/backend';
+import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { isPremium, toggleTier } = useTier();
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount } = useAuth();
   const engagement = useEngagement();
+  const [account, setAccount] = useState<ApiUser | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [astro, setAstro] = useState<any | null>(null);
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [deleteSecret, setDeleteSecret] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
 
   useEffect(() => {
     getMe()
       .then((me) => {
+        setAccount(me.user as ApiUser);
         setProfile(me.profile);
         setAstro(me.astro);
       })
+      .catch(() => {});
+
+    getLegalInfo()
+      .then(setLegalInfo)
       .catch(() => {});
   }, []);
 
@@ -30,24 +42,58 @@ export default function ProfileScreen() {
   const sunSign = astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : 'Sun Sign';
   const lifePath = astro?.lifePath ? `Life Path ${astro.lifePath}` : 'Life Path';
   const birthCity = profile?.birthPlace?.city ?? 'Birth place';
+  const hasPasswordAccount = account?.hasPassword !== false;
+  const deleteInputLabel = hasPasswordAccount ? 'Password' : 'Type DELETE';
+  const canDelete = hasPasswordAccount ? deleteSecret.length > 0 : deleteSecret === 'DELETE';
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Reset local session',
-      'This signs you out and clears the local view. Real account deletion requires a password confirmation flow.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign out',
-          style: 'destructive',
-          onPress: async () => {
-            await engagement?.clearAllData?.();
-            await signOut();
-            router.replace('/(auth)');
-          },
+  const openDeleteAccount = () => {
+    setDeleteSecret('');
+    setDeleteError(null);
+    setDeleteVisible(true);
+  };
+
+  const openExternal = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) throw new Error('Unsupported URL');
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Could not open link', url);
+    }
+  };
+
+  const openSupport = () => {
+    openExternal(`mailto:${legalInfo.supportEmail}?subject=Astrovy%20Support`);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!canDelete || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount(hasPasswordAccount ? { password: deleteSecret } : { confirm: 'DELETE' });
+      await engagement?.clearAllData?.();
+      setDeleteVisible(false);
+      router.replace('/(auth)');
+    } catch (error) {
+      setDeleteError(error instanceof ApiError ? error.message : 'Account could not be deleted. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert('Sign out', 'This clears your local session on this device.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        onPress: async () => {
+          await engagement?.clearAllData?.();
+          await signOut();
+          router.replace('/(auth)');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -174,25 +220,49 @@ export default function ProfileScreen() {
 
         <View style={styles.divider} />
 
-        <Animated.View entering={FadeInUp.duration(500).delay(280)} style={styles.settingRow}>
-          <View>
-            <Text style={styles.settingTitle}>Privacy</Text>
-            <Text style={styles.settingDesc}>
-              Export or delete data
-            </Text>
-          </View>
-          <Text style={styles.settingArrow}>→</Text>
+        <Animated.View entering={FadeInUp.duration(500).delay(280)}>
+          <TouchableOpacity
+            style={styles.settingRowButton}
+            onPress={() => {
+              void openExternal(legalInfo.privacyUrl);
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={styles.settingTextCol}>
+              <Text style={styles.settingTitle}>Privacy Policy</Text>
+              <Text style={styles.settingDesc}>How Astrovy handles your data</Text>
+            </View>
+            <Text style={styles.settingArrow}>→</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         <View style={styles.divider} />
 
-        <Animated.View entering={FadeInUp.duration(500).delay(320)} style={styles.settingRow}>
+        <Animated.View entering={FadeInUp.duration(500).delay(320)}>
           <TouchableOpacity
-            style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+            style={styles.settingRowButton}
+            onPress={() => {
+              void openExternal(legalInfo.termsUrl);
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={styles.settingTextCol}>
+              <Text style={styles.settingTitle}>Terms of Use</Text>
+              <Text style={styles.settingDesc}>Rules for using Astrovy</Text>
+            </View>
+            <Text style={styles.settingArrow}>→</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <View style={styles.divider} />
+
+        <Animated.View entering={FadeInUp.duration(500).delay(360)} style={styles.settingRow}>
+          <TouchableOpacity
+            style={styles.settingRowInnerButton}
             onPress={() => router.push('/pricing')}
             activeOpacity={0.85}
           >
-            <View>
+            <View style={styles.settingTextCol}>
               <Text style={styles.settingTitle}>Subscription</Text>
               <Text style={styles.settingDesc}>Manage your plan</Text>
             </View>
@@ -202,28 +272,89 @@ export default function ProfileScreen() {
 
         <View style={styles.divider} />
 
-        <Animated.View entering={FadeInUp.duration(500).delay(360)} style={styles.settingRow}>
-          <View>
+        <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+          <TouchableOpacity style={styles.settingRowButton} onPress={openSupport} activeOpacity={0.85}>
+            <View style={styles.settingTextCol}>
+              <Text style={styles.settingTitle}>Support</Text>
+              <Text style={styles.settingDesc}>{legalInfo.supportEmail}</Text>
+            </View>
+            <Text style={styles.settingArrow}>→</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <View style={styles.divider} />
+
+        <Animated.View entering={FadeInUp.duration(500).delay(440)} style={styles.settingRow}>
+          <View style={styles.settingTextCol}>
             <Text style={styles.settingTitle}>About Astrovy</Text>
             <Text style={styles.settingDesc}>Version 1.0 · Built with care</Text>
           </View>
-          <Text style={styles.settingArrow}>→</Text>
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(400)} style={styles.privacyCard}>
+      <Animated.View entering={FadeInUp.duration(500).delay(480)} style={styles.privacyCard}>
         <Text style={styles.privacyIcon}>🛡️</Text>
         <View>
           <Text style={styles.privacyTitle}>Privacy First</Text>
-          <Text style={styles.privacyDesc}>Your data is never sold. Ever.</Text>
+          <Text style={styles.privacyDesc}>Your data is never sold. Delete your account anytime.</Text>
         </View>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(450)}>
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
+      <Animated.View entering={FadeInUp.duration(500).delay(520)}>
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
           <Text style={styles.deleteText}>Sign Out</Text>
         </TouchableOpacity>
       </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(560)}>
+        <TouchableOpacity style={styles.deleteBtn} onPress={openDeleteAccount}>
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      <Modal visible={deleteVisible} transparent animationType="fade" onRequestClose={() => setDeleteVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.deleteModal}>
+            <Text style={styles.modalLabel}>Account deletion</Text>
+            <Text style={styles.modalTitle}>Delete your Astrovy account?</Text>
+            <Text style={styles.modalBody}>
+              This permanently deletes your account, profile, birth chart, journals, check-ins, tarot draws, and saved readings from the backend.
+            </Text>
+            <Text style={styles.modalBody}>
+              Deleting your account does not cancel an active App Store or Google Play subscription. Manage cancellation in your store account.
+            </Text>
+            <TextInput
+              value={deleteSecret}
+              onChangeText={(value) => {
+                setDeleteSecret(value);
+                setDeleteError(null);
+              }}
+              placeholder={deleteInputLabel}
+              placeholderTextColor={theme.colors.muted + '80'}
+              style={styles.deleteInput}
+              secureTextEntry={hasPasswordAccount}
+              autoCapitalize="none"
+            />
+            {deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelDeleteBtn}
+                disabled={deleting}
+                onPress={() => setDeleteVisible(false)}
+              >
+                <Text style={styles.cancelDeleteText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmDeleteBtn, (!canDelete || deleting) && styles.disabledDangerBtn]}
+                disabled={!canDelete || deleting}
+                onPress={confirmDeleteAccount}
+              >
+                {deleting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.confirmDeleteText}>Delete</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -343,6 +474,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
   },
+  settingRowButton: {
+    minHeight: 64,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  settingRowInnerButton: {
+    flex: 1,
+    minHeight: 32,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingTextCol: { flex: 1, paddingRight: 12 },
   settingTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   settingDesc: { fontSize: 12, color: theme.colors.muted },
   settingValue: { fontSize: 12, color: theme.colors.muted },
@@ -366,9 +513,83 @@ const styles = StyleSheet.create({
   privacyIcon: { fontSize: 18 },
   privacyTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   privacyDesc: { fontSize: 12, color: theme.colors.muted },
-  deleteBtn: {
+  signOutBtn: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   deleteText: { fontSize: 14, fontWeight: '500', color: '#F4C7D2' },
+  deleteBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  deleteAccountText: { fontSize: 14, fontWeight: '700', color: '#B84A62' },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(31,33,48,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  deleteModal: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: theme.colors.bgSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warm,
+  },
+  modalLabel: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#B84A62',
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 22,
+    color: theme.colors.ink,
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  modalBody: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 19,
+    marginBottom: 8,
+  },
+  deleteInput: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.12)',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: theme.colors.ink,
+    marginTop: 8,
+  },
+  deleteError: { fontSize: 12, color: '#B84A62', lineHeight: 18, marginTop: 8 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  cancelDeleteBtn: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(31,33,48,0.07)',
+  },
+  cancelDeleteText: { fontSize: 13, fontWeight: '800', color: theme.colors.ink },
+  confirmDeleteBtn: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#B84A62',
+  },
+  disabledDangerBtn: { opacity: 0.45 },
+  confirmDeleteText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
 });
