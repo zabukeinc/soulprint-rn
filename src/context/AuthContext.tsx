@@ -55,16 +55,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const session = await backend.login({ email, password });
     await authStorage.writeTokens(session.tokens);
-    setUser(session.user);
-    await refreshMe().catch(() => setProfileComplete(false));
+    try {
+      await refreshMe();
+    } catch (error) {
+      await authStorage.writeTokens(null);
+      setUser(null);
+      setProfileComplete(false);
+      throw error;
+    }
   }, [refreshMe]);
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
     const session = await backend.register({ name, email, password });
     await authStorage.writeTokens(session.tokens);
-    setUser(session.user);
-    setProfileComplete(false);
-  }, []);
+    try {
+      await refreshMe();
+    } catch (error) {
+      await authStorage.writeTokens(null);
+      setUser(null);
+      setProfileComplete(false);
+      throw error;
+    }
+  }, [refreshMe]);
 
   const signOut = useCallback(async () => {
     await authStorage.writeTokens(null);

@@ -70,6 +70,11 @@ export default function TodayScreen() {
     { label: 'Direct', value: 0.85 },
     { label: 'Testing', value: 0.4 },
   ];
+  const energySubtitles = [
+    engagement.todayPayload?.horoscope?.moonPhase?.name ?? 'emotional weather',
+    engagement.todayPayload?.horoscope?.primaryAspect?.aspect ?? 'best move',
+    engagement.todayPayload?.horoscope?.primaryAspect?.tone ?? 'daily tone',
+  ];
 
   const handleMoodSelect = async (mood: string) => {
     setSelectedMood(mood);
@@ -257,7 +262,7 @@ export default function TodayScreen() {
                   />
                 </View>
                 <Text style={styles.energyLabel}>{item.label}</Text>
-                <Text style={styles.energySub}>{index === 0 ? 'emotional weather' : index === 1 ? 'best move' : 'avoid'}</Text>
+                <Text style={styles.energySub}>{energySubtitles[index] ?? 'daily tone'}</Text>
               </View>
             </Animated.View>
           ))}

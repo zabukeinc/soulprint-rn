@@ -1,41 +1,98 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
-import { getDailyHoroscope, getMe, getNatalChart } from '@/src/services/backend';
+import { getDailyHoroscope, getMe, getNatalChart, type BirthChartReport } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
 
-const categories = [
-  { id: 'overview', label: 'Overview', emoji: '✦' },
-  { id: 'love', label: 'Love', emoji: '💕' },
-  { id: 'career', label: 'Career', emoji: '🧭' },
-  { id: 'growth', label: 'Growth', emoji: '🌱' },
+const reportTabs = [
+  { id: 'planets', label: 'Planets' },
+  { id: 'houses', label: 'Houses' },
+  { id: 'aspects', label: 'Aspects' },
+  { id: 'report', label: 'Report' },
 ] as const;
+
+const dailyCategories = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'love', label: 'Love' },
+  { id: 'career', label: 'Career' },
+  { id: 'growth', label: 'Growth' },
+] as const;
+
+type ReportTab = typeof reportTabs[number]['id'];
+type DailyCategory = typeof dailyCategories[number]['id'];
+
+function titleCase(value?: string | null) {
+  if (!value) return 'Unknown';
+  return value.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
+
+function formatDegree(value?: number | null) {
+  if (typeof value !== 'number') return '-';
+  return `${value.toFixed(1)}°`;
+}
+
+function LockedPanel({ title }: { title: string }) {
+  return (
+    <View style={styles.lockedPanel}>
+      <Text style={styles.lockedIcon}>✦</Text>
+      <View style={styles.lockedCopy}>
+        <Text style={styles.lockedTitle}>{title}</Text>
+        <Text style={styles.lockedText}>Premium unlocks the full chart layer for this section.</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function HoroscopeScreen() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState<typeof categories[number]['id']>('overview');
-  const horoscope = getTodayHoroscope();
-  const moon = getMoonPhase();
-  const [backendReading, setBackendReading] = useState<any | null>(null);
-  const [natal, setNatal] = useState<any | null>(null);
+  const fallbackHoroscope = getTodayHoroscope();
+  const fallbackMoon = getMoonPhase();
+  const [activeTab, setActiveTab] = useState<ReportTab>('planets');
+  const [activeDaily, setActiveDaily] = useState<DailyCategory>('overview');
+  const [dailyReading, setDailyReading] = useState<any | null>(null);
+  const [birthChart, setBirthChart] = useState<BirthChartReport | null>(null);
   const [me, setMe] = useState<any | null>(null);
 
   useEffect(() => {
     Promise.all([getDailyHoroscope(), getNatalChart(), getMe()])
       .then(([daily, chart, current]) => {
-        setBackendReading(daily);
-        setNatal(chart);
+        setDailyReading(daily);
+        setBirthChart(chart);
         setMe(current);
       })
-      .catch(() => setBackendReading(null));
+      .catch(() => {
+        setDailyReading(null);
+        setBirthChart(null);
+      });
   }, []);
 
-  const reading = backendReading?.categories?.[activeCategory] ?? horoscope[activeCategory];
-  const moonReading = backendReading?.moonPhase ?? moon;
+  const premium = birthChart?.access.level === 'full';
+  const bigThree = birthChart?.summary.bigThree;
+  const moonReading = dailyReading?.moonPhase ?? fallbackMoon;
+  const dailyText = dailyReading?.categories?.[activeDaily] ?? fallbackHoroscope[activeDaily];
+  const chartPlanets = birthChart?.chartWheel?.planets?.map((planet) => ({
+    ...planet,
+    degree: planet.longitude,
+    sign: planet.signLabel ?? titleCase(planet.sign),
+    meaning: `${titleCase(planet.planet)} in ${planet.signLabel ?? titleCase(planet.sign)}`,
+  })) ?? birthChart?.planets;
+  const houses = birthChart?.chartWheel?.houseCusps ?? [];
+  const visibleAspects = birthChart?.aspects ?? [];
+  const reportSections = birthChart?.reportSections ?? [];
+
+  const signatureStats = useMemo(() => {
+    const element = birthChart?.summary.dominantElement;
+    const modality = birthChart?.summary.dominantModality;
+    return [
+      { label: 'Element', value: titleCase(element?.key), meta: `${element?.count ?? 0} placements` },
+      { label: 'Modality', value: titleCase(modality?.key), meta: `${modality?.count ?? 0} placements` },
+      { label: 'Access', value: premium ? 'Full' : 'Summary', meta: premium ? 'Premium report' : 'Free chart' },
+    ];
+  }, [birthChart, premium]);
 
   return (
     <ScrollView
@@ -43,104 +100,191 @@ export default function HoroscopeScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
       <Animated.View entering={FadeInUp.duration(500)}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerLabel}>Your Stars</Text>
-            <Text style={styles.headerTitle}>Horoscope</Text>
+            <Text style={styles.headerLabel}>Birth Chart</Text>
+            <Text style={styles.headerTitle}>{me?.profile?.name ?? 'Your Sky'}</Text>
           </View>
-          <View style={styles.backButtonPlaceholder} />
+          <View style={styles.accessBadge}>
+            <Text style={styles.accessText}>{premium ? 'Full' : 'Free'}</Text>
+          </View>
         </View>
       </Animated.View>
 
-      {/* Natal Chart Card */}
-      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
+      <Animated.View entering={FadeInUp.duration(500).delay(80)}>
         <LinearGradient
-          colors={['#1a0b2e', '#311b92', '#4a148c']}
+          colors={['#221238', '#45306F', '#183F4C']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.chartCard}
         >
-          <View style={styles.chartGlow} />
-          <Text style={styles.chartLabel}>Your Natal Chart</Text>
-          <Text style={styles.chartSub}>Tap a planet to explore its meaning</Text>
+          <Text style={styles.chartLabel}>Natal Wheel</Text>
+          <Text style={styles.chartSignature}>
+            {birthChart?.summary.chartSignature ?? 'Your chart is syncing from the backend.'}
+          </Text>
           <NatalChart
-            size={260}
-            planets={natal?.planets}
-            centerLabel={me?.astro?.sunSign ? `${me.astro.sunSign} Sun` : undefined}
+            size={286}
+            planets={chartPlanets}
+            centerLabel={bigThree?.sun?.signLabel ? `${bigThree.sun.signLabel} Sun` : undefined}
             centerMeta={me?.astro?.lifePath ? `Life Path ${me.astro.lifePath}` : undefined}
           />
         </LinearGradient>
       </Animated.View>
 
-      {/* Moon Phase */}
-      <Animated.View entering={FadeInUp.duration(500).delay(150)} style={styles.moonCard}>
+      <View style={styles.bigThreeRow}>
+        {[
+          {
+            label: 'Sun',
+            sign: bigThree?.sun?.signLabel,
+            meta: bigThree?.sun?.house ? `House ${bigThree.sun.house}` : '-',
+          },
+          {
+            label: 'Moon',
+            sign: bigThree?.moon?.signLabel,
+            meta: bigThree?.moon?.house ? `House ${bigThree.moon.house}` : '-',
+          },
+          {
+            label: 'Rising',
+            sign: bigThree?.rising?.signLabel,
+            meta: formatDegree(bigThree?.rising?.degree),
+          },
+        ].map((item, index) => (
+          <Animated.View key={item.label} entering={FadeInUp.duration(500).delay(120 + index * 50)} style={{ flex: 1 }}>
+            <View style={styles.bigCard}>
+              <Text style={styles.bigLabel}>{item.label}</Text>
+              <Text style={styles.bigSign}>{item.sign ?? '...'}</Text>
+              <Text style={styles.bigMeta}>{item.meta}</Text>
+            </View>
+          </Animated.View>
+        ))}
+      </View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(220)} style={styles.signatureCard}>
+        <Text style={styles.sectionLabel}>Chart Signature</Text>
+        <Text style={styles.signatureText}>{birthChart?.summary.shortInterpretation ?? 'Backend summary will appear here.'}</Text>
+        <View style={styles.statRow}>
+          {signatureStats.map((stat) => (
+            <View key={stat.label} style={styles.statItem}>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statMeta}>{stat.meta}</Text>
+            </View>
+          ))}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(260)}>
+        <View style={styles.reportTabs}>
+          {reportTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[styles.reportTab, activeTab === tab.id && styles.reportTabActive]}
+            >
+              <Text style={[styles.reportTabText, activeTab === tab.id && styles.reportTabTextActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(300)} key={activeTab}>
+        <View style={styles.panel}>
+          {activeTab === 'planets' && (
+            <>
+              {birthChart?.planets?.map((planet) => (
+                <View key={planet.planet} style={styles.rowItem}>
+                  <View>
+                    <Text style={styles.rowTitle}>{titleCase(planet.planet)} in {planet.signLabel}</Text>
+                    <Text style={styles.rowMeta}>
+                      {formatDegree(planet.signDegree)} · {planet.house ? `House ${planet.house}` : 'No house'} · {planet.retrograde ? 'Retrograde' : 'Direct'}
+                    </Text>
+                  </View>
+                  <Text style={styles.rowPill}>{titleCase(planet.element)}</Text>
+                  {premium && !!planet.interpretation && <Text style={styles.rowBody}>{planet.interpretation}</Text>}
+                </View>
+              ))}
+            </>
+          )}
+
+          {activeTab === 'houses' && (
+            <>
+              {houses.map((house) => (
+                <View key={house.house} style={styles.rowItem}>
+                  <Text style={styles.rowTitle}>House {house.house}</Text>
+                  <Text style={styles.rowMeta}>{house.signLabel} cusp · {formatDegree(house.cusp)}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {activeTab === 'aspects' && (
+            premium ? (
+              visibleAspects.map((aspect, index) => (
+                <View key={`${aspect.planets.join('-')}-${index}`} style={styles.rowItem}>
+                  <Text style={styles.rowTitle}>{aspect.planets.map(titleCase).join(' + ')} {titleCase(aspect.aspect)}</Text>
+                  <Text style={styles.rowMeta}>{aspect.tone} · orb {formatDegree(aspect.orb)}</Text>
+                  <Text style={styles.rowBody}>{aspect.interpretation}</Text>
+                </View>
+              ))
+            ) : (
+              <LockedPanel title="Aspects are part of the full birth chart report." />
+            )
+          )}
+
+          {activeTab === 'report' && (
+            premium ? (
+              <>
+                {birthChart?.chartPatterns?.map((pattern, index) => (
+                  <View key={`${pattern.type}-${index}`} style={styles.patternCard}>
+                    <Text style={styles.rowTitle}>{pattern.title}</Text>
+                    <Text style={styles.rowBody}>{pattern.description}</Text>
+                  </View>
+                ))}
+                {reportSections.map((section) => (
+                  <View key={section.key} style={styles.rowItem}>
+                    <Text style={styles.rowTitle}>{section.title}</Text>
+                    <Text style={styles.rowBody}>{section.body}</Text>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <LockedPanel title="The detailed report unlocks chart patterns and deeper interpretation." />
+            )
+          )}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(500).delay(340)} style={styles.moonCard}>
         <View style={styles.moonRow}>
-          <Text style={styles.moonEmoji}>{moonReading.emoji === 'moon' ? '🌙' : moonReading.emoji}</Text>
+          <Text style={styles.moonEmoji}>{moonReading.emoji === 'moon' ? '☽' : moonReading.emoji}</Text>
           <View>
-            <Text style={styles.moonLabel}>Moon Phase</Text>
+            <Text style={styles.sectionLabel}>Today's Moon</Text>
             <Text style={styles.moonPhase}>{moonReading.name ?? moonReading.phase}</Text>
           </View>
         </View>
         <Text style={styles.moonMeaning}>{moonReading.meaning}</Text>
       </Animated.View>
 
-      {/* Category Tabs */}
-      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-        <View style={styles.tabs}>
-          {categories.map((cat) => (
+      <Animated.View entering={FadeInUp.duration(500).delay(380)}>
+        <View style={styles.dailyTabs}>
+          {dailyCategories.map((cat) => (
             <TouchableOpacity
               key={cat.id}
-              onPress={() => setActiveCategory(cat.id)}
-              style={[
-                styles.tab,
-                activeCategory === cat.id && styles.tabActive,
-              ]}
+              onPress={() => setActiveDaily(cat.id)}
+              style={[styles.dailyTab, activeDaily === cat.id && styles.dailyTabActive]}
             >
-              <Text style={styles.tabEmoji}>{cat.emoji}</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeCategory === cat.id && styles.tabLabelActive,
-                ]}
-              >
-                {cat.label}
-              </Text>
+              <Text style={[styles.dailyTabText, activeDaily === cat.id && styles.dailyTabTextActive]}>{cat.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </Animated.View>
-
-      {/* Reading Card */}
-      <Animated.View
-        entering={FadeInUp.duration(500).delay(250)}
-        key={activeCategory}
-      >
-        <LinearGradient
-          colors={theme.gradients.hero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.readingCard}
-        >
-          <View style={styles.readingGlow} />
-          <Text style={styles.readingLabel}>
-            {categories.find((c) => c.id === activeCategory)?.label} Reading
-          </Text>
-          <Text style={styles.readingText}>{reading}</Text>
+        <LinearGradient colors={theme.gradients.hero} style={styles.readingCard}>
+          <Text style={styles.sectionLabel}>Daily Horoscope</Text>
+          <Text style={styles.readingText}>{dailyText}</Text>
         </LinearGradient>
-      </Animated.View>
-
-      {/* Weekly Theme */}
-      <Animated.View entering={FadeInUp.duration(500).delay(300)} style={styles.themeCard}>
-        <Text style={styles.themeLabel}>This Week's Theme</Text>
-        <Text style={styles.themeText}>
-          Your year is asking you to stop waiting for permission to take up emotional space.
-          The theme is "visible growth" — not loud growth, but growth that you stop hiding.
-        </Text>
       </Animated.View>
     </ScrollView>
   );
@@ -158,7 +302,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   backButton: {
     width: 40,
@@ -172,160 +316,187 @@ const styles = StyleSheet.create({
     ...theme.shadows.warmSoft,
   },
   backIcon: { fontSize: 18, color: theme.colors.ink },
-  backButtonPlaceholder: { width: 40 },
-  headerLabel: { fontSize: 12, color: theme.colors.muted, letterSpacing: 0.5 },
+  headerLabel: { fontSize: 12, color: theme.colors.muted },
   headerTitle: {
     fontFamily: theme.fonts.serif,
     fontSize: 28,
     fontWeight: '500',
     color: theme.colors.ink,
   },
+  accessBadge: {
+    minWidth: 54,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  accessText: { color: theme.colors.white, fontSize: 11, fontWeight: '800' },
   chartCard: {
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 26,
+    padding: 18,
+    marginBottom: 14,
     overflow: 'hidden',
-    position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.12)',
     ...theme.shadows.warmSoft,
   },
-  chartGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    right: -60,
-    top: -60,
-  },
   chartLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.68)',
     textTransform: 'uppercase',
     fontWeight: '800',
-    marginBottom: 4,
   },
-  chartSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 16,
+  chartSignature: {
+    fontSize: 15,
+    color: theme.colors.white,
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 12,
   },
-  moonCard: {
-    borderRadius: 24,
+  bigThreeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  bigCard: {
+    minHeight: 96,
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  bigLabel: { fontSize: 10, color: theme.colors.muted, fontWeight: '800', textTransform: 'uppercase' },
+  bigSign: { fontSize: 15, color: theme.colors.ink, fontWeight: '700', marginTop: 8 },
+  bigMeta: { fontSize: 11, color: theme.colors.softMuted, marginTop: 4 },
+  signatureCard: {
+    borderRadius: 22,
     padding: 16,
-    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    marginBottom: 14,
+    ...theme.shadows.warmSm,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: theme.colors.lavenderStrong,
+    textTransform: 'uppercase',
+    fontWeight: '800',
+  },
+  signatureText: { fontSize: 14, color: theme.colors.ink, lineHeight: 22, marginTop: 8 },
+  statRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  statItem: {
+    flex: 1,
+    borderRadius: 14,
+    padding: 10,
+    backgroundColor: 'rgba(232,221,251,0.42)',
+  },
+  statLabel: { fontSize: 9, color: theme.colors.muted, fontWeight: '800', textTransform: 'uppercase' },
+  statValue: { fontSize: 12, color: theme.colors.ink, fontWeight: '800', marginTop: 5 },
+  statMeta: { fontSize: 9, color: theme.colors.softMuted, marginTop: 2 },
+  reportTabs: {
+    flexDirection: 'row',
+    gap: 7,
+    marginBottom: 12,
+  },
+  reportTab: {
+    flex: 1,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  reportTabActive: { backgroundColor: theme.colors.ink, borderColor: theme.colors.ink },
+  reportTabText: { fontSize: 11, fontWeight: '800', color: theme.colors.muted },
+  reportTabTextActive: { color: theme.colors.white },
+  panel: {
+    borderRadius: 22,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    marginBottom: 14,
+    ...theme.shadows.warmSm,
+  },
+  rowItem: {
+    borderRadius: 16,
+    padding: 13,
+    backgroundColor: 'rgba(251,247,240,0.9)',
+    marginBottom: 8,
+  },
+  rowTitle: { fontSize: 13, color: theme.colors.ink, fontWeight: '800' },
+  rowMeta: { fontSize: 11, color: theme.colors.muted, marginTop: 4 },
+  rowPill: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(159,217,208,0.38)',
+    color: theme.colors.ink,
+    fontSize: 10,
+    fontWeight: '800',
+    overflow: 'hidden',
+  },
+  rowBody: { fontSize: 12, color: theme.colors.muted, lineHeight: 19, marginTop: 8 },
+  patternCard: {
+    borderRadius: 16,
+    padding: 13,
+    backgroundColor: 'rgba(232,221,251,0.48)',
+    marginBottom: 8,
+  },
+  lockedPanel: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: 'rgba(31,33,48,0.05)',
+  },
+  lockedIcon: { fontSize: 22, color: theme.colors.lavenderStrong },
+  lockedCopy: { flex: 1 },
+  lockedTitle: { fontSize: 13, color: theme.colors.ink, fontWeight: '800' },
+  lockedText: { fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 4 },
+  moonCard: {
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 14,
     backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
     ...theme.shadows.warmSm,
   },
-  moonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
+  moonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   moonEmoji: { fontSize: 24 },
-  moonLabel: {
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-  },
-  moonPhase: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.ink,
-  },
-  moonMeaning: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    lineHeight: 20,
-  },
-  tabs: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 16,
-    alignItems: 'center',
+  moonPhase: { fontSize: 14, fontWeight: '700', color: theme.colors.ink, marginTop: 2 },
+  moonMeaning: { fontSize: 12, color: theme.colors.muted, lineHeight: 20 },
+  dailyTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  dailyTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
   },
-  tabActive: {
-    backgroundColor: '#8B72CF',
-    borderColor: 'transparent',
-    shadowColor: 'rgba(139,114,207,0.2)',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    shadowOpacity: 1,
-    elevation: 3,
-  },
-  tabEmoji: { fontSize: 14, marginBottom: 2 },
-  tabLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.muted },
-  tabLabelActive: { color: '#FFFFFF' },
+  dailyTabActive: { backgroundColor: theme.colors.lavenderStrong, borderColor: theme.colors.lavenderStrong },
+  dailyTabText: { fontSize: 11, fontWeight: '800', color: theme.colors.muted },
+  dailyTabTextActive: { color: theme.colors.white },
   readingCard: {
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
-    ...theme.shadows.warmSoft,
+    ...theme.shadows.warmSm,
   },
-  readingGlow: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    right: -44,
-    top: -50,
-  },
-  readingLabel: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 12,
-    position: 'relative',
-    zIndex: 10,
-  },
-  readingText: {
-    fontSize: 14,
-    color: theme.colors.ink,
-    lineHeight: 24,
-    fontWeight: '500',
-    position: 'relative',
-    zIndex: 10,
-  },
-  themeCard: {
-    borderRadius: 24,
-    padding: 16,
-    backgroundColor: 'rgba(232,221,251,0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,114,207,0.18)',
-  },
-  themeLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    color: '#8B72CF',
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  themeText: {
-    fontSize: 13,
-    color: theme.colors.ink,
-    lineHeight: 22,
-  },
+  readingText: { fontSize: 14, color: theme.colors.ink, lineHeight: 23, marginTop: 9, fontWeight: '500' },
 });

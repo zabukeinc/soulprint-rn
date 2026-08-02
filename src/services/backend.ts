@@ -27,6 +27,11 @@ export type TodayPayload = {
     attribution?: string;
   };
   energies?: Array<{ label: string; value: number }>;
+  horoscope?: {
+    moonPhase?: { name?: string; illumination?: number; meaning?: string };
+    primaryAspect?: { transit?: string; natal?: string; aspect?: string; tone?: string };
+    calculation?: { engine?: string };
+  };
   generation?: Record<string, any>;
   tier: 'free' | 'premium';
 };
@@ -93,6 +98,64 @@ export type ProfilePayload = {
     onboardingComplete: boolean;
   };
   astro: any;
+};
+
+export type BirthChartReport = {
+  access: {
+    tier: 'free' | 'premium';
+    level: 'summary' | 'full';
+    lockedSections: string[];
+  };
+  summary: {
+    bigThree: {
+      sun: { planet: string; sign: string; signLabel: string; house: number | null } | null;
+      moon: { planet: string; sign: string; signLabel: string; house: number | null } | null;
+      rising: { point: string; sign: string; signLabel: string; degree?: number } | null;
+    };
+    dominantElement: { key: string; count: number; distribution: Record<string, number> };
+    dominantModality: { key: string; count: number; distribution: Record<string, number> };
+    chartSignature: string;
+    shortInterpretation: string;
+  };
+  chartWheel?: {
+    zodiac: Array<{ sign: string; signLabel: string; symbol: string; startLongitude: number; endLongitude: number }>;
+    houseCusps: Array<{ house: number | null; system: string; cusp: number; sign: string; signLabel: string }>;
+    axes: Record<string, { point: string; longitude: number; sign: string; signLabel: string; signDegree: number }>;
+    planets: Array<{
+      planet: string;
+      symbol?: string;
+      longitude: number;
+      degree?: number;
+      sign: string;
+      signLabel?: string;
+      signDegree: number;
+      house?: number | null;
+      retrograde?: boolean;
+    }>;
+  };
+  planets: Array<{
+    planet: string;
+    symbol?: string;
+    degree: number;
+    eclipticLongitude?: number;
+    sign: string;
+    signLabel?: string;
+    signDegree?: number;
+    house?: number | null;
+    houseSystem?: string | null;
+    retrograde?: boolean;
+    meaning?: string;
+    element?: string;
+    modality?: string;
+    interpretation?: string;
+  }>;
+  ascendant: any | null;
+  midheaven: any | null;
+  houses: any | null;
+  calculation: any | null;
+  aspects?: Array<{ planets: string[]; aspect: string; angle: number; orb: number; tone: string; interpretation: string }>;
+  chartPatterns?: Array<{ type: string; title: string; description: string }>;
+  reportSections?: Array<{ key: string; title: string; body: string }>;
 };
 
 type BackendCity = {
@@ -252,7 +315,7 @@ export function getDailyHoroscope() {
 }
 
 export function getNatalChart() {
-  return apiRequest<any>('/natal-chart');
+  return apiRequest<BirthChartReport>('/natal-chart');
 }
 
 export function createCompatibilityReading(input: {

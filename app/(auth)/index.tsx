@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useAuth } from '@/src/context/AuthContext';
@@ -17,7 +17,6 @@ import { ApiError } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 
 export default function AuthScreen() {
-  const router = useRouter();
   const { user, hydrated, profileComplete, signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [name, setName] = useState('');
@@ -45,7 +44,6 @@ export default function AuthScreen() {
       } else {
         await signUp(name.trim(), email.trim(), password);
       }
-      router.replace('/(onboarding)/welcome');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unable to continue. Please try again.');
     } finally {
