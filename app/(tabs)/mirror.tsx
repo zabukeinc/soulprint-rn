@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
@@ -30,12 +30,30 @@ export default function MirrorScreen() {
   const router = useRouter();
   const { isPremium } = useTier();
   const engagement = useEngagement();
-  const streak = engagement?.streak || 0;
-  const reflections = engagement?.journalEntries || [];
+  const mirror = engagement.mirrorPayload;
+  const streak = mirror?.streak ?? engagement?.streak ?? 0;
+  const reflections = mirror?.recentEntries ?? engagement?.journalEntries ?? [];
   const moodHistory = engagement?.moodHistory || [];
-  const reflectionsCount = engagement?.reflections || 0;
+  const reflectionsCount = mirror?.reflections ?? engagement?.reflections ?? 0;
+  const reflectionsToUnlock = mirror?.reflectionsToUnlock ?? Math.max(0, 3 - reflectionsCount);
+  const insightSummary = mirror?.insightSummary;
+  const patternCards = mirror?.patternCards ?? [];
+  const refreshEngagement = engagement.refresh;
 
-  const last7 = getLast7Days();
+  useFocusEffect(
+    useCallback(() => {
+      refreshEngagement?.().catch(() => {});
+    }, [refreshEngagement])
+  );
+
+  const last7 = mirror?.weeklyArc?.days ?? getLast7Days().map((day) => ({
+    date: day.date,
+    dayLetter: day.dayName.charAt(0),
+    checkedIn: false,
+    mood: null,
+    journaled: false,
+    intensity: 0,
+  }));
 
   const moodByDate: Record<string, string> = {};
   moodHistory.forEach((m) => {
@@ -75,6 +93,14 @@ export default function MirrorScreen() {
         </Text>
       </Animated.View>
 
+      <Animated.View entering={FadeInUp.duration(500).delay(80)} style={styles.insightCard}>
+        <Text style={styles.insightLabel}>Current Pattern</Text>
+        <Text style={styles.insightTitle}>{insightSummary?.title ?? 'Your pattern is forming'}</Text>
+        <Text style={styles.insightBody}>
+          {insightSummary?.body ?? 'Check in and write a short reflection so Mirror can start showing your emotional pattern clearly.'}
+        </Text>
+      </Animated.View>
+
       <Animated.View entering={FadeInUp.duration(500).delay(100)}>
         <View
           style={[
@@ -101,7 +127,7 @@ export default function MirrorScreen() {
             </Text>
             <Text style={styles.streakDesc}>
               {reflectionsCount > 0
-                ? `${reflectionsCount} reflection${reflectionsCount !== 1 ? 's' : ''} saved. ${3 - reflectionsCount > 0 ? `${3 - reflectionsCount} more to unlock a deep reading.` : "You've unlocked a deep reading!"}`
+                ? `${reflectionsCount} reflection${reflectionsCount !== 1 ? 's' : ''} saved. ${reflectionsToUnlock > 0 ? `${reflectionsToUnlock} more to unlock a deep reading.` : "You've unlocked a deep reading!"}`
                 : 'Write your first journal entry on the Today page.'}
             </Text>
           </View>
@@ -111,17 +137,17 @@ export default function MirrorScreen() {
       <View style={styles.weekSection}>
         <Animated.View entering={FadeInUp.duration(500).delay(200)}>
           <View style={styles.weekHeader}>
-            <Text style={styles.weekTitle}>This week</Text>
+            <Text style={styles.weekTitle}>Weekly arc</Text>
             <Text style={styles.weekCount}>
-              {reflectionsCount} reflection{reflectionsCount !== 1 ? 's' : ''}
+              {mirror?.weeklyArc ? `${mirror.weeklyArc.completionRate}% checked in` : `${reflectionsCount} reflection${reflectionsCount !== 1 ? 's' : ''}`}
             </Text>
           </View>
         </Animated.View>
         <View style={styles.weekGrid}>
           {last7.map((day, index) => {
             const hasReflection = !!reflectionByDate[day.date];
-            const hasMood = !!moodByDate[day.date];
-            const mood = moodByDate[day.date];
+            const hasMood = !!day.mood || !!moodByDate[day.date];
+            const mood = day.mood ?? moodByDate[day.date];
             return (
               <Animated.View
                 key={day.date}
@@ -151,23 +177,40 @@ export default function MirrorScreen() {
                     {hasReflection ? '✓' : hasMood ? moodEmojis[mood] || '·' : '·'}
                   </Text>
                 </View>
-                <Text style={styles.dayName}>{day.dayName}</Text>
+                <Text style={styles.dayName}>{day.dayLetter}</Text>
               </Animated.View>
             );
           })}
         </View>
       </View>
 
+      {patternCards.length > 0 && (
+        <View style={styles.patternGrid}>
+          {patternCards.map((card, index) => (
+            <Animated.View key={card.key} entering={FadeInUp.duration(500).delay(260 + index * 60)} style={styles.patternInsightCard}>
+              <Text style={styles.patternInsightLabel}>{card.title}</Text>
+              <Text style={styles.patternInsightValue}>{card.value}</Text>
+              <Text style={styles.patternInsightBody}>{card.body}</Text>
+              {card.premiumDepth && (
+                <View style={styles.premiumDepthBadge}>
+                  <Text style={styles.premiumDepthText}>Premium depth</Text>
+                </View>
+              )}
+            </Animated.View>
+          ))}
+        </View>
+      )}
+
       {topMood && moodHistory.length > 1 && (
         <Animated.View entering={FadeInUp.duration(500).delay(300)} style={styles.patternCard}>
           <Text style={styles.patternLabel}>Pattern shift</Text>
           <Text style={styles.patternText}>
             You've felt <Text style={styles.patternBold}>{topMood[0]}</Text> {topMood[1]} time{topMood[1] !== 1 ? 's' : ''} recently.{' '}
-            {topMood[0] === 'Steady'
+            {topMood[0] === 'steady'
               ? 'That grounded energy is something to name and trust.'
-              : topMood[0] === 'Emotional'
+              : topMood[0] === 'tender'
               ? 'When feelings surface, they carry information worth noting.'
-              : topMood[0] === 'Restless'
+              : topMood[0] === 'restless'
               ? 'Something is asking for your attention. Sit with it before chasing it.'
               : 'Numbness is a signal too. Your body may be asking for rest.'}
           </Text>
@@ -179,7 +222,9 @@ export default function MirrorScreen() {
           <Animated.View entering={FadeInUp.duration(500).delay(350)}>
             <View style={styles.reflectionsHeader}>
               <Text style={styles.reflectionsTitle}>Your reflections</Text>
-              <Text style={styles.reflectionsCount}>{reflections.length} saved</Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/journey')}>
+                <Text style={styles.viewHistoryText}>View journey</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
           <View style={styles.reflectionsList}>
@@ -219,7 +264,8 @@ export default function MirrorScreen() {
       </Animated.View>
 
       <View style={styles.savedList}>
-        <Animated.View entering={FadeInUp.duration(500).delay(500)} style={styles.savedCard}>
+        <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/snapshot')} style={styles.savedCard}>
           <View style={[styles.savedIcon, { backgroundColor: '#E8DDFB' }]}>
             <Text style={styles.savedIconText}>✦</Text>
           </View>
@@ -228,11 +274,16 @@ export default function MirrorScreen() {
             <Text style={styles.savedDesc}>Your first mirror</Text>
           </View>
           <Text style={styles.savedArrow}>→</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         <Animated.View
           entering={FadeInUp.duration(500).delay(550)}
-          style={[
+        >
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push(isPremium ? '/(tabs)/astrovy' : '/pricing')}
+            style={[
             styles.savedCard,
             {
               backgroundColor: isPremium ? 'rgba(255,255,255,0.9)' : 'rgba(232,221,251,0.4)',
@@ -240,7 +291,7 @@ export default function MirrorScreen() {
               opacity: isPremium ? 1 : 0.65,
             },
           ]}
-        >
+          >
           <View
             style={[
               styles.savedIcon,
@@ -260,6 +311,8 @@ export default function MirrorScreen() {
             </View>
             <Text style={styles.savedDesc}>Complete emotional blueprint</Text>
           </View>
+          <Text style={styles.savedArrow}>→</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
 
@@ -306,6 +359,36 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     lineHeight: 22,
     marginBottom: 20,
+  },
+  insightCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  insightLabel: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: '#16A7A0',
+    textTransform: 'uppercase',
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  insightTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 22,
+    fontWeight: '500',
+    color: theme.colors.ink,
+    lineHeight: 26,
+    marginBottom: 8,
+  },
+  insightBody: {
+    fontSize: 13,
+    color: theme.colors.muted,
+    lineHeight: 21,
   },
   streakCard: {
     borderRadius: theme.radius.lg,
@@ -365,6 +448,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayName: { fontSize: 10, color: theme.colors.muted },
+  patternGrid: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  patternInsightCard: {
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.07)',
+    ...theme.shadows.warmSm,
+  },
+  patternInsightLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+  patternInsightValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.ink,
+    marginBottom: 6,
+  },
+  patternInsightBody: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 19,
+  },
+  premiumDepthBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139,114,207,0.12)',
+  },
+  premiumDepthText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8B72CF',
+  },
   patternCard: {
     borderRadius: 24,
     padding: 16,
@@ -391,6 +518,7 @@ const styles = StyleSheet.create({
   },
   reflectionsTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.ink },
   reflectionsCount: { fontSize: 12, color: theme.colors.muted },
+  viewHistoryText: { fontSize: 12, color: '#8B72CF', fontWeight: '800' },
   reflectionsList: { gap: 10, marginBottom: 16 },
   reflectionCard: {
     borderRadius: 22,

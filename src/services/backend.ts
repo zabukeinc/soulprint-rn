@@ -68,7 +68,7 @@ export type TodayPayload = {
     totalCount: number;
     summary: string;
     nextAction: {
-      key: 'check_in' | 'journal' | 'tarot';
+      key: 'check_in' | 'journal' | 'tarot' | 'complete';
       title: string;
       body: string;
       cta: string;
@@ -114,9 +114,83 @@ export type MirrorPayload = {
     journaled: boolean;
   }>;
   moodPattern: { topMood: string; count: number; window: number; advice: string } | null;
+  insightSummary?: {
+    title: string;
+    body: string;
+    tone: 'reflective' | 'active' | 'soft' | string;
+  };
+  patternCards?: Array<{
+    key: 'dominant_mood' | 'recurring_theme' | 'growth_cue' | string;
+    title: string;
+    value: string;
+    body: string;
+    premiumDepth?: boolean;
+  }>;
+  weeklyArc?: {
+    completionRate: number;
+    checkedInDays: number;
+    journaledDays: number;
+    days: Array<{
+      date: string;
+      dayLetter: string;
+      checkedIn: boolean;
+      mood: string | null;
+      journaled: boolean;
+      intensity: number;
+    }>;
+  };
   recentEntries: JournalEntry[];
   savedReadings: Array<{ key: string; title: string; unlocked: boolean }>;
   astro: any | null;
+};
+
+export type MirrorJourneyPayload = {
+  access: {
+    tier: 'free' | 'premium';
+    level: 'basic' | 'full';
+    lockedSections: string[];
+  };
+  range: '7d' | '30d' | '90d';
+  summary: {
+    provider: 'static' | 'openai' | 'alibaba';
+    model: string;
+    templateVersion: string;
+    title: string;
+    body: string;
+  };
+  graph: {
+    kind: 'mood_journey';
+    points: Array<{ date: string; mood: string; value: number }>;
+  };
+  timeline: Array<JournalEntry & { mood: string | null }>;
+  reflectionStats: {
+    total: number;
+    journaledDays: number;
+    checkInDays: number;
+    consistency: number;
+  };
+  moodDistribution: Array<{ mood: string; count: number; percentage: number }> | null;
+  themeCards: Array<{ key: string; title: string; body: string }> | null;
+  premiumInsights: { rangeLabel: string; body: string } | null;
+};
+
+export type FirstMirrorPayload = {
+  label: string;
+  title: string;
+  subtitle: string;
+  archetype: { name?: string; tagline?: string };
+  badges: string[];
+  patternCards: Array<{ title: string; desc: string }>;
+  insight: { title: string; paragraphs: string[] };
+  softCta: string;
+  generation: {
+    provider: 'static' | 'openai' | 'alibaba';
+    model: string;
+    promptId: string;
+    promptVersion: string;
+    cacheKey: string;
+    quality?: Record<string, any>;
+  };
 };
 
 export type TarotDraw = {
@@ -337,6 +411,10 @@ export function getMirror() {
   return apiRequest<MirrorPayload>('/mirror');
 }
 
+export function getMirrorJourney(range: '7d' | '30d' | '90d' = '30d') {
+  return apiRequest<MirrorJourneyPayload>(`/mirror/journey?range=${encodeURIComponent(range)}`);
+}
+
 export function createCheckIn(mood: string) {
   return apiRequest<{ checkIn: { date: string; mood: string; createdAt: string }; streak: number; moodResponse: unknown; patternAlert: unknown }>(
     '/check-ins',
@@ -373,6 +451,10 @@ export function createTarotDraw(spread: 'single' | 'three') {
 
 export function getAstrovyReading() {
   return apiRequest<any>('/readings/astrovy');
+}
+
+export function getFirstMirrorReading() {
+  return apiRequest<FirstMirrorPayload>('/readings/first-mirror');
 }
 
 export function getLoveReading() {

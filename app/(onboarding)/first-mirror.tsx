@@ -13,22 +13,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
-import { getAstrovyReading, getMe, submitFeedback } from '@/src/services/backend';
-
-const patternCards = [
-  { title: 'Private Processor', desc: 'You feel more than you show.' },
-  { title: 'Pattern Reader', desc: 'You notice emotional shifts quickly.' },
-  { title: 'Consistency Seeker', desc: 'You trust repeated actions more than big words.' },
-  { title: 'Quiet Intensity', desc: 'You may look calm while processing deeply.' },
-];
+import { getFirstMirrorReading, getMe, submitFeedback, type FirstMirrorPayload } from '@/src/services/backend';
 
 export default function FirstMirrorScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
-  const [astro, setAstro] = useState<any | null>(null);
-  const [reading, setReading] = useState<any | null>(null);
+  const [mirror, setMirror] = useState<FirstMirrorPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const floatY = useSharedValue(0);
   useEffect(() => {
@@ -38,28 +32,22 @@ export default function FirstMirrorScreen() {
       true
     );
 
-    Promise.all([getMe(), getAstrovyReading()])
-      .then(([me, astrovy]) => {
+    Promise.all([getMe(), getFirstMirrorReading()])
+      .then(([me, firstMirror]) => {
         setProfile(me.profile);
-        setAstro(me.astro);
-        setReading(astrovy);
+        setMirror(firstMirror);
+        setLoadError(null);
       })
-      .catch(() => {});
+      .catch(() => setLoadError('Your First Mirror could not be generated. Please try again.'))
+      .finally(() => setLoading(false));
   }, []);
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: floatY.value }],
   }));
   const name = profile?.name ?? data.name ?? 'friend';
-  const archetype = astro?.archetype ?? reading?.archetype;
-  const sections = Array.isArray(reading?.sections) ? reading.sections.slice(0, 4) : [];
-  const visiblePatternCards = sections.length
-    ? sections.map((section: any) => ({ title: section.title, desc: section.core }))
-    : patternCards;
-  const badges = [
-    astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : null,
-    astro?.lifePath ? `Life Path ${astro.lifePath}` : null,
-    profile?.focus ? `${profile.focus} focus` : null,
-  ].filter(Boolean) as string[];
+  const archetype = mirror?.archetype;
+  const visiblePatternCards = mirror?.patternCards ?? [];
+  const badges = mirror?.badges ?? [];
 
   return (
     <ScrollView
@@ -73,62 +61,68 @@ export default function FirstMirrorScreen() {
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>
-          Hi {name}, your first Astrovy is ready.
+          {mirror?.title ?? `Hi ${name}, preparing your first Astrovy...`}
         </Text>
         <Text style={styles.desc}>
-          We found a few patterns that may explain how you process emotion, connection, and direction.
+          {loadError ?? mirror?.subtitle ?? 'Generating the first read from your onboarding and birth pattern.'}
         </Text>
       </Animated.View>
 
-      <Animated.View
-        entering={FadeInUp.delay(100).duration(500)}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroGlow} />
-        <View style={styles.heroRow}>
-          <Animated.View style={[styles.heroAvatar, floatStyle]}>
-            <Text style={styles.heroAvatarEmoji}>🌿</Text>
-          </Animated.View>
-          <View>
-            <Text style={styles.heroLabel}>Your Core Archetype</Text>
-            <Text style={styles.heroTitle}>{archetype?.name ?? 'Your Core Archetype'}</Text>
-          </View>
-        </View>
-        <Text style={styles.heroDesc}>
-          {archetype?.tagline ?? 'You tend to understand things deeply before you explain them.'}
-        </Text>
-        <View style={styles.badges}>
-          {badges.map((badge) => (
-            <View key={badge} style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-
-      <Text style={styles.sectionTitle}>What this may reveal</Text>
-      <View style={styles.grid}>
-        {visiblePatternCards.map((card: { title: string; desc: string }, i: number) => (
+      {loading ? (
+        <Animated.View entering={FadeIn.duration(300)} style={styles.insightCard}>
+          <Text style={styles.insightTitle}>Generating your First Mirror</Text>
+          <Text style={styles.insightText}>Reading your onboarding, birth chart, and focus through the backend AI pipeline.</Text>
+        </Animated.View>
+      ) : mirror ? (
+        <>
           <Animated.View
-            key={card.title}
-            entering={FadeInUp.delay(200 + i * 50).duration(500)}
-            style={styles.patternCard}
+            entering={FadeInUp.delay(100).duration(500)}
+            style={styles.heroCard}
           >
-            <Text style={styles.patternTitle}>{card.title}</Text>
-            <Text style={styles.patternDesc}>{card.desc}</Text>
+            <View style={styles.heroGlow} />
+            <View style={styles.heroRow}>
+              <Animated.View style={[styles.heroAvatar, floatStyle]}>
+                <Text style={styles.heroAvatarEmoji}>🌿</Text>
+              </Animated.View>
+              <View>
+                <Text style={styles.heroLabel}>Your Core Archetype</Text>
+                <Text style={styles.heroTitle}>{archetype?.name ?? 'Your Core Archetype'}</Text>
+              </View>
+            </View>
+            <Text style={styles.heroDesc}>
+              {archetype?.tagline ?? 'Your archetype is being shaped from your profile.'}
+            </Text>
+            <View style={styles.badges}>
+              {badges.map((badge) => (
+                <View key={badge} style={styles.badge}>
+                  <Text style={styles.badgeText}>{badge}</Text>
+                </View>
+              ))}
+            </View>
           </Animated.View>
-        ))}
-      </View>
 
-      <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.insightCard}>
-        <Text style={styles.insightTitle}>The part of you asking to be understood</Text>
-        <Text style={styles.insightText}>
-          You may not always want attention. But you do want to feel emotionally considered.
-        </Text>
-        <Text style={styles.insightText}>
-          When people miss the small details, it can feel louder than they realize.
-        </Text>
-      </Animated.View>
+          <Text style={styles.sectionTitle}>What this may reveal</Text>
+          <View style={styles.grid}>
+            {visiblePatternCards.map((card: { title: string; desc: string }, i: number) => (
+              <Animated.View
+                key={card.title}
+                entering={FadeInUp.delay(200 + i * 50).duration(500)}
+                style={styles.patternCard}
+              >
+                <Text style={styles.patternTitle}>{card.title}</Text>
+                <Text style={styles.patternDesc}>{card.desc}</Text>
+              </Animated.View>
+            ))}
+          </View>
+
+          <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.insightCard}>
+            <Text style={styles.insightTitle}>{mirror.insight.title}</Text>
+            {mirror.insight.paragraphs.map((paragraph) => (
+              <Text key={paragraph} style={styles.insightText}>{paragraph}</Text>
+            ))}
+          </Animated.View>
+        </>
+      ) : null}
 
       <View style={styles.feedbackSection}>
         <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
@@ -164,8 +158,7 @@ export default function FirstMirrorScreen() {
 
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <Text style={styles.softCta}>
-          Your full blueprint lives in the Astrovy tab —
-          go deeper whenever you're ready.
+          {mirror?.softCta ?? 'Your full blueprint lives in the Astrovy tab — go deeper whenever you are ready.'}
         </Text>
       </Animated.View>
 

@@ -13,46 +13,34 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
-import { getAstrovyReading, getMe } from '@/src/services/backend';
-
-const patternCards = [
-  { title: 'Private Processor', desc: 'You feel more than you show.' },
-  { title: 'Pattern Reader', desc: 'You notice emotional shifts quickly.' },
-  { title: 'Consistency Seeker', desc: 'You trust repeated actions more than big words.' },
-  { title: 'Quiet Intensity', desc: 'You may look calm while processing deeply.' },
-];
+import { getFirstMirrorReading, getMe, type FirstMirrorPayload } from '@/src/services/backend';
 
 export default function SnapshotScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
   const [profile, setProfile] = React.useState<any | null>(null);
-  const [astro, setAstro] = React.useState<any | null>(null);
-  const [reading, setReading] = React.useState<any | null>(null);
+  const [mirror, setMirror] = React.useState<FirstMirrorPayload | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    Promise.all([getMe(), getAstrovyReading()])
-      .then(([me, astrovy]) => {
+    Promise.all([getMe(), getFirstMirrorReading()])
+      .then(([me, firstMirror]) => {
         setProfile(me.profile);
-        setAstro(me.astro);
-        setReading(astrovy);
+        setMirror(firstMirror);
+        setLoadError(null);
       })
-      .catch(() => {});
+      .catch(() => setLoadError('Your First Mirror could not be generated. Please try again.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: withRepeat(withTiming(-4, { duration: 1500 }), -1, true) }],
   }));
   const name = profile?.name ?? data.name ?? 'friend';
-  const archetype = astro?.archetype ?? reading?.archetype;
-  const sections = Array.isArray(reading?.sections) ? reading.sections.slice(0, 4) : [];
-  const visiblePatternCards = sections.length
-    ? sections.map((section: any) => ({ title: section.title, desc: section.core }))
-    : patternCards;
-  const badges = [
-    astro?.sunSign ? `${astro.sunSign[0].toUpperCase()}${astro.sunSign.slice(1)} Sun` : null,
-    astro?.lifePath ? `Life Path ${astro.lifePath}` : null,
-    profile?.focus ? `${profile.focus} focus` : null,
-  ].filter(Boolean) as string[];
+  const archetype = mirror?.archetype;
+  const visiblePatternCards = mirror?.patternCards ?? [];
+  const badges = mirror?.badges ?? [];
 
   return (
     <ScrollView
@@ -74,61 +62,79 @@ export default function SnapshotScreen() {
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>
-          Hi {name}, your first Astrovy is ready.
+          {mirror?.title ?? `Hi ${name}, preparing your first Astrovy...`}
         </Text>
         <Text style={styles.desc}>
-          We found a few patterns that may explain how you process emotion, connection, and direction.
+          {loadError ?? mirror?.subtitle ?? 'Generating the first read from your onboarding and birth pattern.'}
         </Text>
       </Animated.View>
 
-      <Animated.View
-        entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
-      >
-        <LinearGradient
-          colors={theme.gradients.firstMirror}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroGlow} />
-          <View style={styles.heroRow}>
-            <Animated.View style={[styles.heroAvatar, floatStyle]}>
-              <Text style={styles.heroAvatarEmoji}>🌿</Text>
-            </Animated.View>
-            <View>
-              <Text style={styles.heroLabel}>Your Core Archetype</Text>
-              <Text style={styles.heroTitle}>{archetype?.name ?? 'Your Core Archetype'}</Text>
-            </View>
-          </View>
-          <Text style={styles.heroDesc}>
-            {archetype?.tagline ?? 'You tend to understand things deeply before you explain them.'}
-          </Text>
-          <View style={styles.badges}>
-            {badges.map((badge) => (
-              <View key={badge} style={styles.badge}>
-                <Text style={styles.badgeText}>{badge}</Text>
+      {loading ? (
+        <Animated.View entering={FadeIn.duration(300)} style={styles.patternCard}>
+          <Text style={styles.patternTitle}>Generating your First Mirror</Text>
+          <Text style={styles.patternDesc}>Reading your onboarding, birth chart, and focus through the backend AI pipeline.</Text>
+        </Animated.View>
+      ) : mirror ? (
+        <>
+          <Animated.View
+            entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.cubic))}
+          >
+            <LinearGradient
+              colors={theme.gradients.firstMirror}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroGlow} />
+              <View style={styles.heroRow}>
+                <Animated.View style={[styles.heroAvatar, floatStyle]}>
+                  <Text style={styles.heroAvatarEmoji}>🌿</Text>
+                </Animated.View>
+                <View>
+                  <Text style={styles.heroLabel}>Your Core Archetype</Text>
+                  <Text style={styles.heroTitle}>{archetype?.name ?? 'Your Core Archetype'}</Text>
+                </View>
               </View>
+              <Text style={styles.heroDesc}>
+                {archetype?.tagline ?? 'Your archetype is being shaped from your profile.'}
+              </Text>
+              <View style={styles.badges}>
+                {badges.map((badge) => (
+                  <View key={badge} style={styles.badge}>
+                    <Text style={styles.badgeText}>{badge}</Text>
+                  </View>
+                ))}
+              </View>
+            </LinearGradient>
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(300).duration(500)}>
+            <Text style={styles.sectionTitle}>What this may reveal</Text>
+          </Animated.View>
+
+          <View style={styles.grid}>
+            {visiblePatternCards.map((card: { title: string; desc: string }, i: number) => (
+              <Animated.View
+                key={card.title}
+                entering={FadeInUp.delay(350 + i * 50).duration(400)}
+                style={styles.patternCard}
+              >
+                <Text style={styles.patternTitle}>{card.title}</Text>
+                <Text style={styles.patternDesc}>{card.desc}</Text>
+              </Animated.View>
             ))}
           </View>
-        </LinearGradient>
-      </Animated.View>
+        </>
+      ) : null}
 
-      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
-        <Text style={styles.sectionTitle}>What this may reveal</Text>
-      </Animated.View>
-
-      <View style={styles.grid}>
-        {visiblePatternCards.map((card: { title: string; desc: string }, i: number) => (
-          <Animated.View
-            key={card.title}
-            entering={FadeInUp.delay(350 + i * 50).duration(400)}
-            style={styles.patternCard}
-          >
-            <Text style={styles.patternTitle}>{card.title}</Text>
-            <Text style={styles.patternDesc}>{card.desc}</Text>
-          </Animated.View>
-        ))}
-      </View>
+      {mirror?.insight ? (
+        <Animated.View entering={FadeInUp.delay(560).duration(400).easing(Easing.out(Easing.cubic))} style={styles.patternCard}>
+          <Text style={styles.patternTitle}>{mirror.insight.title}</Text>
+          {mirror.insight.paragraphs.map((paragraph) => (
+            <Text key={paragraph} style={styles.patternDesc}>{paragraph}</Text>
+          ))}
+        </Animated.View>
+      ) : null}
 
       <Animated.View entering={FadeInUp.delay(600).duration(400).easing(Easing.out(Easing.cubic))}>
         <TouchableOpacity
@@ -148,7 +154,7 @@ export default function SnapshotScreen() {
 
       <Animated.View entering={FadeInUp.delay(700).duration(400).easing(Easing.out(Easing.cubic))}>
         <Text style={styles.softCta}>
-          Your free reading is always here. Go deeper anytime.
+          {mirror?.softCta ?? 'Your free reading is always here. Go deeper anytime.'}
         </Text>
       </Animated.View>
     </ScrollView>

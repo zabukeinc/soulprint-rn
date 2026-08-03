@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'react-native-reanimated';
 import { useEngagement } from '@/src/hooks/useEngagement';
@@ -53,6 +53,13 @@ export default function TodayScreen() {
   const [journalSaved, setJournalSaved] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const refreshEngagement = engagement.refresh;
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshEngagement?.().catch(() => {});
+    }, [refreshEngagement])
+  );
 
   const dailyReading = engagement.todayPayload?.dailyReading;
   const signal = dailyReading?.signal ?? {
@@ -101,6 +108,10 @@ export default function TodayScreen() {
   const handleNextAction = () => {
     const action = retention?.nextAction;
     if (!action) return;
+    if (action.completed || action.key === 'complete') {
+      router.push('/(tabs)/mirror');
+      return;
+    }
     if (action.key === 'journal') {
       setExpandedJournal(true);
       return;
@@ -115,7 +126,6 @@ export default function TodayScreen() {
       setTimeout(() => setShowToast(false), 3000);
       return;
     }
-    if (action.completed) router.push('/(tabs)/mirror');
   };
 
   const consecutiveMood = engagement?.getConsecutiveMood?.() || null;

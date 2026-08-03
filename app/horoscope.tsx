@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
+import { useTier } from '@/src/context/TierContext';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
 import { getDailyHoroscope, getMe, getNatalChart, type BirthChartReport } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
@@ -47,8 +48,21 @@ function LockedPanel({ title }: { title: string }) {
   );
 }
 
+function PremiumPreviewPanel({ title }: { title: string }) {
+  return (
+    <View style={styles.previewPanel}>
+      <Text style={styles.previewLabel}>Premium Preview</Text>
+      <Text style={styles.previewTitle}>{title}</Text>
+      <Text style={styles.previewText}>
+        The backend account is still free, so this preview shows the full-report layout. Real premium will fill this with calculated chart content.
+      </Text>
+    </View>
+  );
+}
+
 export default function HoroscopeScreen() {
   const router = useRouter();
+  const { isPremium: previewPremium } = useTier();
   const fallbackHoroscope = getTodayHoroscope();
   const fallbackMoon = getMoonPhase();
   const [activeTab, setActiveTab] = useState<ReportTab>('planets');
@@ -70,7 +84,8 @@ export default function HoroscopeScreen() {
       });
   }, []);
 
-  const premium = birthChart?.access.level === 'full';
+  const premium = previewPremium || birthChart?.access.level === 'full';
+  const backendPremium = birthChart?.access.level === 'full';
   const bigThree = birthChart?.summary.bigThree;
   const moonReading = dailyReading?.moonPhase ?? fallbackMoon;
   const dailyText = dailyReading?.categories?.[activeDaily] ?? fallbackHoroscope[activeDaily];
@@ -90,9 +105,9 @@ export default function HoroscopeScreen() {
     return [
       { label: 'Element', value: titleCase(element?.key), meta: `${element?.count ?? 0} placements` },
       { label: 'Modality', value: titleCase(modality?.key), meta: `${modality?.count ?? 0} placements` },
-      { label: 'Access', value: premium ? 'Full' : 'Summary', meta: premium ? 'Premium report' : 'Free chart' },
+      { label: 'Access', value: premium ? 'Full' : 'Summary', meta: backendPremium ? 'Premium report' : premium ? 'Premium preview' : 'Free chart' },
     ];
-  }, [birthChart, premium]);
+  }, [backendPremium, birthChart, premium]);
 
   return (
     <ScrollView
@@ -223,13 +238,17 @@ export default function HoroscopeScreen() {
 
           {activeTab === 'aspects' && (
             premium ? (
-              visibleAspects.map((aspect, index) => (
-                <View key={`${aspect.planets.join('-')}-${index}`} style={styles.rowItem}>
-                  <Text style={styles.rowTitle}>{aspect.planets.map(titleCase).join(' + ')} {titleCase(aspect.aspect)}</Text>
-                  <Text style={styles.rowMeta}>{aspect.tone} · orb {formatDegree(aspect.orb)}</Text>
-                  <Text style={styles.rowBody}>{aspect.interpretation}</Text>
-                </View>
-              ))
+              visibleAspects.length ? (
+                visibleAspects.map((aspect, index) => (
+                  <View key={`${aspect.planets.join('-')}-${index}`} style={styles.rowItem}>
+                    <Text style={styles.rowTitle}>{aspect.planets.map(titleCase).join(' + ')} {titleCase(aspect.aspect)}</Text>
+                    <Text style={styles.rowMeta}>{aspect.tone} · orb {formatDegree(aspect.orb)}</Text>
+                    <Text style={styles.rowBody}>{aspect.interpretation}</Text>
+                  </View>
+                ))
+              ) : (
+                <PremiumPreviewPanel title="Aspect interpretations will appear here." />
+              )
             ) : (
               <LockedPanel title="Aspects are part of the full birth chart report." />
             )
@@ -238,18 +257,24 @@ export default function HoroscopeScreen() {
           {activeTab === 'report' && (
             premium ? (
               <>
-                {birthChart?.chartPatterns?.map((pattern, index) => (
-                  <View key={`${pattern.type}-${index}`} style={styles.patternCard}>
-                    <Text style={styles.rowTitle}>{pattern.title}</Text>
-                    <Text style={styles.rowBody}>{pattern.description}</Text>
-                  </View>
-                ))}
-                {reportSections.map((section) => (
-                  <View key={section.key} style={styles.rowItem}>
-                    <Text style={styles.rowTitle}>{section.title}</Text>
-                    <Text style={styles.rowBody}>{section.body}</Text>
-                  </View>
-                ))}
+                {birthChart?.chartPatterns?.length || reportSections.length ? (
+                  <>
+                    {birthChart?.chartPatterns?.map((pattern, index) => (
+                      <View key={`${pattern.type}-${index}`} style={styles.patternCard}>
+                        <Text style={styles.rowTitle}>{pattern.title}</Text>
+                        <Text style={styles.rowBody}>{pattern.description}</Text>
+                      </View>
+                    ))}
+                    {reportSections.map((section) => (
+                      <View key={section.key} style={styles.rowItem}>
+                        <Text style={styles.rowTitle}>{section.title}</Text>
+                        <Text style={styles.rowBody}>{section.body}</Text>
+                      </View>
+                    ))}
+                  </>
+                ) : (
+                  <PremiumPreviewPanel title="Full narrative report will appear here." />
+                )}
               </>
             ) : (
               <LockedPanel title="The detailed report unlocks chart patterns and deeper interpretation." />
@@ -466,6 +491,23 @@ const styles = StyleSheet.create({
   lockedCopy: { flex: 1 },
   lockedTitle: { fontSize: 13, color: theme.colors.ink, fontWeight: '800' },
   lockedText: { fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 4 },
+  previewPanel: {
+    borderRadius: 20,
+    padding: 16,
+    backgroundColor: 'rgba(139,114,207,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.18)',
+  },
+  previewLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  previewTitle: { fontSize: 14, color: theme.colors.ink, fontWeight: '800', marginBottom: 5 },
+  previewText: { fontSize: 12, color: theme.colors.muted, lineHeight: 18 },
   moonCard: {
     borderRadius: 22,
     padding: 16,

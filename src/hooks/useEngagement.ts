@@ -116,14 +116,16 @@ export function useEngagement() {
   const drawTarotCard = useCallback(async () => {
     const result = await backend.createTarotDraw('single');
     setTarotState(result);
+    await refresh().catch(() => {});
     return result;
-  }, []);
+  }, [refresh]);
 
   const drawTarotSpread = useCallback(async () => {
     const result = await backend.createTarotDraw('three');
     setTarotState(result);
+    await refresh().catch(() => {});
     return result;
-  }, []);
+  }, [refresh]);
 
   const canDrawTarot = useCallback(
     (_isPremium: boolean) => (tarotState?.drawsRemaining ?? 1) > 0,
@@ -179,6 +181,7 @@ export function useEngagement() {
     todayPayload: today,
     mirrorPayload: mirror,
     tarotPayload: tarotState,
+    refresh,
     checkInToday,
     addJournalEntry,
     addMood,
