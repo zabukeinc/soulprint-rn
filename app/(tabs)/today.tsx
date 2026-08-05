@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,6 +44,9 @@ export default function TodayScreen() {
   const router = useRouter();
   const engagement = useEngagement();
   const { isPremium } = useTier();
+  const scrollRef = useRef<ScrollView>(null);
+  const journalInputRef = useRef<TextInput>(null);
+  const journalYRef = useRef(0);
 
   const [selectedMood, setSelectedMood] = useState<string | null>(
     engagement?.moodHistory?.[0]?.mood || null
@@ -53,6 +56,7 @@ export default function TodayScreen() {
   const [journalSaved, setJournalSaved] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [savingMood, setSavingMood] = useState<string | null>(null);
   const refreshEngagement = engagement.refresh;
 
   useFocusEffect(
@@ -62,13 +66,21 @@ export default function TodayScreen() {
   );
 
   const dailyReading = engagement.todayPayload?.dailyReading;
-  const signal = dailyReading?.signal ?? {
-    title: 'Preparing your signal',
-    sub: 'Your backend reading will appear here after sync.',
+  const horoscopeSignal = engagement.todayPayload?.horoscope?.todaySignal;
+  const signal = dailyReading?.signal ?? horoscopeSignal?.signal ?? {
+    title: 'A small honest move matters today.',
+    sub: 'Start with the choice that makes your inner state easier to understand.',
   };
-  const insight = dailyReading?.insight ?? 'Your first insight is being prepared.';
-  const move = dailyReading?.move ?? 'Return to your breath and choose one honest action.';
+  const insight = dailyReading?.insight ?? horoscopeSignal?.insight ?? 'Your pattern is asking for less performance and more precision.';
+  const move = dailyReading?.move ?? horoscopeSignal?.move ?? 'Choose one honest action that future-you will recognize.';
   const attribution = dailyReading?.attribution ?? '';
+  const todayJob = engagement.dailyContentStatus?.jobs.find((job) => job.feature === 'today');
+  const contentState = todayJob?.status ?? engagement.todayPayload?.generation?.dailyReading?.status ?? 'ready';
+  const contentStateLabel = contentState === 'ready'
+    ? 'Backend content ready'
+    : contentState === 'failed'
+      ? 'Backend content needs retry'
+      : 'Backend content syncing';
   const prompt = engagement.todayPayload?.journal.prompt ?? 'What do I need but avoid asking for?';
   const streak = engagement?.streak || 0;
   const lastReflection = engagement?.journalEntries?.[0];
@@ -85,13 +97,20 @@ export default function TodayScreen() {
   const retention = engagement.todayPayload?.retention;
 
   const handleMoodSelect = async (mood: string) => {
+    if (savingMood) return;
     setSelectedMood(mood);
+    setSavingMood(mood);
     try {
       await engagement.addMood(mood);
+      setToastMessage('Check-in saved.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2200);
     } catch (error) {
       setToastMessage(error instanceof Error ? error.message : 'Mood could not be saved.');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setSavingMood(null);
     }
   };
 
@@ -105,7 +124,18 @@ export default function TodayScreen() {
     }
   };
 
-  const handleNextAction = () => {
+  const openJournal = () => {
+    setExpandedJournal(true);
+    setToastMessage('Reflection prompt opened.');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 1800);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, journalYRef.current - 24), animated: true });
+      setTimeout(() => journalInputRef.current?.focus(), 350);
+    });
+  };
+
+  const handleNextAction = async () => {
     const action = retention?.nextAction;
     if (!action) return;
     if (action.completed || action.key === 'complete') {
@@ -113,7 +143,7 @@ export default function TodayScreen() {
       return;
     }
     if (action.key === 'journal') {
-      setExpandedJournal(true);
+      openJournal();
       return;
     }
     if (action.key === 'tarot') {
@@ -121,9 +151,7 @@ export default function TodayScreen() {
       return;
     }
     if (action.key === 'check_in') {
-      setToastMessage('Choose one mood above to start today.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      await handleMoodSelect(selectedMood ?? 'steady');
       return;
     }
   };
@@ -134,6 +162,7 @@ export default function TodayScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -191,9 +220,11 @@ export default function TodayScreen() {
           >
             <TouchableOpacity
               onPress={() => handleMoodSelect(mood.id)}
+              disabled={Boolean(savingMood)}
               style={[
                 styles.moodBtn,
                 selectedMood === mood.id && styles.moodBtnActive,
+                savingMood === mood.id && styles.moodBtnSaving,
               ]}
             >
               <Text style={styles.moodEmoji}>{mood.emoji}</Text>
@@ -260,9 +291,16 @@ export default function TodayScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNextAction}
-            style={[styles.loopButton, retention.nextAction.completed && styles.loopButtonDone]}
+            disabled={Boolean(savingMood)}
+            style={[
+              styles.loopButton,
+              retention.nextAction.completed && styles.loopButtonDone,
+              savingMood && styles.loopButtonSaving,
+            ]}
           >
-            <Text style={styles.loopButtonText}>{retention.nextAction.cta}</Text>
+            <Text style={styles.loopButtonText}>
+              {savingMood && retention.nextAction.key === 'check_in' ? 'Checking in...' : retention.nextAction.cta}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -275,7 +313,22 @@ export default function TodayScreen() {
           style={styles.signalCard}
         >
           <View style={styles.signalGlow} />
-          <Text style={styles.signalLabel}>Today's Signal</Text>
+          <View style={styles.signalTopRow}>
+            <Text style={styles.signalLabel}>Today's Signal</Text>
+            <View style={[
+              styles.contentStatePill,
+              contentState === 'ready' && styles.contentStatePillReady,
+              contentState === 'failed' && styles.contentStatePillFailed,
+            ]}>
+              <Text style={[
+                styles.contentStateText,
+                contentState === 'ready' && styles.contentStateTextReady,
+                contentState === 'failed' && styles.contentStateTextFailed,
+              ]}>
+                {contentStateLabel}
+              </Text>
+            </View>
+          </View>
           <Text style={styles.signalTitle}>{signal.title}</Text>
           <Text style={styles.signalSub}>{signal.sub}</Text>
         </LinearGradient>
@@ -360,7 +413,10 @@ export default function TodayScreen() {
       <Animated.View entering={FadeInUp.duration(500).delay(500)}>
         <TouchableOpacity
           style={styles.journalCard}
-          onPress={() => { if (!expandedJournal) setExpandedJournal(true); }}
+          onLayout={(event) => {
+            journalYRef.current = event.nativeEvent.layout.y;
+          }}
+          onPress={() => { if (!expandedJournal) openJournal(); }}
           activeOpacity={0.85}
         >
           <View style={styles.journalHeader}>
@@ -374,7 +430,14 @@ export default function TodayScreen() {
       </Animated.View>
 
       {expandedJournal && (
-        <Animated.View entering={FadeInUp.duration(300)} exiting={FadeOut.duration(200)} style={styles.journalExpanded}>
+        <Animated.View
+          entering={FadeInUp.duration(300)}
+          exiting={FadeOut.duration(200)}
+          onLayout={(event) => {
+            journalYRef.current = event.nativeEvent.layout.y;
+          }}
+          style={styles.journalExpanded}
+        >
           <Text style={styles.journalPrompt}>{prompt}</Text>
           {journalSaved ? (
             <View style={styles.journalSaved}>
@@ -384,6 +447,7 @@ export default function TodayScreen() {
           ) : (
             <>
               <TextInput
+                ref={journalInputRef}
                 style={styles.journalInput}
                 multiline
                 numberOfLines={3}
@@ -576,6 +640,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     elevation: 4,
   },
+  moodBtnSaving: {
+    opacity: 0.76,
+  },
   moodEmoji: { fontSize: 18, marginBottom: 2 },
   moodLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.muted },
   moodLabelActive: { color: '#FFFFFF' },
@@ -687,6 +754,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B72CF',
   },
   loopButtonDone: { backgroundColor: '#16A7A0' },
+  loopButtonSaving: { opacity: 0.72 },
   loopButtonText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   signalCard: {
     borderRadius: theme.radius.lg,
@@ -707,15 +775,50 @@ const styles = StyleSheet.create({
     right: -44,
     top: -50,
   },
+  signalTopRow: {
+    position: 'relative',
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 12,
+  },
   signalLabel: {
     fontSize: 11,
     letterSpacing: 1.4,
     color: '#8B72CF',
     textTransform: 'uppercase',
     fontWeight: '800',
-    marginBottom: 12,
     position: 'relative',
     zIndex: 10,
+  },
+  contentStatePill: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(139,114,207,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.18)',
+  },
+  contentStatePillReady: {
+    backgroundColor: 'rgba(22,167,160,0.12)',
+    borderColor: 'rgba(22,167,160,0.2)',
+  },
+  contentStatePillFailed: {
+    backgroundColor: 'rgba(184,74,98,0.12)',
+    borderColor: 'rgba(184,74,98,0.2)',
+  },
+  contentStateText: {
+    fontSize: 10,
+    color: '#8B72CF',
+    fontWeight: '800',
+  },
+  contentStateTextReady: {
+    color: '#087D77',
+  },
+  contentStateTextFailed: {
+    color: '#B84A62',
   },
   signalTitle: {
     fontFamily: theme.fonts.serif,

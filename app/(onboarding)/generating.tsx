@@ -15,59 +15,155 @@ import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
 import { useAuth } from '@/src/context/AuthContext';
-import { submitProfile } from '@/src/services/backend';
+import { getContentStatus, prewarmContent, submitProfile, type ContentJobStatus } from '@/src/services/backend';
 import { ApiError } from '@/src/lib/api';
+
+type StageState = 'waiting' | 'active' | 'ready' | 'failed';
+
+const FIRST_MIRROR_TIMEOUT_MS = 45000;
+const POLL_INTERVAL_MS = 1500;
+const MIN_VISIBLE_MS = 2600;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function jobState(job?: ContentJobStatus | null): StageState {
+  if (!job || job.status === 'not_started') return 'waiting';
+  if (job.status === 'ready') return 'ready';
+  if (job.status === 'failed') return 'failed';
+  return 'active';
+}
+
+function stageDotColor(state: StageState) {
+  if (state === 'ready') return '#16A7A0';
+  if (state === 'failed') return '#B84A62';
+  if (state === 'active') return '#8B72CF';
+  return 'rgba(31,33,48,0.15)';
+}
 
 export default function GeneratingScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
-  const { hydrated, user, refreshMe, signOut } = useAuth();
-  const stages = [
-    { id: 1, text: `Reading your birth date${data.birthDate ? ` (${data.birthDate})` : ''}...`, delay: 600 },
-    { id: 2, text: `Placing ${data.birthPlace?.name ?? 'your birthplace'} into the chart...`, delay: 1400 },
-    { id: 3, text: 'Listening to your current focus...', delay: 2200 },
-    { id: 4, text: 'Preparing your first emotional mirror...', delay: 3000 },
-  ];
-  const [currentStage, setCurrentStage] = useState(0);
+  const { hydrated, user, refreshMe } = useAuth();
+  const [profileReady, setProfileReady] = useState(false);
+  const [jobs, setJobs] = useState<ContentJobStatus[]>([]);
+  const [activeStep, setActiveStep] = useState<'profile' | 'prewarm' | 'first_mirror' | 'background'>('profile');
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const rotate = useSharedValue(0);
 
   useEffect(() => {
-    stages.forEach((stage) => {
-      setTimeout(() => {
-        setCurrentStage(stage.id);
-      }, stage.delay);
-    });
+    let cancelled = false;
 
-    const t = setTimeout(async () => {
+    const runGeneration = async () => {
+      const startedAt = Date.now();
       try {
         if (!hydrated) return;
         if (!user) {
           router.replace('/(auth)');
           return;
         }
+        setError(null);
+        setActiveStep('profile');
+        setIsComplete(false);
+        setProfileReady(false);
+        setJobs([]);
+
         await submitProfile(data);
+        if (cancelled) return;
+        setProfileReady(true);
         await refreshMe();
-        setIsComplete(true);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-          await signOut();
-          router.replace('/(auth)');
-          return;
+
+        if (cancelled) return;
+        setActiveStep('prewarm');
+        const initialStatus = await prewarmContent('onboarding');
+        if (cancelled) return;
+        setJobs(initialStatus.jobs);
+        setActiveStep('first_mirror');
+
+        const deadline = Date.now() + FIRST_MIRROR_TIMEOUT_MS;
+        let latest = initialStatus;
+
+        while (!cancelled) {
+          const firstMirror = latest.jobs.find((job) => job.feature === 'first_mirror');
+          if (firstMirror?.status === 'ready') {
+            setActiveStep('background');
+            const remaining = MIN_VISIBLE_MS - (Date.now() - startedAt);
+            if (remaining > 0) await sleep(remaining);
+            if (!cancelled) setIsComplete(true);
+            return;
+          }
+          if (firstMirror?.status === 'failed') {
+            throw new Error(firstMirror.errorMessage ?? 'First Mirror generation failed.');
+          }
+          if (Date.now() > deadline) {
+            throw new Error('Your First Mirror is taking longer than expected. Please try again.');
+          }
+
+          await sleep(POLL_INTERVAL_MS);
+          latest = await getContentStatus('onboarding');
+          if (!cancelled) setJobs(latest.jobs);
         }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) return;
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Unable to prepare your Astrovy.');
       }
-    }, 4000);
+    };
+
+    runGeneration();
 
     rotate.value = withRepeat(
       withTiming(360, { duration: 3000 }),
       -1,
       false
     );
-    return () => clearTimeout(t);
-  }, [data, hydrated, refreshMe, rotate, router, signOut, user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [data, hydrated, refreshMe, rotate, router, user]);
+
+  const firstMirrorJob = jobs.find((job) => job.feature === 'first_mirror');
+  const backgroundJobs = jobs.filter((job) => job.feature !== 'first_mirror');
+  const readyBackgroundJobs = backgroundJobs.filter((job) => job.status === 'ready').length;
+  const stages = [
+    {
+      id: 'profile',
+      text: profileReady
+        ? `Birth profile saved for ${data.birthPlace?.name ?? 'your birthplace'}.`
+        : `Saving your birth date${data.birthDate ? ` (${data.birthDate})` : ''} and birthplace...`,
+      state: profileReady ? 'ready' : activeStep === 'profile' ? 'active' : 'waiting',
+    },
+    {
+      id: 'prewarm',
+      text: jobs.length > 0 ? 'Backend generation jobs started.' : 'Starting the backend generation pipeline...',
+      state: jobs.length > 0 ? 'ready' : activeStep === 'prewarm' ? 'active' : 'waiting',
+    },
+    {
+      id: 'first_mirror',
+      text: firstMirrorJob?.status === 'ready'
+        ? 'First Mirror generated and cached.'
+        : firstMirrorJob?.status === 'failed'
+          ? 'First Mirror needs retry.'
+          : 'Generating your First Mirror...',
+      state: jobState(firstMirrorJob) === 'waiting' && activeStep === 'first_mirror' ? 'active' : jobState(firstMirrorJob),
+    },
+    {
+      id: 'background',
+      text: backgroundJobs.length
+        ? `Warming deeper readings in the background (${readyBackgroundJobs}/${backgroundJobs.length}).`
+        : 'Preparing deeper readings in the background...',
+      state: activeStep === 'background'
+        ? 'active'
+        : backgroundJobs.length > 0 && readyBackgroundJobs === backgroundJobs.length
+          ? 'ready'
+          : backgroundJobs.length > 0
+            ? 'active'
+            : 'waiting',
+    },
+  ] satisfies Array<{ id: string; text: string; state: StageState }>;
 
   const spinStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotate.value}deg` }],
@@ -91,17 +187,17 @@ export default function GeneratingScreen() {
             {stages.map((stage) => (
               <Animated.View
                 key={stage.id}
-                entering={FadeInUp.delay(stage.delay / 2).duration(500)}
+                entering={FadeInUp.duration(500)}
                 style={[
                   styles.stageRow,
                   {
-                    opacity: currentStage >= stage.id ? 1 : 0.4,
+                    opacity: stage.state !== 'waiting' ? 1 : 0.4,
                     backgroundColor:
-                      currentStage >= stage.id
+                      stage.state !== 'waiting'
                         ? 'rgba(255,255,255,0.95)'
                         : 'rgba(255,255,255,0.5)',
                     borderColor:
-                      currentStage >= stage.id
+                      stage.state !== 'waiting'
                         ? 'rgba(139,114,207,0.25)'
                         : 'rgba(31,33,48,0.06)',
                   },
@@ -110,10 +206,7 @@ export default function GeneratingScreen() {
                 <View
                   style={[
                     styles.stageDot,
-                    {
-                      backgroundColor:
-                        currentStage >= stage.id ? '#16A7A0' : 'rgba(31,33,48,0.15)',
-                    },
+                    { backgroundColor: stageDotColor(stage.state) },
                   ]}
                 />
                 <Text
@@ -121,7 +214,7 @@ export default function GeneratingScreen() {
                     styles.stageText,
                     {
                       color:
-                        currentStage >= stage.id ? theme.colors.ink : theme.colors.muted,
+                        stage.state !== 'waiting' ? theme.colors.ink : theme.colors.muted,
                     },
                   ]}
                 >

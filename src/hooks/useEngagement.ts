@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '@/src/lib/api';
+import { ApiError, apiRequest } from '@/src/lib/api';
 import * as backend from '@/src/services/backend';
-import type { JournalEntry, MirrorPayload, TarotDraw, TodayPayload } from '@/src/services/backend';
+import type { ContentPrewarmStatus, JournalEntry, MirrorPayload, TarotDraw, TodayPayload } from '@/src/services/backend';
 
 type TarotPosition = 'past' | 'present' | 'future';
 
@@ -44,25 +44,71 @@ function normalizeTarot(draw: TarotDraw) {
   };
 }
 
+function moodResponseFallback(mood: string) {
+  return `Checked in with ${mood}.`;
+}
+
+function markRetentionStepComplete(retention: TodayPayload['retention'], key: 'check_in' | 'journal' | 'tarot') {
+  if (!retention) return retention;
+  const steps = retention.steps.map((step) => (step.key === key ? { ...step, completed: true } : step));
+  const completedCount = steps.filter((step) => step.completed).length;
+  const totalCount = steps.length;
+  const nextStep = steps.find((step) => !step.completed);
+  const nextAction: NonNullable<TodayPayload['retention']>['nextAction'] = nextStep
+    ? {
+        key: nextStep.key,
+        title: nextStep.title,
+        body: nextStep.body,
+        cta: nextStep.cta,
+        route: nextStep.route,
+        completed: false,
+      }
+    : {
+        key: 'complete',
+        title: 'Daily loop complete',
+        body: 'Your signal is mirrored for today.',
+        cta: 'View Mirror',
+        route: '/(tabs)/mirror',
+        completed: true,
+      };
+  return {
+    ...retention,
+    steps,
+    completedCount,
+    totalCount,
+    completionScore: totalCount ? Math.round((completedCount / totalCount) * 100) : 100,
+    nextAction,
+    summary: nextStep
+      ? `${completedCount}/${totalCount} rituals complete. ${nextStep.title} is next.`
+      : 'Daily loop complete. Your mirror is ready.',
+  };
+}
+
 export function useEngagement() {
   const [today, setToday] = useState<TodayPayload | null>(null);
   const [mirror, setMirror] = useState<MirrorPayload | null>(null);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [tarotState, setTarotState] = useState<backend.TarotState | null>(null);
+  const [dailyContentStatus, setDailyContentStatus] = useState<ContentPrewarmStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [todayPayload, mirrorPayload, journalPayload, tarotPayload] = await Promise.all([
-      backend.getToday(),
+    const [todayPayload, mirrorPayload, journalPayload, tarotPayload, statusPayload] = await Promise.all([
+      backend.getToday({ fast: true }),
       backend.getMirror(),
       backend.listJournalEntries(),
       backend.getTarotToday(),
+      backend.getContentStatus('daily').catch(() => null),
     ]);
     setToday(todayPayload);
     setMirror(mirrorPayload);
     setJournalEntries(journalPayload.data);
     setTarotState(tarotPayload);
+    setDailyContentStatus(statusPayload ?? todayPayload.generation?.contentJobs ?? null);
     setLoaded(true);
+    backend.prewarmContent('daily')
+      .then(setDailyContentStatus)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -71,7 +117,23 @@ export function useEngagement() {
 
   const addMood = useCallback(
     async (mood: string) => {
-      const result = await backend.createCheckIn(mood);
+      let result: Awaited<ReturnType<typeof backend.createCheckIn>>;
+      try {
+        result = await backend.createCheckIn(mood);
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'ALREADY_CHECKED_IN') {
+          const details = error.details as Partial<Awaited<ReturnType<typeof backend.createCheckIn>>> | undefined;
+          if (!details?.checkIn || typeof details.streak !== 'number') throw error;
+          result = {
+            checkIn: details.checkIn,
+            streak: details.streak,
+            moodResponse: details.moodResponse ?? moodResponseFallback(details.checkIn.mood),
+            patternAlert: details.patternAlert ?? null,
+          };
+        } else {
+          throw error;
+        }
+      }
       setToday((prev) =>
         prev
           ? {
@@ -81,10 +143,11 @@ export function useEngagement() {
               streak: result.streak,
               moodResponse: result.moodResponse as TodayPayload['moodResponse'],
               patternAlert: result.patternAlert as TodayPayload['patternAlert'],
+              retention: markRetentionStepComplete(prev.retention, 'check_in'),
             }
           : prev
       );
-      await refresh().catch(() => {});
+      refresh().catch(() => {});
       return result;
     },
     [refresh]
@@ -100,7 +163,7 @@ export function useEngagement() {
       const result = await backend.createJournalEntry(text, prompt);
       setJournalEntries((prev) => [result.entry, ...prev]);
       setMirror((prev) => (prev ? { ...prev, reflections: result.reflections } : prev));
-      await refresh().catch(() => {});
+      refresh().catch(() => {});
       return result;
     },
     [refresh, today?.journal.prompt]
@@ -116,14 +179,14 @@ export function useEngagement() {
   const drawTarotCard = useCallback(async () => {
     const result = await backend.createTarotDraw('single');
     setTarotState(result);
-    await refresh().catch(() => {});
+    refresh().catch(() => {});
     return result;
   }, [refresh]);
 
   const drawTarotSpread = useCallback(async () => {
     const result = await backend.createTarotDraw('three');
     setTarotState(result);
-    await refresh().catch(() => {});
+    refresh().catch(() => {});
     return result;
   }, [refresh]);
 
@@ -181,6 +244,7 @@ export function useEngagement() {
     todayPayload: today,
     mirrorPayload: mirror,
     tarotPayload: tarotState,
+    dailyContentStatus,
     refresh,
     checkInToday,
     addJournalEntry,

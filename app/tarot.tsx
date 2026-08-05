@@ -46,6 +46,7 @@ export default function TarotScreen() {
 
   const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn);
   const [revealedIndex, setRevealedIndex] = useState(initialDrawn.length > 0 ? initialDrawn.length - 1 : 0);
+  const [drawing, setDrawing] = useState(false);
 
   useEffect(() => {
     // Re-sync if engagement loads after mount
@@ -63,10 +64,13 @@ export default function TarotScreen() {
   const canDraw = engagement?.canDrawTarot?.(isPremium) ?? true;
   const drawsRemaining = engagement?.getTarotDrawsRemaining?.(isPremium) ?? (isPremium ? 3 : 1);
 
-  const handleDraw = useCallback(() => {
-    if (!canDraw) return;
+  const handleDraw = useCallback(async () => {
+    if (!canDraw || drawing) return;
+    setDrawing(true);
     const draw = isPremium ? engagement?.drawTarotSpread?.() : engagement?.drawTarotCard?.();
-    draw?.then((result: any) => {
+    try {
+      const result = await draw;
+      if (!result) return;
       const cards = result.draws.map((card: any) => ({
         cardId: card.cardId,
         reversed: card.reversed,
@@ -78,8 +82,10 @@ export default function TarotScreen() {
       }));
       setDrawnCards(cards);
       setRevealedIndex(0);
-    });
-  }, [canDraw, engagement, isPremium]);
+    } finally {
+      setDrawing(false);
+    }
+  }, [canDraw, drawing, engagement, isPremium]);
 
   const handleRevealNext = () => {
     if (revealedIndex < drawnCards.length - 1) {
@@ -161,15 +167,15 @@ export default function TarotScreen() {
               : 'Come back tomorrow for a new reading'}
           </Text>
           {canDraw && (
-            <TouchableOpacity activeOpacity={0.85} onPress={handleDraw}>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleDraw} disabled={drawing}>
               <LinearGradient
                 colors={theme.gradients.primary}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.drawButton}
+                style={[styles.drawButton, drawing && styles.drawButtonDisabled]}
               >
                 <Text style={styles.drawButtonText}>
-                  {isPremium ? 'Draw Past / Present / Future' : 'Draw My Card'}
+                  {drawing ? 'Drawing...' : isPremium ? 'Draw Past / Present / Future' : 'Draw My Card'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -280,15 +286,15 @@ export default function TarotScreen() {
                   : 'Return tomorrow for a new reading.'}
               </Text>
               {canDraw && (
-                <TouchableOpacity activeOpacity={0.85} onPress={handleDraw}>
+                <TouchableOpacity activeOpacity={0.85} onPress={handleDraw} disabled={drawing}>
                   <LinearGradient
                     colors={theme.gradients.primary}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.drawAgainButton}
+                    style={[styles.drawAgainButton, drawing && styles.drawButtonDisabled]}
                   >
                     <Text style={styles.drawAgainText}>
-                      {isPremium ? 'Draw Again' : 'Draw Another Card'}
+                      {drawing ? 'Drawing...' : isPremium ? 'Draw Again' : 'Draw Another Card'}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -395,6 +401,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...theme.shadows.primaryGlow,
+  },
+  drawButtonDisabled: {
+    opacity: 0.72,
   },
   drawButtonText: {
     fontSize: 14,

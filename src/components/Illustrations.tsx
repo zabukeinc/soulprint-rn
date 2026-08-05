@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withRepeat,
@@ -63,12 +63,11 @@ export function IllustrationCharacter({ mood = 'gentle' }: { mood?: string }) {
 
 export function IllustrationLogo() {
   return (
-    <View style={styles.logoContainer}>
-      <View style={styles.logoInner}>
-        <IllustrationCharacter mood="happy" />
-      </View>
-      <Text style={styles.logoSparkle}>✦</Text>
-    </View>
+    <Image
+      source={require('../../assets/Logo.png')}
+      style={styles.logo}
+      resizeMode="contain"
+    />
   );
 }
 
@@ -232,33 +231,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#8B72CF',
   },
-  logoContainer: {
+  logo: {
     width: 142,
     height: 142,
-    borderRadius: 60,
     alignSelf: 'center',
     marginBottom: 24,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#E8DDFB',
-    shadowColor: 'rgba(99,82,60,0.09)',
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 30,
-    shadowOpacity: 1,
-    elevation: 8,
-  },
-  logoInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoSparkle: {
-    position: 'absolute',
-    top: 12,
-    right: 20,
-    fontSize: 18,
-    color: '#8B72CF',
-    zIndex: 10,
   },
   blobContainer: {
     width: 120,

@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { authStorage, type ApiUser } from '@/src/lib/api';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import { authStorage, setUnauthorizedHandler, type ApiUser } from '@/src/lib/api';
 import * as backend from '@/src/services/backend';
 
 type AuthContextValue = {
@@ -28,6 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<ApiUser | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
+  const hydratedRef = useRef(false);
+  hydratedRef.current = hydrated;
 
   const refreshMe = useCallback(async () => {
     const me = await backend.getMe();
@@ -85,6 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfileComplete(false);
   }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (!hydratedRef.current) return;
+      signOut();
+      router.replace('/(auth)');
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [signOut]);
 
   const deleteAccount = useCallback(async (input: { password?: string; confirm?: 'DELETE' }) => {
     await backend.deleteAccount(input);

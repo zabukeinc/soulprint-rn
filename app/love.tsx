@@ -9,7 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
-import { getLoveReading, submitFeedback } from '@/src/services/backend';
+import { getLoveReading, prewarmContent, submitFeedback } from '@/src/services/backend';
 
 const insights = [
   {
@@ -45,12 +45,15 @@ export default function LoveReadingScreen() {
   const [reading, setReading] = useState<{ hero: string; insights: typeof insights } | null>(null);
 
   useEffect(() => {
-    getLoveReading()
-      .then((payload) => setReading({ hero: payload.hero, insights: payload.insights?.map((item: any) => ({
-        title: item.title,
-        emoji: '✦',
-        content: item.body,
-      })) ?? insights }))
+    getLoveReading({ fast: true })
+      .then((payload) => {
+        setReading({ hero: payload.hero, insights: payload.insights?.map((item: any) => ({
+          title: item.title,
+          emoji: '✦',
+          content: item.body,
+        })) ?? insights });
+        prewarmContent('profile').catch(() => {});
+      })
       .catch(() => setReading(null));
   }, []);
 

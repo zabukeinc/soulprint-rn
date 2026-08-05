@@ -118,22 +118,20 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return await rawRequest<T>(path, options, tokens);
   } catch (error) {
     if (
-      options.auth === false ||
-      !(error instanceof ApiError) ||
-      error.status !== 401 ||
-      !tokens?.refreshToken
+      options.auth !== false &&
+      error instanceof ApiError &&
+      error.status === 401
     ) {
-      throw error;
+      unauthorizedHandler?.();
     }
-
-    const refreshed = await rawRequest<SessionPayload>(
-      '/auth/refresh',
-      { method: 'POST', body: { refreshToken: tokens.refreshToken }, auth: false },
-      null
-    );
-    await writeTokens(refreshed.tokens);
-    return rawRequest<T>(path, options, refreshed.tokens);
+    throw error;
   }
+}
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  unauthorizedHandler = fn;
 }
 
 export const authStorage = {

@@ -6,7 +6,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useTier } from '@/src/context/TierContext';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
-import { getDailyHoroscope, getMe, getNatalChart, type BirthChartReport } from '@/src/services/backend';
+import { getDailyHoroscope, getMe, getNatalChart, prewarmContent, type BirthChartReport } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
 
 const reportTabs = [
@@ -72,16 +72,20 @@ export default function HoroscopeScreen() {
   const [me, setMe] = useState<any | null>(null);
 
   useEffect(() => {
-    Promise.all([getDailyHoroscope(), getNatalChart(), getMe()])
-      .then(([daily, chart, current]) => {
-        setDailyReading(daily);
+    getNatalChart({ fast: true })
+      .then((chart) => {
         setBirthChart(chart);
-        setMe(current);
+        prewarmContent('profile').catch(() => {});
       })
       .catch(() => {
-        setDailyReading(null);
         setBirthChart(null);
       });
+    getDailyHoroscope()
+      .then(setDailyReading)
+      .catch(() => setDailyReading(null));
+    getMe()
+      .then(setMe)
+      .catch(() => setMe(null));
   }, []);
 
   const premium = previewPremium || birthChart?.access.level === 'full';

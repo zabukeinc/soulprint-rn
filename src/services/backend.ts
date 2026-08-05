@@ -88,10 +88,42 @@ export type TodayPayload = {
   horoscope?: {
     moonPhase?: { name?: string; illumination?: number; meaning?: string };
     primaryAspect?: { transit?: string; natal?: string; aspect?: string; tone?: string };
+    todaySignal?: {
+      signal?: { title?: string; sub?: string };
+      insight?: string;
+      move?: string;
+      attribution?: string;
+    };
     calculation?: { engine?: string };
   };
   generation?: Record<string, any>;
   tier: 'free' | 'premium';
+};
+
+export type ContentJobStatus = {
+  id: string | null;
+  scope: 'onboarding' | 'daily' | 'profile';
+  feature: 'first_mirror' | 'today' | 'birth_chart_report' | 'love_reading';
+  contentDate: string;
+  status: 'not_started' | 'queued' | 'generating' | 'ready' | 'failed';
+  attempts: number;
+  sourceCacheKey: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  updatedAt: string | null;
+};
+
+export type ContentPrewarmStatus = {
+  scope: 'onboarding' | 'daily' | 'profile';
+  jobs: ContentJobStatus[];
+  summary: {
+    total: number;
+    ready: number;
+    generating: number;
+    failed: number;
+  };
 };
 
 export type JournalEntry = {
@@ -403,8 +435,19 @@ export function getProducts() {
   return apiRequest<{ products: Array<Record<string, any>>; features: string[] }>('/products');
 }
 
-export function getToday() {
-  return apiRequest<TodayPayload>('/today');
+export function getToday(options: { fast?: boolean } = {}) {
+  return apiRequest<TodayPayload>(options.fast ? '/today?mode=fast' : '/today');
+}
+
+export function prewarmContent(scope: ContentPrewarmStatus['scope'] = 'daily', options: { wait?: boolean } = {}) {
+  const wait = options.wait ? '&wait=true' : '';
+  return apiRequest<ContentPrewarmStatus>(`/content/prewarm?scope=${encodeURIComponent(scope)}${wait}`, {
+    method: 'POST',
+  });
+}
+
+export function getContentStatus(scope: ContentPrewarmStatus['scope'] = 'daily') {
+  return apiRequest<ContentPrewarmStatus>(`/content/status?scope=${encodeURIComponent(scope)}`);
 }
 
 export function getMirror() {
@@ -415,13 +458,21 @@ export function getMirrorJourney(range: '7d' | '30d' | '90d' = '30d') {
   return apiRequest<MirrorJourneyPayload>(`/mirror/journey?range=${encodeURIComponent(range)}`);
 }
 
+function localDateKey() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function createCheckIn(mood: string) {
   return apiRequest<{ checkIn: { date: string; mood: string; createdAt: string }; streak: number; moodResponse: unknown; patternAlert: unknown }>(
     '/check-ins',
     {
       method: 'POST',
       body: { mood },
-      idempotencyKey: `check-in-${new Date().toISOString().slice(0, 10)}`,
+      idempotencyKey: `check-in-${localDateKey()}`,
     }
   );
 }
@@ -457,16 +508,16 @@ export function getFirstMirrorReading() {
   return apiRequest<FirstMirrorPayload>('/readings/first-mirror');
 }
 
-export function getLoveReading() {
-  return apiRequest<any>('/readings/love');
+export function getLoveReading(options: { fast?: boolean } = {}) {
+  return apiRequest<any>(options.fast ? '/readings/love?mode=fast' : '/readings/love');
 }
 
 export function getDailyHoroscope() {
   return apiRequest<any>('/horoscope/daily');
 }
 
-export function getNatalChart() {
-  return apiRequest<BirthChartReport>('/natal-chart');
+export function getNatalChart(options: { fast?: boolean } = {}) {
+  return apiRequest<BirthChartReport>(options.fast ? '/natal-chart?mode=fast' : '/natal-chart');
 }
 
 export function createCompatibilityReading(input: {
