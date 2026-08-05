@@ -25,6 +25,13 @@ interface DrawnCard {
   emoji?: string;
   keywords?: unknown;
   meaning?: string;
+  interpretation?: {
+    meaning?: string;
+    reflectionPrompt?: string;
+    action?: string;
+    shadowNote?: string;
+    source?: string;
+  } | null;
 }
 
 export default function TarotScreen() {
@@ -42,6 +49,7 @@ export default function TarotScreen() {
     emoji: c.backend?.emoji,
     keywords: c.backend?.keywords,
     meaning: c.backend?.meaning,
+    interpretation: c.backend?.interpretation,
   }));
 
   const [drawnCards, setDrawnCards] = useState<DrawnCard[]>(initialDrawn);
@@ -55,6 +63,11 @@ export default function TarotScreen() {
         cardId: c.cardId,
         reversed: c.reversed,
         position: c.position,
+        name: c.backend?.name,
+        emoji: c.backend?.emoji,
+        keywords: c.backend?.keywords,
+        meaning: c.backend?.meaning,
+        interpretation: c.backend?.interpretation,
       }));
       setDrawnCards(restored);
       setRevealedIndex(restored.length - 1);
@@ -79,6 +92,7 @@ export default function TarotScreen() {
         emoji: card.emoji,
         keywords: card.keywords,
         meaning: card.meaning,
+        interpretation: card.interpretation,
       }));
       setDrawnCards(cards);
       setRevealedIndex(0);
@@ -117,7 +131,10 @@ export default function TarotScreen() {
       name: drawn.name ?? fallback?.name ?? drawn.cardId,
       emoji: drawn.emoji ?? fallback?.emoji ?? '✦',
       keywords,
-      meaning: drawn.meaning ?? (fallback ? (isPremium ? fallback.meaning.premium : fallback.meaning.free) : ''),
+      meaning: drawn.interpretation?.meaning ?? drawn.meaning ?? (fallback ? (isPremium ? fallback.meaning.premium : fallback.meaning.free) : ''),
+      reflectionPrompt: drawn.interpretation?.reflectionPrompt,
+      action: drawn.interpretation?.action,
+      shadowNote: drawn.interpretation?.shadowNote,
     };
   };
 
@@ -244,6 +261,28 @@ export default function TarotScreen() {
                   <Text style={styles.cardMeaning}>
                     {card.meaning}
                   </Text>
+                  {isPremium && (card.reflectionPrompt || card.action || card.shadowNote) && (
+                    <View style={styles.interpretationPanel}>
+                      {card.reflectionPrompt && (
+                        <View style={styles.interpretationBlock}>
+                          <Text style={styles.interpretationLabel}>Mirror Question</Text>
+                          <Text style={styles.interpretationText}>{card.reflectionPrompt}</Text>
+                        </View>
+                      )}
+                      {card.action && (
+                        <View style={styles.interpretationBlock}>
+                          <Text style={styles.interpretationLabel}>Best Move</Text>
+                          <Text style={styles.interpretationText}>{card.action}</Text>
+                        </View>
+                      )}
+                      {card.shadowNote && (
+                        <View style={styles.interpretationBlock}>
+                          <Text style={styles.interpretationLabel}>Shadow Note</Text>
+                          <Text style={styles.interpretationText}>{card.shadowNote}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </LinearGradient>
 
                 <TouchableOpacity
@@ -505,6 +544,28 @@ const styles = StyleSheet.create({
     color: theme.colors.ink,
     lineHeight: 23,
     fontWeight: '500',
+  },
+  interpretationPanel: {
+    marginTop: 16,
+    gap: 10,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(31,33,48,0.08)',
+  },
+  interpretationBlock: {
+    gap: 4,
+  },
+  interpretationLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8B72CF',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  interpretationText: {
+    fontSize: 13,
+    color: theme.colors.ink,
+    lineHeight: 20,
   },
   shareBtn: {
     marginTop: 12,

@@ -86,7 +86,7 @@ export default function HoroscopeScreen() {
     getMe()
       .then(setMe)
       .catch(() => setMe(null));
-  }, []);
+  }, [previewPremium]);
 
   const premium = previewPremium || birthChart?.access.level === 'full';
   const backendPremium = birthChart?.access.level === 'full';

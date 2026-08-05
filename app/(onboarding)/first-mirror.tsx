@@ -32,7 +32,7 @@ export default function FirstMirrorScreen() {
       true
     );
 
-    Promise.all([getMe(), getFirstMirrorReading()])
+    Promise.all([getMe(), getFirstMirrorReading({ fast: true })])
       .then(([me, firstMirror]) => {
         setProfile(me.profile);
         setMirror(firstMirror);

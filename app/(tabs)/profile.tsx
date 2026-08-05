@@ -11,7 +11,7 @@ import { theme } from '@/src/lib/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { isPremium, toggleTier } = useTier();
+  const { isPremium, loading: tierLoading, toggleTier } = useTier();
   const { signOut, deleteAccount } = useAuth();
   const engagement = useEngagement();
   const [account, setAccount] = useState<ApiUser | null>(null);
@@ -119,7 +119,7 @@ export default function ProfileScreen() {
           <View>
             <Text style={styles.profileName}>{name}</Text>
             <Text style={styles.profileMeta}>
-              {sunSign} · {lifePath} · Deep tone
+              {sunSign} · {lifePath}
             </Text>
           </View>
         </View>
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
                 : 'Viewing as a free user. Switch to see premium.'}
             </Text>
           </View>
-          <TouchableOpacity onPress={toggleTier} style={styles.tierToggle}>
+          <TouchableOpacity disabled={tierLoading} onPress={() => { void toggleTier(); }} style={styles.tierToggle}>
             <View
               style={[
                 styles.toggleTrack,
@@ -204,18 +204,6 @@ export default function ProfileScreen() {
           <View style={[styles.toggleTrack, { backgroundColor: '#16A7A0' }]}>
             <View style={[styles.toggleKnob, { transform: [{ translateX: 18 }] }]} />
           </View>
-        </Animated.View>
-
-        <View style={styles.divider} />
-
-        <Animated.View entering={FadeInUp.duration(500).delay(240)} style={styles.settingRow}>
-          <View>
-            <Text style={styles.settingTitle}>Deep Tone</Text>
-            <Text style={styles.settingDesc}>
-              Warm, direct, reflective
-            </Text>
-          </View>
-          <Text style={styles.settingValue}>Active</Text>
         </Animated.View>
 
         <View style={styles.divider} />

@@ -100,9 +100,25 @@ export type TodayPayload = {
   tier: 'free' | 'premium';
 };
 
+export type TodayWidgetSnapshot = {
+  date: string;
+  userName: string;
+  todaySignal: {
+    title: string;
+    subtitle: string;
+  };
+  insight: string;
+  bestMove: string;
+  streak: number;
+  checkedInToday: boolean;
+  tier: 'free' | 'premium';
+  source: string;
+  updatedAt: string;
+};
+
 export type ContentJobStatus = {
   id: string | null;
-  scope: 'onboarding' | 'daily' | 'profile';
+  scope: 'onboarding' | 'first_mirror' | 'daily' | 'profile';
   feature: 'first_mirror' | 'today' | 'birth_chart_report' | 'love_reading';
   contentDate: string;
   status: 'not_started' | 'queued' | 'generating' | 'ready' | 'failed';
@@ -116,7 +132,7 @@ export type ContentJobStatus = {
 };
 
 export type ContentPrewarmStatus = {
-  scope: 'onboarding' | 'daily' | 'profile';
+  scope: 'onboarding' | 'first_mirror' | 'daily' | 'profile';
   jobs: ContentJobStatus[];
   summary: {
     total: number;
@@ -220,7 +236,9 @@ export type FirstMirrorPayload = {
     model: string;
     promptId: string;
     promptVersion: string;
-    cacheKey: string;
+    cacheKey: string | null;
+    source?: string;
+    status?: string;
     quality?: Record<string, any>;
   };
 };
@@ -235,6 +253,13 @@ export type TarotDraw = {
   position: 'past' | 'present' | 'future';
   keywords: unknown;
   meaning: string;
+  interpretation: {
+    meaning?: string;
+    reflectionPrompt?: string;
+    action?: string;
+    shadowNote?: string;
+    source?: string;
+  } | null;
   date: string;
 };
 
@@ -431,12 +456,23 @@ export function getEntitlement() {
   return apiRequest<Entitlement>('/entitlements/me');
 }
 
+export function setEntitlementPreview(tier: 'free' | 'premium') {
+  return apiRequest<Entitlement>('/entitlements/me/preview', {
+    method: 'PATCH',
+    body: { tier },
+  });
+}
+
 export function getProducts() {
   return apiRequest<{ products: Array<Record<string, any>>; features: string[] }>('/products');
 }
 
 export function getToday(options: { fast?: boolean } = {}) {
   return apiRequest<TodayPayload>(options.fast ? '/today?mode=fast' : '/today');
+}
+
+export function getTodayWidget() {
+  return apiRequest<TodayWidgetSnapshot>('/widgets/today');
 }
 
 export function prewarmContent(scope: ContentPrewarmStatus['scope'] = 'daily', options: { wait?: boolean } = {}) {
@@ -504,8 +540,8 @@ export function getAstrovyReading() {
   return apiRequest<any>('/readings/astrovy');
 }
 
-export function getFirstMirrorReading() {
-  return apiRequest<FirstMirrorPayload>('/readings/first-mirror');
+export function getFirstMirrorReading(options: { fast?: boolean } = {}) {
+  return apiRequest<FirstMirrorPayload>(options.fast ? '/readings/first-mirror?mode=fast' : '/readings/first-mirror');
 }
 
 export function getLoveReading(options: { fast?: boolean } = {}) {

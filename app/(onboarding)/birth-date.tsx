@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,9 +8,30 @@ import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
 
-const days = Array.from({ length: 31 }, (_, i) => i + 1);
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-const years = Array.from({ length: 100 }, (_, i) => 2024 - i);
+const months = [
+  { value: 1, label: 'Jan' },
+  { value: 2, label: 'Feb' },
+  { value: 3, label: 'Mar' },
+  { value: 4, label: 'Apr' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'Jun' },
+  { value: 7, label: 'Jul' },
+  { value: 8, label: 'Aug' },
+  { value: 9, label: 'Sep' },
+  { value: 10, label: 'Oct' },
+  { value: 11, label: 'Nov' },
+  { value: 12, label: 'Dec' },
+];
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function pad(value: number) {
+  return String(value).padStart(2, '0');
+}
 
 export default function BirthDateScreen() {
   const router = useRouter();
@@ -19,7 +40,13 @@ export default function BirthDateScreen() {
   const [month, setMonth] = useState(1);
   const [year, setYear] = useState(2000);
 
-  const selectedDate = `${day} / ${month.toString().padStart(2, '0')} / ${year}`;
+  const days = Array.from({ length: daysInMonth(year, month) }, (_, i) => i + 1);
+  const selectedMonth = months.find((item) => item.value === month)?.label ?? pad(month);
+  const selectedDate = `${selectedMonth} ${day}, ${year}`;
+
+  useEffect(() => {
+    setDay((current) => Math.min(current, daysInMonth(year, month)));
+  }, [month, year]);
 
   return (
     <ScrollView
@@ -74,12 +101,12 @@ export default function BirthDateScreen() {
           <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
             {months.map((m) => (
               <TouchableOpacity
-                key={m}
-                onPress={() => setMonth(m)}
-                style={[styles.pickerItem, month === m && styles.pickerItemActive]}
+                key={m.value}
+                onPress={() => setMonth(m.value)}
+                style={[styles.pickerItem, month === m.value && styles.pickerItemActive]}
               >
-                <Text style={[styles.pickerItemText, month === m && styles.pickerItemTextActive]}>
-                  {m.toString().padStart(2, '0')}
+                <Text style={[styles.pickerItemText, month === m.value && styles.pickerItemTextActive]}>
+                  {m.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -117,7 +144,7 @@ export default function BirthDateScreen() {
           activeOpacity={0.85}
           onPress={() => {
             update({
-              birthDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+              birthDate: `${year}-${pad(month)}-${pad(day)}`,
             });
             router.push('/(onboarding)/birth-time');
           }}

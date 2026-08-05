@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -18,6 +18,58 @@ import { createCompatibilityReading } from '@/src/services/backend';
 import { searchCities, type City } from '@/src/services/cities';
 
 const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+const monthOptions = [
+  { value: 1, label: 'Jan' },
+  { value: 2, label: 'Feb' },
+  { value: 3, label: 'Mar' },
+  { value: 4, label: 'Apr' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'Jun' },
+  { value: 7, label: 'Jul' },
+  { value: 8, label: 'Aug' },
+  { value: 9, label: 'Sep' },
+  { value: 10, label: 'Oct' },
+  { value: 11, label: 'Nov' },
+  { value: 12, label: 'Dec' },
+];
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({ length: 101 }, (_, index) => currentYear - index);
+const hourOptions = Array.from({ length: 24 }, (_, index) => index);
+const minuteOptions = Array.from({ length: 12 }, (_, index) => index * 5);
+
+function pad(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function parseBirthDate(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return { year: 2000, month: 1, day: 1 };
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  };
+}
+
+function parseBirthTime(value: string) {
+  const match = value.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return { hour: 12, minute: 0 };
+  return {
+    hour: Number(match[1]),
+    minute: Number(match[2]),
+  };
+}
+
+function formatDateLabel(value: string) {
+  if (!value) return 'Select birth date';
+  const date = parseBirthDate(value);
+  const month = monthOptions.find((option) => option.value === date.month)?.label ?? pad(date.month);
+  return `${month} ${date.day}, ${date.year}`;
+}
 
 export default function CompatibilityScreen() {
   const router = useRouter();
@@ -28,6 +80,10 @@ export default function CompatibilityScreen() {
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
   const [knowsBirthTime, setKnowsBirthTime] = useState(false);
+  const [dateSelectorVisible, setDateSelectorVisible] = useState(false);
+  const [timeSelectorVisible, setTimeSelectorVisible] = useState(false);
+  const [dateDraft, setDateDraft] = useState({ year: 2000, month: 1, day: 1 });
+  const [timeDraft, setTimeDraft] = useState({ hour: 12, minute: 0 });
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeResults, setPlaceResults] = useState<City[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<City | null>(null);
@@ -111,6 +167,37 @@ export default function CompatibilityScreen() {
   const barStyle = useAnimatedStyle(() => ({
     width: `${progress.value}%`,
   }));
+  const dateDayOptions = Array.from({ length: daysInMonth(dateDraft.year, dateDraft.month) }, (_, index) => index + 1);
+  const openDateSelector = () => {
+    const parsed = parseBirthDate(birthDate);
+    setDateDraft({
+      year: parsed.year,
+      month: parsed.month,
+      day: Math.min(parsed.day, daysInMonth(parsed.year, parsed.month)),
+    });
+    setDateSelectorVisible(true);
+  };
+  const openTimeSelector = () => {
+    setTimeDraft(parseBirthTime(birthTime));
+    setTimeSelectorVisible(true);
+  };
+  const updateDateDraft = (next: Partial<typeof dateDraft>) => {
+    setDateDraft((current) => {
+      const updated = { ...current, ...next };
+      return {
+        ...updated,
+        day: Math.min(updated.day, daysInMonth(updated.year, updated.month)),
+      };
+    });
+  };
+  const confirmDate = () => {
+    setBirthDate(`${dateDraft.year}-${pad(dateDraft.month)}-${pad(dateDraft.day)}`);
+    setDateSelectorVisible(false);
+  };
+  const confirmTime = () => {
+    setBirthTime(`${pad(timeDraft.hour)}:${pad(timeDraft.minute)}`);
+    setTimeSelectorVisible(false);
+  };
   const resultSections = Array.isArray(reading?.sections) ? reading.sections : [];
   const resultSection = (key: string) => resultSections.find((section: any) => section.key === key)?.body;
   const basis = reading?.basis ?? {};
@@ -229,12 +316,13 @@ export default function CompatibilityScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>←</Text>
@@ -288,14 +376,19 @@ export default function CompatibilityScreen() {
         <>
           <Animated.View entering={FadeInUp.delay(320).duration(500)} style={styles.inputSection}>
             <Text style={styles.inputLabel}>Their birth date</Text>
-            <TextInput
-              value={birthDate}
-              onChangeText={setBirthDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.colors.muted + '80'}
-              style={styles.input}
-              keyboardType="numbers-and-punctuation"
-            />
+            <TouchableOpacity
+              style={[styles.selectorField, birthDate && styles.selectorFieldSelected]}
+              onPress={openDateSelector}
+              activeOpacity={0.85}
+            >
+              <View>
+                <Text style={styles.selectorLabel}>Birth Date</Text>
+                <Text style={[styles.selectorValue, !birthDate && styles.selectorPlaceholder]}>
+                  {formatDateLabel(birthDate)}
+                </Text>
+              </View>
+              <Text style={styles.selectorIcon}>⌄</Text>
+            </TouchableOpacity>
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(380).duration(500)} style={styles.inputSection}>
@@ -312,14 +405,19 @@ export default function CompatibilityScreen() {
               </TouchableOpacity>
             </View>
             {knowsBirthTime && (
-              <TextInput
-                value={birthTime}
-                onChangeText={setBirthTime}
-                placeholder="HH:mm"
-                placeholderTextColor={theme.colors.muted + '80'}
-                style={styles.input}
-                keyboardType="numbers-and-punctuation"
-              />
+              <TouchableOpacity
+                style={[styles.selectorField, birthTime && styles.selectorFieldSelected]}
+                onPress={openTimeSelector}
+                activeOpacity={0.85}
+              >
+                <View>
+                  <Text style={styles.selectorLabel}>Birth Time</Text>
+                  <Text style={[styles.selectorValue, !birthTime && styles.selectorPlaceholder]}>
+                    {birthTime || 'Select birth time'}
+                  </Text>
+                </View>
+                <Text style={styles.selectorIcon}>⌄</Text>
+              </TouchableOpacity>
             )}
           </Animated.View>
 
@@ -421,7 +519,136 @@ export default function CompatibilityScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
-    </ScrollView>
+      </ScrollView>
+
+      <Modal transparent visible={dateSelectorVisible} animationType="fade" onRequestClose={() => setDateSelectorVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.selectorSheet}>
+            <View style={styles.selectorSheetHeader}>
+              <View>
+                <Text style={styles.sheetLabel}>Full Birth Match</Text>
+                <Text style={styles.sheetTitle}>Select birth date</Text>
+              </View>
+              <TouchableOpacity style={styles.sheetClose} onPress={() => setDateSelectorVisible(false)} activeOpacity={0.85}>
+                <Text style={styles.sheetCloseText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.pickerColumns}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Month</Text>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                  {monthOptions.map((month) => (
+                    <TouchableOpacity
+                      key={month.value}
+                      style={[styles.pickerOption, dateDraft.month === month.value && styles.pickerOptionActive]}
+                      onPress={() => updateDateDraft({ month: month.value })}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.pickerOptionText, dateDraft.month === month.value && styles.pickerOptionTextActive]}>{month.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Day</Text>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                  {dateDayOptions.map((day) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.pickerOption, dateDraft.day === day && styles.pickerOptionActive]}
+                      onPress={() => updateDateDraft({ day })}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.pickerOptionText, dateDraft.day === day && styles.pickerOptionTextActive]}>{day}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Year</Text>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                  {yearOptions.map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[styles.pickerOption, dateDraft.year === year && styles.pickerOptionActive]}
+                      onPress={() => updateDateDraft({ year })}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.pickerOptionText, dateDraft.year === year && styles.pickerOptionTextActive]}>{year}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.sheetAction} onPress={confirmDate} activeOpacity={0.85}>
+              <LinearGradient colors={theme.gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sheetActionGradient}>
+                <Text style={styles.sheetActionText}>Use {formatDateLabel(`${dateDraft.year}-${pad(dateDraft.month)}-${pad(dateDraft.day)}`)}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal transparent visible={timeSelectorVisible} animationType="fade" onRequestClose={() => setTimeSelectorVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.selectorSheet}>
+            <View style={styles.selectorSheetHeader}>
+              <View>
+                <Text style={styles.sheetLabel}>Full Birth Match</Text>
+                <Text style={styles.sheetTitle}>Select birth time</Text>
+              </View>
+              <TouchableOpacity style={styles.sheetClose} onPress={() => setTimeSelectorVisible(false)} activeOpacity={0.85}>
+                <Text style={styles.sheetCloseText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.timePreview}>
+              <Text style={styles.timePreviewText}>{pad(timeDraft.hour)}:{pad(timeDraft.minute)}</Text>
+            </View>
+            <View style={styles.pickerColumns}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hour</Text>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                  {hourOptions.map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={[styles.pickerOption, timeDraft.hour === hour && styles.pickerOptionActive]}
+                      onPress={() => setTimeDraft((current) => ({ ...current, hour }))}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.pickerOptionText, timeDraft.hour === hour && styles.pickerOptionTextActive]}>{pad(hour)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minute</Text>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                  {minuteOptions.map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={[styles.pickerOption, timeDraft.minute === minute && styles.pickerOptionActive]}
+                      onPress={() => setTimeDraft((current) => ({ ...current, minute }))}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.pickerOptionText, timeDraft.minute === minute && styles.pickerOptionTextActive]}>{pad(minute)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.sheetAction} onPress={confirmTime} activeOpacity={0.85}>
+              <LinearGradient colors={theme.gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sheetActionGradient}>
+                <Text style={styles.sheetActionText}>Use {pad(timeDraft.hour)}:{pad(timeDraft.minute)}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -590,6 +817,165 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
+  },
+  selectorField: {
+    minHeight: 58,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectorFieldSelected: {
+    borderColor: 'rgba(22,167,160,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  selectorLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    marginBottom: 4,
+  },
+  selectorValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.ink,
+  },
+  selectorPlaceholder: {
+    color: theme.colors.muted,
+    fontWeight: '600',
+  },
+  selectorIcon: {
+    fontSize: 18,
+    color: theme.colors.muted,
+    marginLeft: 12,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(31,33,48,0.36)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  selectorSheet: {
+    maxHeight: '78%',
+    borderRadius: 28,
+    padding: 18,
+    backgroundColor: '#FFF9F3',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSoft,
+  },
+  selectorSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sheetLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8B72CF',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  sheetTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 20,
+    fontWeight: '500',
+    color: theme.colors.ink,
+  },
+  sheetClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  sheetCloseText: {
+    fontSize: 22,
+    color: theme.colors.muted,
+    lineHeight: 24,
+  },
+  pickerColumns: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pickerColumn: {
+    flex: 1,
+  },
+  pickerLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: theme.colors.muted,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pickerList: {
+    maxHeight: 220,
+  },
+  pickerOption: {
+    minHeight: 38,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  pickerOptionActive: {
+    backgroundColor: '#8B72CF',
+    borderColor: 'transparent',
+  },
+  pickerOptionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.colors.ink,
+  },
+  pickerOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  timePreview: {
+    minHeight: 58,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(232,221,251,0.52)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.16)',
+    marginBottom: 14,
+  },
+  timePreviewText: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 28,
+    fontWeight: '500',
+    color: theme.colors.ink,
+  },
+  sheetAction: {
+    marginTop: 16,
+  },
+  sheetActionGradient: {
+    minHeight: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  sheetActionText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   selectedPlaceText: {
     fontSize: 11,

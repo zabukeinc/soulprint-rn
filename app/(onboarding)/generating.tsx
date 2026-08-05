@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeIn,
   FadeInUp,
   ZoomIn,
   withRepeat,
   withTiming,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
@@ -20,7 +20,8 @@ import { ApiError } from '@/src/lib/api';
 
 type StageState = 'waiting' | 'active' | 'ready' | 'failed';
 
-const FIRST_MIRROR_TIMEOUT_MS = 45000;
+const FIRST_MIRROR_SLOW_MS = 20000;
+const FIRST_MIRROR_TIMEOUT_MS = 130000;
 const POLL_INTERVAL_MS = 1500;
 const MIN_VISIBLE_MS = 2600;
 
@@ -46,39 +47,54 @@ export default function GeneratingScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
   const { hydrated, user, refreshMe } = useAuth();
+  const userId = user?.id;
+  const dataRef = useRef(data);
+  const refreshMeRef = useRef(refreshMe);
+  const startedRef = useRef(false);
   const [profileReady, setProfileReady] = useState(false);
   const [jobs, setJobs] = useState<ContentJobStatus[]>([]);
   const [activeStep, setActiveStep] = useState<'profile' | 'prewarm' | 'first_mirror' | 'background'>('profile');
-  const [isComplete, setIsComplete] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const rotate = useSharedValue(0);
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    dataRef.current = data;
+    refreshMeRef.current = refreshMe;
+  }, [data, refreshMe]);
 
   useEffect(() => {
     let cancelled = false;
+    const mountedAt = Date.now();
+    const elapsedTimer = setInterval(() => {
+      if (!cancelled) setElapsedMs(Date.now() - mountedAt);
+    }, 500);
 
     const runGeneration = async () => {
       const startedAt = Date.now();
       try {
         if (!hydrated) return;
-        if (!user) {
+        if (startedRef.current) return;
+        if (!userId) {
           router.replace('/(auth)');
           return;
         }
+        startedRef.current = true;
         setError(null);
         setActiveStep('profile');
-        setIsComplete(false);
         setProfileReady(false);
         setJobs([]);
 
-        await submitProfile(data);
+        await submitProfile(dataRef.current);
         if (cancelled) return;
         setProfileReady(true);
-        await refreshMe();
+        await refreshMeRef.current();
 
         if (cancelled) return;
         setActiveStep('prewarm');
-        const initialStatus = await prewarmContent('onboarding');
+        const initialStatus = await prewarmContent('first_mirror');
         if (cancelled) return;
         setJobs(initialStatus.jobs);
         setActiveStep('first_mirror');
@@ -92,7 +108,10 @@ export default function GeneratingScreen() {
             setActiveStep('background');
             const remaining = MIN_VISIBLE_MS - (Date.now() - startedAt);
             if (remaining > 0) await sleep(remaining);
-            if (!cancelled) setIsComplete(true);
+            if (!cancelled) {
+              prewarmContent('profile').catch(() => {});
+              router.replace('/(onboarding)/first-mirror');
+            }
             return;
           }
           if (firstMirror?.status === 'failed') {
@@ -103,7 +122,7 @@ export default function GeneratingScreen() {
           }
 
           await sleep(POLL_INTERVAL_MS);
-          latest = await getContentStatus('onboarding');
+          latest = await getContentStatus('first_mirror');
           if (!cancelled) setJobs(latest.jobs);
         }
       } catch (err) {
@@ -120,10 +139,16 @@ export default function GeneratingScreen() {
       -1,
       false
     );
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1100 }),
+      -1,
+      true
+    );
     return () => {
       cancelled = true;
+      clearInterval(elapsedTimer);
     };
-  }, [data, hydrated, refreshMe, rotate, router, user]);
+  }, [hydrated, rotate, router, userId]);
 
   const firstMirrorJob = jobs.find((job) => job.feature === 'first_mirror');
   const backgroundJobs = jobs.filter((job) => job.feature !== 'first_mirror');
@@ -147,7 +172,9 @@ export default function GeneratingScreen() {
         ? 'First Mirror generated and cached.'
         : firstMirrorJob?.status === 'failed'
           ? 'First Mirror needs retry.'
-          : 'Generating your First Mirror...',
+          : elapsedMs > FIRST_MIRROR_SLOW_MS
+            ? 'Still writing your First Mirror with the backend...'
+            : 'Generating your First Mirror...',
       state: jobState(firstMirrorJob) === 'waiting' && activeStep === 'first_mirror' ? 'active' : jobState(firstMirrorJob),
     },
     {
@@ -168,10 +195,13 @@ export default function GeneratingScreen() {
   const spinStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotate.value}deg` }],
   }));
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 1], [0.55, 1]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.86, 1.18]) }],
+  }));
 
   return (
     <View style={styles.container}>
-      {!isComplete ? (
         <Animated.View entering={FadeIn.duration(400)} style={styles.loadingContainer}>
           <View style={styles.center}>
             <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
@@ -208,7 +238,9 @@ export default function GeneratingScreen() {
                     styles.stageDot,
                     { backgroundColor: stageDotColor(stage.state) },
                   ]}
-                />
+                >
+                  {stage.state === 'active' && <Animated.View style={[styles.stagePulse, pulseStyle]} />}
+                </View>
                 <Text
                   style={[
                     styles.stageText,
@@ -241,37 +273,6 @@ export default function GeneratingScreen() {
 
           <ProgressDots total={7} current={6} />
         </Animated.View>
-      ) : (
-        <Animated.View
-          entering={ZoomIn.duration(300)}
-          style={styles.completeContainer}
-        >
-          <Animated.View entering={ZoomIn.delay(100).duration(300)} style={styles.iconBg}>
-            <Text style={styles.icon}>✦</Text>
-          </Animated.View>
-          <Text style={styles.completeLabel}>Your Astrovy is ready</Text>
-          <Text style={styles.completeTitle}>Your first reflection is ready.</Text>
-          <Text style={styles.completeDesc}>
-            Take a moment to see what your pattern reveals about you today.
-          </Text>
-
-          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/(onboarding)/first-mirror')}
-            >
-              <LinearGradient
-                colors={theme.gradients.primary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.button}
-              >
-                <Text style={styles.buttonText}>See your Astrovy</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
     </View>
   );
 }
@@ -341,6 +342,14 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stagePulse: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(139,114,207,0.24)',
   },
   stageText: {
     fontSize: 12,

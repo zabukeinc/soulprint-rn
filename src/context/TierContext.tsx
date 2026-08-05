@@ -1,25 +1,24 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/src/context/AuthContext';
-import { getEntitlement } from '@/src/services/backend';
+import { getEntitlement, setEntitlementPreview } from '@/src/services/backend';
 
 interface TierContextType {
   isPremium: boolean;
   loading: boolean;
   refreshTier: () => Promise<void>;
-  toggleTier: () => void;
+  toggleTier: () => Promise<void>;
 }
 
 const TierContext = createContext<TierContextType>({
   isPremium: false,
   loading: false,
   refreshTier: async () => {},
-  toggleTier: () => {},
+  toggleTier: async () => {},
 });
 
 export function TierProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [serverPremium, setServerPremium] = useState(false);
-  const [previewPremium, setPreviewPremium] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
   const refreshTier = useCallback(async () => {
@@ -40,18 +39,26 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
     refreshTier().catch(() => {});
   }, [refreshTier]);
 
-  const toggleTier = useCallback(() => {
-    setPreviewPremium((prev) => (prev === null ? !serverPremium : !prev));
-  }, [serverPremium]);
+  const toggleTier = useCallback(async () => {
+    if (!user || loading) return;
+    const nextTier = serverPremium ? 'free' : 'premium';
+    setLoading(true);
+    try {
+      const entitlement = await setEntitlementPreview(nextTier);
+      setServerPremium(entitlement.tier === 'premium' && ['active', 'grace'].includes(entitlement.status));
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, serverPremium, user]);
 
   const value = useMemo(
     () => ({
-      isPremium: previewPremium ?? serverPremium,
+      isPremium: serverPremium,
       loading,
       refreshTier,
       toggleTier,
     }),
-    [loading, previewPremium, refreshTier, serverPremium, toggleTier]
+    [loading, refreshTier, serverPremium, toggleTier]
   );
 
   return <TierContext.Provider value={value}>{children}</TierContext.Provider>;

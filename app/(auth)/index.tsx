@@ -56,7 +56,7 @@ export default function AuthScreen() {
           <Text style={styles.label}>Astrovy Account</Text>
           <Text style={styles.title}>{mode === 'login' ? 'Welcome back' : 'Create your space'}</Text>
           <Text style={styles.description}>
-            Your readings, chart, journals, tarot draws, and mirror history sync through the Soulprint backend.
+            Your readings, chart, journals, tarot draws, and mirror history sync through the space.
           </Text>
         </Animated.View>
 

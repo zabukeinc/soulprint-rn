@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, apiRequest } from '@/src/lib/api';
+import { useTier } from '@/src/context/TierContext';
 import * as backend from '@/src/services/backend';
 import type { ContentPrewarmStatus, JournalEntry, MirrorPayload, TarotDraw, TodayPayload } from '@/src/services/backend';
+import { cacheTodayWidgetSnapshot, widgetSnapshotFromToday } from '@/src/services/widgetSnapshot';
 
 type TarotPosition = 'past' | 'present' | 'future';
 
@@ -85,6 +87,7 @@ function markRetentionStepComplete(retention: TodayPayload['retention'], key: 'c
 }
 
 export function useEngagement() {
+  const { isPremium } = useTier();
   const [today, setToday] = useState<TodayPayload | null>(null);
   const [mirror, setMirror] = useState<MirrorPayload | null>(null);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -106,10 +109,11 @@ export function useEngagement() {
     setTarotState(tarotPayload);
     setDailyContentStatus(statusPayload ?? todayPayload.generation?.contentJobs ?? null);
     setLoaded(true);
+    cacheTodayWidgetSnapshot(widgetSnapshotFromToday(todayPayload)).catch(() => {});
     backend.prewarmContent('daily')
       .then(setDailyContentStatus)
       .catch(() => {});
-  }, []);
+  }, [isPremium]);
 
   useEffect(() => {
     refresh().catch(() => setLoaded(true));
@@ -181,14 +185,14 @@ export function useEngagement() {
     setTarotState(result);
     refresh().catch(() => {});
     return result;
-  }, [refresh]);
+  }, [isPremium, refresh]);
 
   const drawTarotSpread = useCallback(async () => {
     const result = await backend.createTarotDraw('three');
     setTarotState(result);
     refresh().catch(() => {});
     return result;
-  }, [refresh]);
+  }, [isPremium, refresh]);
 
   const canDrawTarot = useCallback(
     (_isPremium: boolean) => (tarotState?.drawsRemaining ?? 1) > 0,
