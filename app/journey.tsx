@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useTier } from '@/src/context/TierContext';
 import { getMirrorJourney, type MirrorJourneyPayload } from '@/src/services/backend';
+import { SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 
 const moodColors: Record<string, string> = {
   quiet: '#8B72CF',
@@ -109,10 +110,16 @@ export default function JourneyScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color="#8B72CF" />
-          <Text style={styles.loadingText}>Reading your journey...</Text>
-        </View>
+        <>
+          <SkeletonCard height={132} lines={2} />
+          <SkeletonCard height={220} lines={2} style={{ marginTop: 12 }} />
+          <SkeletonCard height={150} lines={3} style={{ marginTop: 12 }} />
+          <View style={styles.timelineList}>
+            {[0, 1, 2].map((item) => (
+              <SkeletonBlock key={item} height={82} radius={22} />
+            ))}
+          </View>
+        </>
       ) : error || !journey ? (
         <View style={styles.loadingCard}>
           <Text style={styles.errorTitle}>Journey unavailable</Text>
@@ -121,7 +128,7 @@ export default function JourneyScreen() {
       ) : (
         <>
           <Animated.View entering={FadeInUp.duration(450)} style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Static backend summary</Text>
+            <Text style={styles.summaryLabel}>Backend summary</Text>
             <Text style={styles.summaryTitle}>{journey.summary.title}</Text>
             <Text style={styles.summaryBody}>{journey.summary.body}</Text>
           </Animated.View>

@@ -8,6 +8,7 @@ import { useTier } from '@/src/context/TierContext';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
 import { getDailyHoroscope, getMe, getNatalChart, prewarmContent, type BirthChartReport } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
+import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 
 const reportTabs = [
   { id: 'planets', label: 'Planets' },
@@ -70,22 +71,33 @@ export default function HoroscopeScreen() {
   const [dailyReading, setDailyReading] = useState<any | null>(null);
   const [birthChart, setBirthChart] = useState<BirthChartReport | null>(null);
   const [me, setMe] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getNatalChart({ fast: true })
-      .then((chart) => {
-        setBirthChart(chart);
-        prewarmContent('profile').catch(() => {});
+    let active = true;
+    setLoading(true);
+    Promise.allSettled([
+      getNatalChart({ fast: true }),
+      getDailyHoroscope(),
+      getMe(),
+    ])
+      .then(([chartResult, dailyResult, meResult]) => {
+        if (!active) return;
+        if (chartResult.status === 'fulfilled') {
+          setBirthChart(chartResult.value);
+          prewarmContent('profile').catch(() => {});
+        } else {
+          setBirthChart(null);
+        }
+        setDailyReading(dailyResult.status === 'fulfilled' ? dailyResult.value : null);
+        setMe(meResult.status === 'fulfilled' ? meResult.value : null);
       })
-      .catch(() => {
-        setBirthChart(null);
+      .finally(() => {
+        if (active) setLoading(false);
       });
-    getDailyHoroscope()
-      .then(setDailyReading)
-      .catch(() => setDailyReading(null));
-    getMe()
-      .then(setMe)
-      .catch(() => setMe(null));
+    return () => {
+      active = false;
+    };
   }, [previewPremium]);
 
   const premium = previewPremium || birthChart?.access.level === 'full';
@@ -112,6 +124,38 @@ export default function HoroscopeScreen() {
       { label: 'Access', value: premium ? 'Full' : 'Summary', meta: backendPremium ? 'Premium report' : premium ? 'Premium preview' : 'Free chart' },
     ];
   }, [backendPremium, birthChart, premium]);
+
+  if (loading && !birthChart && !dailyReading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerLabel}>Birth Chart</Text>
+            <Text style={styles.headerTitle}>Your Sky</Text>
+          </View>
+          <View style={styles.accessBadge}>
+            <Text style={styles.accessText}>...</Text>
+          </View>
+        </View>
+        <SkeletonCard height={360} lines={2} />
+        <View style={styles.bigThreeRow}>
+          {[0, 1, 2].map((item) => (
+            <SkeletonCard key={item} compact height={96} lines={1} style={{ flex: 1 }} />
+          ))}
+        </View>
+        <SkeletonCard height={168} lines={3} />
+        <SkeletonPillRow count={4} />
+        <SkeletonCard height={220} lines={5} style={{ marginTop: 16 }} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView
@@ -143,7 +187,7 @@ export default function HoroscopeScreen() {
         >
           <Text style={styles.chartLabel}>Natal Wheel</Text>
           <Text style={styles.chartSignature}>
-            {birthChart?.summary.chartSignature ?? 'Your chart is syncing from the backend.'}
+            {birthChart?.summary.chartSignature ?? 'Chart data unavailable. Pull to retry from the backend.'}
           </Text>
           <NatalChart
             size={286}
@@ -184,7 +228,7 @@ export default function HoroscopeScreen() {
 
       <Animated.View entering={FadeInUp.duration(500).delay(220)} style={styles.signatureCard}>
         <Text style={styles.sectionLabel}>Chart Signature</Text>
-        <Text style={styles.signatureText}>{birthChart?.summary.shortInterpretation ?? 'Backend summary will appear here.'}</Text>
+        <Text style={styles.signatureText}>{birthChart?.summary.shortInterpretation ?? 'We could not load your backend chart summary yet.'}</Text>
         <View style={styles.statRow}>
           {signatureStats.map((stat) => (
             <View key={stat.label} style={styles.statItem}>

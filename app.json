@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "astrovy-rn",
-    "slug": "astrovy-rn",
+    "name": "Astrovy.space",
+    "slug": "Astrovy.space",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Icon-Light.png",
+    "icon": "./assets/Logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/Logo.png",
+      "image": "./assets/splash_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

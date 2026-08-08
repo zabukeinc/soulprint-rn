@@ -14,6 +14,7 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
 import { getFirstMirrorReading, getMe, type FirstMirrorPayload } from '@/src/services/backend';
+import { SkeletonCard } from '@/src/components/LoadingState';
 
 export default function SnapshotScreen() {
   const router = useRouter();
@@ -42,6 +43,35 @@ export default function SnapshotScreen() {
   const visiblePatternCards = mirror?.patternCards ?? [];
   const badges = mirror?.badges ?? [];
 
+  if (loading && !mirror) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerLabel}>Snapshot</Text>
+          <View style={styles.backButtonPlaceholder} />
+        </View>
+        <View style={styles.center}>
+          <View style={styles.iconBg}>
+            <Text style={styles.icon}>✦</Text>
+          </View>
+          <Text style={styles.label}>First Mirror</Text>
+          <Text style={styles.title}>Generating your First Mirror</Text>
+          <Text style={styles.desc}>Reading your onboarding and birth pattern through the backend.</Text>
+        </View>
+        <SkeletonCard height={220} lines={3} />
+        <SkeletonCard height={120} lines={2} style={{ marginTop: 14 }} />
+        <SkeletonCard height={120} lines={2} style={{ marginTop: 12 }} />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -62,7 +92,7 @@ export default function SnapshotScreen() {
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>
-          {mirror?.title ?? `Hi ${name}, preparing your first Astrovy...`}
+          {mirror?.title ?? (loadError ? 'First Mirror unavailable' : `Hi ${name}, preparing your first Astrovy...`)}
         </Text>
         <Text style={styles.desc}>
           {loadError ?? mirror?.subtitle ?? 'Generating the first read from your onboarding and birth pattern.'}

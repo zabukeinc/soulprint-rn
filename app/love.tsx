@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { getLoveReading, prewarmContent, submitFeedback } from '@/src/services/backend';
+import { SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 
 const insights = [
   {
@@ -43,6 +44,7 @@ export default function LoveReadingScreen() {
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [reading, setReading] = useState<{ hero: string; insights: typeof insights } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getLoveReading({ fast: true })
@@ -54,13 +56,44 @@ export default function LoveReadingScreen() {
         })) ?? insights });
         prewarmContent('profile').catch(() => {});
       })
-      .catch(() => setReading(null));
+      .catch(() => setReading(null))
+      .finally(() => setLoading(false));
   }, []);
 
   const visibleReading = reading ?? {
     hero: "You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.",
     insights,
   };
+
+  if (loading && !reading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerLabel}>Love Pattern</Text>
+          <View style={styles.backButtonPlaceholder} />
+        </View>
+        <View style={styles.center}>
+          <View style={styles.iconBg}>
+            <Text style={styles.icon}>💕</Text>
+          </View>
+          <Text style={styles.label}>Love Pattern Reading</Text>
+          <Text style={styles.title}>How you love, and what you need in return</Text>
+        </View>
+        <SkeletonCard height={190} lines={4} />
+        <SkeletonCard height={124} lines={2} style={{ marginTop: 14 }} />
+        <SkeletonCard height={124} lines={2} style={{ marginTop: 12 }} />
+        <SkeletonCard height={124} lines={2} style={{ marginTop: 12 }} />
+        <SkeletonBlock height={92} radius={24} style={{ marginTop: 18 }} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView

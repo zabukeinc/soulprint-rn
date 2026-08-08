@@ -5,6 +5,7 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
+import { InlineRefreshing, SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 
 const moodEmojis: Record<string, string> = {
   steady: '💛',
@@ -72,6 +73,39 @@ export default function MirrorScreen() {
   });
   const topMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0];
 
+  if (!engagement.loaded && engagement.loading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Growth</Text>
+            <Text style={styles.headerTitle}>Mirror</Text>
+          </View>
+        </View>
+        <Text style={styles.description}>
+          Your patterns, reflected back. This is where you see what's shifting.
+        </Text>
+        <SkeletonCard height={150} lines={3} />
+        <SkeletonCard height={132} lines={2} style={{ marginTop: 16 }} />
+        <View style={[styles.weekGrid, { marginTop: 18, marginBottom: 20 }]}>
+          {Array.from({ length: 7 }).map((_, index) => (
+            <View key={index} style={styles.dayCol}>
+              <SkeletonBlock height={42} radius={14} style={{ width: '100%' }} />
+              <SkeletonBlock width={16} height={8} radius={4} />
+            </View>
+          ))}
+        </View>
+        <SkeletonCard height={118} lines={2} />
+        <SkeletonCard height={118} lines={2} style={{ marginTop: 12 }} />
+        <SkeletonCard height={92} lines={1} style={{ marginTop: 18 }} />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -92,6 +126,10 @@ export default function MirrorScreen() {
           Your patterns, reflected back. This is where you see what's shifting.
         </Text>
       </Animated.View>
+
+      {engagement.refreshing && (
+        <InlineRefreshing label="Updating Mirror from backend..." />
+      )}
 
       <Animated.View entering={FadeInUp.duration(500).delay(80)} style={styles.insightCard}>
         <Text style={styles.insightLabel}>Current Pattern</Text>

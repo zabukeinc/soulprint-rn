@@ -6,6 +6,7 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
 import { getAstrovyReading, getMe } from '@/src/services/backend';
+import { SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 
 const sections = [
   {
@@ -101,15 +102,18 @@ export default function AstrovyScreen() {
   const [profile, setProfile] = useState<any | null>(null);
   const [astro, setAstro] = useState<any | null>(null);
   const [reading, setReading] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([getMe(), getAstrovyReading()])
       .then(([me, astrovy]) => {
         setProfile(me.profile);
         setAstro(me.astro);
         setReading(astrovy);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const visibleSections = useMemo(() => {
@@ -165,6 +169,32 @@ export default function AstrovyScreen() {
   const toggleSection = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
+
+  if (loading && !reading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Your identity map</Text>
+            <Text style={styles.headerTitle}>Astrovy</Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <Text style={styles.headerIconText}>✦</Text>
+          </View>
+        </View>
+        <SkeletonBlock width="86%" height={12} radius={6} style={{ marginBottom: 8 }} />
+        <SkeletonBlock width="68%" height={12} radius={6} style={{ marginBottom: 18 }} />
+        <SkeletonCard height={210} lines={3} />
+        <SkeletonCard height={122} lines={2} style={{ marginTop: 16 }} />
+        <SkeletonCard height={122} lines={2} style={{ marginTop: 12 }} />
+        <SkeletonCard height={122} lines={2} style={{ marginTop: 12 }} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView

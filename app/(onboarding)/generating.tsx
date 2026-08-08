@@ -10,6 +10,7 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  Easing,
 } from 'react-native-reanimated';
 import ProgressDots from '@/src/components/ProgressDots';
 import { theme } from '@/src/lib/theme';
@@ -25,15 +26,31 @@ const FIRST_MIRROR_TIMEOUT_MS = 130000;
 const POLL_INTERVAL_MS = 1500;
 const MIN_VISIBLE_MS = 2600;
 
+const visualStages = [
+  {
+    id: 'details',
+    title: 'Listening to your details',
+    body: 'Your birth time, place, and focus are settling into the map.',
+  },
+  {
+    id: 'pattern',
+    title: 'Mapping your inner weather',
+    body: 'We are looking for the emotional thread beneath the facts.',
+  },
+  {
+    id: 'mirror',
+    title: 'Writing your first mirror',
+    body: 'Your profile is becoming language that feels personal, not generic.',
+  },
+  {
+    id: 'deeper',
+    title: 'Preparing what comes next',
+    body: 'Your daily signal and deeper readings will be ready after this first reveal.',
+  },
+] as const;
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function jobState(job?: ContentJobStatus | null): StageState {
-  if (!job || job.status === 'not_started') return 'waiting';
-  if (job.status === 'ready') return 'ready';
-  if (job.status === 'failed') return 'failed';
-  return 'active';
 }
 
 function stageDotColor(state: StageState) {
@@ -41,6 +58,13 @@ function stageDotColor(state: StageState) {
   if (state === 'failed') return '#B84A62';
   if (state === 'active') return '#8B72CF';
   return 'rgba(31,33,48,0.15)';
+}
+
+function visualStageIndex(input: { firstMirrorReady: boolean; elapsedMs: number }) {
+  if (input.firstMirrorReady) return visualStages.length - 1;
+  if (input.elapsedMs > 16000) return 2;
+  if (input.elapsedMs > 6500) return 1;
+  return 0;
 }
 
 export default function GeneratingScreen() {
@@ -51,14 +75,13 @@ export default function GeneratingScreen() {
   const dataRef = useRef(data);
   const refreshMeRef = useRef(refreshMe);
   const startedRef = useRef(false);
-  const [profileReady, setProfileReady] = useState(false);
   const [jobs, setJobs] = useState<ContentJobStatus[]>([]);
-  const [activeStep, setActiveStep] = useState<'profile' | 'prewarm' | 'first_mirror' | 'background'>('profile');
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [firstMirrorReady, setFirstMirrorReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const rotate = useSharedValue(0);
   const pulse = useSharedValue(0);
+  const progress = useSharedValue(0);
 
   useEffect(() => {
     dataRef.current = data;
@@ -83,21 +106,17 @@ export default function GeneratingScreen() {
         }
         startedRef.current = true;
         setError(null);
-        setActiveStep('profile');
-        setProfileReady(false);
+        setFirstMirrorReady(false);
         setJobs([]);
 
         await submitProfile(dataRef.current);
         if (cancelled) return;
-        setProfileReady(true);
         await refreshMeRef.current();
 
         if (cancelled) return;
-        setActiveStep('prewarm');
         const initialStatus = await prewarmContent('first_mirror');
         if (cancelled) return;
         setJobs(initialStatus.jobs);
-        setActiveStep('first_mirror');
 
         const deadline = Date.now() + FIRST_MIRROR_TIMEOUT_MS;
         let latest = initialStatus;
@@ -105,7 +124,8 @@ export default function GeneratingScreen() {
         while (!cancelled) {
           const firstMirror = latest.jobs.find((job) => job.feature === 'first_mirror');
           if (firstMirror?.status === 'ready') {
-            setActiveStep('background');
+            setFirstMirrorReady(true);
+            progress.value = withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) });
             const remaining = MIN_VISIBLE_MS - (Date.now() - startedAt);
             if (remaining > 0) await sleep(remaining);
             if (!cancelled) {
@@ -134,13 +154,9 @@ export default function GeneratingScreen() {
 
     runGeneration();
 
-    rotate.value = withRepeat(
-      withTiming(360, { duration: 3000 }),
-      -1,
-      false
-    );
+    progress.value = withTiming(0.92, { duration: 42000, easing: Easing.out(Easing.cubic) });
     pulse.value = withRepeat(
-      withTiming(1, { duration: 1100 }),
+      withTiming(1, { duration: 1700, easing: Easing.inOut(Easing.cubic) }),
       -1,
       true
     );
@@ -148,69 +164,53 @@ export default function GeneratingScreen() {
       cancelled = true;
       clearInterval(elapsedTimer);
     };
-  }, [hydrated, rotate, router, userId]);
+  }, [hydrated, progress, pulse, router, userId]);
 
   const firstMirrorJob = jobs.find((job) => job.feature === 'first_mirror');
-  const backgroundJobs = jobs.filter((job) => job.feature !== 'first_mirror');
-  const readyBackgroundJobs = backgroundJobs.filter((job) => job.status === 'ready').length;
-  const stages = [
-    {
-      id: 'profile',
-      text: profileReady
-        ? `Birth profile saved for ${data.birthPlace?.name ?? 'your birthplace'}.`
-        : `Saving your birth date${data.birthDate ? ` (${data.birthDate})` : ''} and birthplace...`,
-      state: profileReady ? 'ready' : activeStep === 'profile' ? 'active' : 'waiting',
-    },
-    {
-      id: 'prewarm',
-      text: jobs.length > 0 ? 'Backend generation jobs started.' : 'Starting the backend generation pipeline...',
-      state: jobs.length > 0 ? 'ready' : activeStep === 'prewarm' ? 'active' : 'waiting',
-    },
-    {
-      id: 'first_mirror',
-      text: firstMirrorJob?.status === 'ready'
-        ? 'First Mirror generated and cached.'
-        : firstMirrorJob?.status === 'failed'
-          ? 'First Mirror needs retry.'
-          : elapsedMs > FIRST_MIRROR_SLOW_MS
-            ? 'Still writing your First Mirror with the backend...'
-            : 'Generating your First Mirror...',
-      state: jobState(firstMirrorJob) === 'waiting' && activeStep === 'first_mirror' ? 'active' : jobState(firstMirrorJob),
-    },
-    {
-      id: 'background',
-      text: backgroundJobs.length
-        ? `Warming deeper readings in the background (${readyBackgroundJobs}/${backgroundJobs.length}).`
-        : 'Preparing deeper readings in the background...',
-      state: activeStep === 'background'
-        ? 'active'
-        : backgroundJobs.length > 0 && readyBackgroundJobs === backgroundJobs.length
-          ? 'ready'
-          : backgroundJobs.length > 0
-            ? 'active'
-            : 'waiting',
-    },
-  ] satisfies Array<{ id: string; text: string; state: StageState }>;
+  const currentStage = visualStageIndex({ firstMirrorReady: firstMirrorReady || firstMirrorJob?.status === 'ready', elapsedMs });
+  const stages = visualStages.map((stage, index) => ({
+    ...stage,
+    state: firstMirrorJob?.status === 'failed'
+      ? index < currentStage ? 'ready' as const : index === currentStage ? 'failed' as const : 'waiting' as const
+      : index < currentStage
+        ? 'ready' as const
+        : index === currentStage
+          ? 'active' as const
+          : 'waiting' as const,
+  }));
 
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotate.value}deg` }],
-  }));
   const pulseStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulse.value, [0, 1], [0.55, 1]),
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.86, 1.18]) }],
+    opacity: interpolate(pulse.value, [0, 1], [0.72, 1]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.94, 1.08]) }],
   }));
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.value, [0, 1], [0.18, 0.38]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.84, 1.22]) }],
+  }));
+  const progressStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: progress.value }],
+  }));
+  const loadingTitle = firstMirrorReady
+    ? 'Your first mirror is ready.'
+    : elapsedMs > FIRST_MIRROR_SLOW_MS
+      ? 'Still shaping the words carefully.'
+      : 'We are turning your pattern into language.';
 
   return (
     <View style={styles.container}>
         <Animated.View entering={FadeIn.duration(400)} style={styles.loadingContainer}>
           <View style={styles.center}>
             <Animated.View entering={ZoomIn.duration(300)} style={styles.iconBg}>
-              <Animated.Text style={[styles.icon, spinStyle]}>✦</Animated.Text>
+              <Animated.View style={[styles.iconGlow, glowStyle]} />
+              <Animated.Text style={[styles.icon, pulseStyle]}>✦</Animated.Text>
             </Animated.View>
             <Text style={styles.loadingLabel}>Preparing your first Astrovy</Text>
             <Text style={styles.loadingTitle}>
-              We're turning your pattern into language.
+              {loadingTitle}
             </Text>
+            <View style={styles.progressTrack}>
+              <Animated.View style={[styles.progressFill, progressStyle]} />
+            </View>
           </View>
 
           <View style={styles.stages}>
@@ -241,17 +241,20 @@ export default function GeneratingScreen() {
                 >
                   {stage.state === 'active' && <Animated.View style={[styles.stagePulse, pulseStyle]} />}
                 </View>
-                <Text
-                  style={[
-                    styles.stageText,
-                    {
-                      color:
-                        stage.state !== 'waiting' ? theme.colors.ink : theme.colors.muted,
-                    },
-                  ]}
-                >
-                  {stage.text}
-                </Text>
+                <View style={styles.stageCopy}>
+                  <Text
+                    style={[
+                      styles.stageTitle,
+                      {
+                        color:
+                          stage.state !== 'waiting' ? theme.colors.ink : theme.colors.muted,
+                      },
+                    ]}
+                  >
+                    {stage.title}
+                  </Text>
+                  <Text style={styles.stageBody}>{stage.body}</Text>
+                </View>
               </Animated.View>
             ))}
           </View>
@@ -304,6 +307,14 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     shadowOpacity: 1,
     elevation: 8,
+    overflow: 'hidden',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.72)',
   },
   icon: {
     fontSize: 24,
@@ -325,34 +336,61 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     lineHeight: 26,
     textAlign: 'center',
+    maxWidth: 320,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    marginTop: 22,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(139,114,207,0.12)',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#8B72CF',
+    transformOrigin: 'left',
   },
   stages: {
-    gap: 8,
+    gap: 10,
     flex: 1,
   },
   stageRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
   },
   stageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
   },
   stagePulse: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: 'rgba(139,114,207,0.24)',
   },
-  stageText: {
-    fontSize: 12,
+  stageCopy: {
+    flex: 1,
+  },
+  stageTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  stageBody: {
+    fontSize: 11,
+    color: theme.colors.muted,
+    lineHeight: 17,
   },
   errorCard: {
     borderRadius: 16,

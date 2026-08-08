@@ -8,6 +8,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, type LegalInfo } from '@/src/services/backend';
 import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
+import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function ProfileScreen() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
     getMe()
@@ -30,7 +32,8 @@ export default function ProfileScreen() {
         setProfile(me.profile);
         setAstro(me.astro);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingProfile(false));
 
     getLegalInfo()
       .then(setLegalInfo)
@@ -95,6 +98,30 @@ export default function ProfileScreen() {
       },
     ]);
   };
+
+  if (loadingProfile && !profile) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>Settings</Text>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </View>
+        </View>
+        <SkeletonCard height={150} lines={2} />
+        <SkeletonPillRow count={3} />
+        <SkeletonCard height={112} lines={2} style={{ marginTop: 16 }} />
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Preferences</Text>
+        <SkeletonBlock height={74} radius={22} />
+        <SkeletonBlock height={74} radius={22} style={{ marginTop: 10 }} />
+        <SkeletonBlock height={74} radius={22} style={{ marginTop: 10 }} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView

@@ -14,6 +14,7 @@ import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 import { getPositionMeaning } from '@/src/lib/tarotEngine';
 import { TAROT_CARDS } from '@/src/lib/tarot';
+import { InlineRefreshing, SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 
 type Position = 'past' | 'present' | 'future';
 
@@ -141,6 +142,35 @@ export default function TarotScreen() {
   const allRevealed = revealedIndex >= drawnCards.length - 1;
   const isSingleCard = drawnCards.length === 1;
 
+  if (!engagement.loaded && engagement.loading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerLabel}>Daily Tarot</Text>
+            <Text style={styles.headerTitle}>{isPremium ? 'Your three-card spread' : 'Your daily card'}</Text>
+          </View>
+          <View style={styles.backButtonPlaceholder} />
+        </View>
+        <SkeletonBlock width="92%" height={12} radius={6} style={{ alignSelf: 'center', marginBottom: 8 }} />
+        <SkeletonBlock width="64%" height={12} radius={6} style={{ alignSelf: 'center', marginBottom: 28 }} />
+        <SkeletonCard height={260} lines={3} />
+        <View style={styles.spread}>
+          {[0, 1, 2].slice(0, isPremium ? 3 : 1).map((item) => (
+            <SkeletonCard key={item} height={180} lines={2} style={{ marginTop: 14 }} />
+          ))}
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -166,6 +196,10 @@ export default function TarotScreen() {
           ? 'A mirror of your energy — past, present, and where it leads.'
           : 'One card. One message. Wherever you are right now.'}
       </Text>
+
+      {engagement.refreshing && (
+        <InlineRefreshing label="Updating tarot state..." />
+      )}
 
       {/* Draw Button or Status */}
       {drawnCards.length === 0 && (

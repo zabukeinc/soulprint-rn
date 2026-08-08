@@ -9,6 +9,7 @@ import { useTier } from '@/src/context/TierContext';
 import VisualStreakTracker from '@/src/components/VisualStreakTracker';
 import PatternAlertCard from '@/src/components/PatternAlertCard';
 import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
+import { InlineRefreshing, SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 
 function getTimeGreeting() {
   const hour = new Date().getHours();
@@ -160,6 +161,39 @@ export default function TodayScreen() {
   const weeklyStatus = engagement?.getWeeklyReadingStatus?.();
   const showWeeklyCard = weeklyStatus?.isNewWeek && !engagement?.dismissedWeeklyReading;
 
+  if (!engagement.loaded && engagement.loading) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getTimeGreeting()} {getTimeEmoji()}</Text>
+            <Text style={styles.name}>Today</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>A</Text>
+          </View>
+        </View>
+        <Text style={styles.moodQuestion}>How are you feeling right now?</Text>
+        <SkeletonPillRow count={4} />
+        <SkeletonCard height={160} lines={2} style={{ marginTop: 18 }} />
+        <SkeletonCard height={190} lines={3} style={{ marginTop: 18 }} />
+        <View style={[styles.energyRow, { marginTop: 18 }]}>
+          {[0, 1, 2].map((item) => (
+            <SkeletonCard key={item} compact height={104} lines={1} style={{ flex: 1 }} />
+          ))}
+        </View>
+        <SkeletonCard height={132} lines={2} style={{ marginTop: 18 }} />
+        <SkeletonCard height={120} lines={2} style={{ marginTop: 18 }} />
+        <SkeletonBlock height={66} radius={22} style={{ marginTop: 18 }} />
+        <SkeletonBlock height={66} radius={22} style={{ marginTop: 12 }} />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -206,6 +240,10 @@ export default function TodayScreen() {
           </View>
         </View>
       </Animated.View>
+
+      {engagement.refreshing && (
+        <InlineRefreshing label="Updating Today from backend..." />
+      )}
 
       <Animated.View entering={FadeInUp.duration(500).delay(50)}>
         <Text style={styles.moodQuestion}>How are you feeling right now?</Text>

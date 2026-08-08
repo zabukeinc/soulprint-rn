@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, apiRequest } from '@/src/lib/api';
 import { useTier } from '@/src/context/TierContext';
 import * as backend from '@/src/services/backend';
@@ -94,25 +94,42 @@ export function useEngagement() {
   const [tarotState, setTarotState] = useState<backend.TarotState | null>(null);
   const [dailyContentStatus, setDailyContentStatus] = useState<ContentPrewarmStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const loadedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    const [todayPayload, mirrorPayload, journalPayload, tarotPayload, statusPayload] = await Promise.all([
-      backend.getToday({ fast: true }),
-      backend.getMirror(),
-      backend.listJournalEntries(),
-      backend.getTarotToday(),
-      backend.getContentStatus('daily').catch(() => null),
-    ]);
-    setToday(todayPayload);
-    setMirror(mirrorPayload);
-    setJournalEntries(journalPayload.data);
-    setTarotState(tarotPayload);
-    setDailyContentStatus(statusPayload ?? todayPayload.generation?.contentJobs ?? null);
-    setLoaded(true);
-    cacheTodayWidgetSnapshot(widgetSnapshotFromToday(todayPayload)).catch(() => {});
-    backend.prewarmContent('daily')
-      .then(setDailyContentStatus)
-      .catch(() => {});
+    const firstLoad = !loadedRef.current;
+    if (firstLoad) setLoading(true);
+    else setRefreshing(true);
+    setError(null);
+    try {
+      const [todayPayload, mirrorPayload, journalPayload, tarotPayload, statusPayload] = await Promise.all([
+        backend.getToday({ fast: true }),
+        backend.getMirror(),
+        backend.listJournalEntries(),
+        backend.getTarotToday(),
+        backend.getContentStatus('daily').catch(() => null),
+      ]);
+      setToday(todayPayload);
+      setMirror(mirrorPayload);
+      setJournalEntries(journalPayload.data);
+      setTarotState(tarotPayload);
+      setDailyContentStatus(statusPayload ?? todayPayload.generation?.contentJobs ?? null);
+      loadedRef.current = true;
+      setLoaded(true);
+      cacheTodayWidgetSnapshot(widgetSnapshotFromToday(todayPayload)).catch(() => {});
+      backend.prewarmContent('daily')
+        .then(setDailyContentStatus)
+        .catch(() => {});
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Backend data could not be loaded.');
+      throw refreshError;
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [isPremium]);
 
   useEffect(() => {
@@ -178,6 +195,11 @@ export function useEngagement() {
     setMirror(null);
     setJournalEntries([]);
     setTarotState(null);
+    loadedRef.current = false;
+    setLoaded(false);
+    setLoading(false);
+    setRefreshing(false);
+    setError(null);
   }, []);
 
   const drawTarotCard = useCallback(async () => {
@@ -234,6 +256,9 @@ export function useEngagement() {
 
   return {
     loaded,
+    loading,
+    refreshing,
+    error,
     streak: today?.streak ?? mirror?.streak ?? 0,
     lastCheckIn: today?.checkedInToday ? today.date : null,
     journalEntries,

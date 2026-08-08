@@ -14,6 +14,7 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { useOnboarding } from '@/src/context/OnboardingContext';
 import { getFirstMirrorReading, getMe, submitFeedback, type FirstMirrorPayload } from '@/src/services/backend';
+import { LoadingPage } from '@/src/components/LoadingState';
 
 export default function FirstMirrorScreen() {
   const router = useRouter();
@@ -49,6 +50,15 @@ export default function FirstMirrorScreen() {
   const visiblePatternCards = mirror?.patternCards ?? [];
   const badges = mirror?.badges ?? [];
 
+  if (loading && !mirror) {
+    return (
+      <LoadingPage
+        title="Generating First Mirror"
+        body="Reading your onboarding, birth chart, and focus through the backend AI pipeline."
+      />
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -61,7 +71,7 @@ export default function FirstMirrorScreen() {
         </Animated.View>
         <Text style={styles.label}>First Mirror</Text>
         <Text style={styles.title}>
-          {mirror?.title ?? `Hi ${name}, preparing your first Astrovy...`}
+          {mirror?.title ?? (loadError ? 'First Mirror unavailable' : `Hi ${name}, preparing your first Astrovy...`)}
         </Text>
         <Text style={styles.desc}>
           {loadError ?? mirror?.subtitle ?? 'Generating the first read from your onboarding and birth pattern.'}
