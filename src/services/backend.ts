@@ -241,6 +241,14 @@ export type FirstMirrorPayload = {
     status?: string;
     quality?: Record<string, any>;
   };
+  feedback?: FeedbackState | null;
+};
+
+export type FeedbackState = {
+  targetType: string;
+  targetId: string | null;
+  value: string;
+  submittedAt: string;
 };
 
 export type TarotDraw = {
@@ -570,9 +578,9 @@ export function createCompatibilityReading(input: {
 }
 
 export function submitFeedback(input: {
-  targetType: 'first_mirror' | 'love_reading' | 'daily_reading' | 'tarot_draw';
+  targetType: 'first_mirror' | 'love_reading' | 'daily_reading' | 'tarot_draw' | 'birth_chart_report' | 'compatibility_reading' | 'mirror_journey';
   targetId: string | null;
   value: 'accurate' | 'partial' | 'inaccurate' | 'yes' | 'somewhat' | 'no';
 }) {
-  return apiRequest<void>('/feedback', { method: 'POST', body: input });
+  return apiRequest<{ feedback: FeedbackState }>('/feedback', { method: 'POST', body: input });
 }

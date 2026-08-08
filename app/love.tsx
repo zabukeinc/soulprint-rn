@@ -54,6 +54,7 @@ export default function LoveReadingScreen() {
           emoji: '✦',
           content: item.body,
         })) ?? insights });
+        setFeedback(payload.feedback?.value ?? null);
         prewarmContent('profile').catch(() => {});
       })
       .catch(() => setReading(null))
@@ -64,6 +65,7 @@ export default function LoveReadingScreen() {
     hero: "You don't need constant attention. You need emotional consistency. A single thoughtful check-in means more to you than hours of presence. When someone remembers what you only mentioned once — that's when you feel most seen.",
     insights,
   };
+  const hasFeedback = Boolean(feedback);
 
   if (loading && !reading) {
     return (
@@ -153,47 +155,49 @@ export default function LoveReadingScreen() {
         ))}
       </View>
 
-      {(
-        <Animated.View
-          entering={FadeInUp.duration(500)}
-          style={styles.feedbackCard}
-        >
-          <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
-          <View style={styles.feedbackRow}>
-            {['Yes, surprisingly', 'A little', 'Not really'].map((opt, i) => (
-              <Animated.View
-                key={opt}
-                entering={FadeIn.delay(100 + i * 80).duration(400)}
-                style={{ flex: 1 }}
-              >
-                <TouchableOpacity
-                  onPress={() => {
-                    setFeedback(opt);
-                    submitFeedback({
-                      targetType: 'love_reading',
-                      targetId: null,
-                      value: opt === 'Yes, surprisingly' ? 'accurate' : opt === 'A little' ? 'partial' : 'inaccurate',
-                    }).catch(() => {});
-                  }}
-                  style={[
-                    styles.feedbackBtn,
-                    feedback === opt && styles.feedbackBtnActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.feedbackBtnText,
-                      feedback === opt && styles.feedbackBtnTextActive,
-                    ]}
-                  >
-                    {opt}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
+      <Animated.View
+        entering={FadeInUp.duration(500)}
+        style={styles.feedbackCard}
+      >
+        {hasFeedback ? (
+          <View style={styles.feedbackThanks}>
+            <Text style={styles.feedbackThanksTitle}>Thanks for the signal.</Text>
+            <Text style={styles.feedbackThanksText}>
+              Future love readings will use this to tune the tone and specificity.
+            </Text>
           </View>
-        </Animated.View>
-      )}
+        ) : (
+          <>
+            <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
+            <View style={styles.feedbackRow}>
+              {['Yes, surprisingly', 'A little', 'Not really'].map((opt, i) => {
+                const value = opt === 'Yes, surprisingly' ? 'accurate' : opt === 'A little' ? 'partial' : 'inaccurate';
+                return (
+                  <Animated.View
+                    key={opt}
+                    entering={FadeIn.delay(100 + i * 80).duration(400)}
+                    style={{ flex: 1 }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        setFeedback(value);
+                        submitFeedback({
+                          targetType: 'love_reading',
+                          targetId: null,
+                          value,
+                        }).catch(() => setFeedback(null));
+                      }}
+                      style={styles.feedbackBtn}
+                    >
+                      <Text style={styles.feedbackBtnText}>{opt}</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </>
+        )}
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -318,6 +322,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   feedbackRow: { flexDirection: 'row', gap: 8 },
+  feedbackThanks: {
+    borderRadius: 20,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  feedbackThanksTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, textAlign: 'center' },
+  feedbackThanksText: { fontSize: 11, color: theme.colors.muted, lineHeight: 17, textAlign: 'center', marginTop: 4 },
   feedbackBtn: {
     flex: 1,
     paddingVertical: 8,

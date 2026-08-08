@@ -184,6 +184,18 @@ export function useEngagement() {
       const result = await backend.createJournalEntry(text, prompt);
       setJournalEntries((prev) => [result.entry, ...prev]);
       setMirror((prev) => (prev ? { ...prev, reflections: result.reflections } : prev));
+      setToday((prev) =>
+        prev
+          ? {
+              ...prev,
+              journal: {
+                ...prev.journal,
+                lastEntry: result.entry,
+              },
+              retention: markRetentionStepComplete(prev.retention, 'journal'),
+            }
+          : prev
+      );
       refresh().catch(() => {});
       return result;
     },

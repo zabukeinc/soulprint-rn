@@ -49,6 +49,7 @@ export default function FirstMirrorScreen() {
   const archetype = mirror?.archetype;
   const visiblePatternCards = mirror?.patternCards ?? [];
   const badges = mirror?.badges ?? [];
+  const feedbackValue = feedback ?? mirror?.feedback?.value ?? null;
 
   if (loading && !mirror) {
     return (
@@ -135,35 +136,39 @@ export default function FirstMirrorScreen() {
       ) : null}
 
       <View style={styles.feedbackSection}>
-        <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
-        <View style={styles.feedbackRow}>
-          {['Yes, surprisingly', 'A little', 'Not really'].map((opt) => (
-            <TouchableOpacity
-              key={opt}
-              onPress={() => {
-                setFeedback(opt);
-                submitFeedback({
-                  targetType: 'first_mirror',
-                  targetId: null,
-                  value: opt === 'Yes, surprisingly' ? 'accurate' : opt === 'A little' ? 'partial' : 'inaccurate',
-                }).catch(() => {});
-              }}
-              style={[
-                styles.feedbackBtn,
-                feedback === opt && styles.feedbackBtnActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.feedbackBtnText,
-                  feedback === opt && styles.feedbackBtnTextActive,
-                ]}
-              >
-                {opt}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {feedbackValue ? (
+          <View style={styles.feedbackThanks}>
+            <Text style={styles.feedbackThanksTitle}>Thanks for the signal.</Text>
+            <Text style={styles.feedbackThanksText}>
+              Future readings will use this to tune the tone and specificity.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.feedbackLabel}>Did this feel close to you?</Text>
+            <View style={styles.feedbackRow}>
+              {['Yes, surprisingly', 'A little', 'Not really'].map((opt) => {
+                const value = opt === 'Yes, surprisingly' ? 'accurate' : opt === 'A little' ? 'partial' : 'inaccurate';
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    onPress={() => {
+                      setFeedback(value);
+                      submitFeedback({
+                        targetType: 'first_mirror',
+                        targetId: null,
+                        value,
+                      }).catch(() => setFeedback(null));
+                    }}
+                    style={styles.feedbackBtn}
+                  >
+                    <Text style={styles.feedbackBtnText}>{opt}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
       </View>
 
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
@@ -351,6 +356,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   feedbackRow: { flexDirection: 'row', gap: 8 },
+  feedbackThanks: {
+    borderRadius: 20,
+    padding: 14,
+    backgroundColor: 'rgba(221,237,220,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  feedbackThanksTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, textAlign: 'center' },
+  feedbackThanksText: { fontSize: 11, color: theme.colors.muted, lineHeight: 17, textAlign: 'center', marginTop: 4 },
   feedbackBtn: {
     flex: 1,
     paddingVertical: 8,
