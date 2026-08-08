@@ -30,9 +30,9 @@ export type LegalInfo = {
 
 export const DEFAULT_LEGAL_INFO: LegalInfo = {
   appName: 'Astrovy',
-  privacyUrl: 'https://astrovy.app/privacy',
-  termsUrl: 'https://astrovy.app/terms',
-  supportEmail: 'support@astrovy.app',
+  privacyUrl: 'https://astrovy.space/privacy',
+  termsUrl: 'https://astrovy.space/terms',
+  supportEmail: 'admin@astrovy.space',
   accountDeletion: {
     method: 'DELETE',
     path: '/v1/users/me',

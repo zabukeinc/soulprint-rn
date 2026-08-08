@@ -79,7 +79,7 @@ export default function ShareTarotScreen() {
 
           {/* Decorative footer line */}
           <View style={styles.footerLine} />
-          <Text style={styles.footerBrand}>astrovy.app</Text>
+          <Text style={styles.footerBrand}>astrovy.space</Text>
         </LinearGradient>
       </View>
 

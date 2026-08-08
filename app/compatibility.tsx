@@ -11,6 +11,7 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { ApiError } from '@/src/lib/api';
@@ -37,6 +38,76 @@ const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 101 }, (_, index) => currentYear - index);
 const hourOptions = Array.from({ length: 24 }, (_, index) => index);
 const minuteOptions = Array.from({ length: 12 }, (_, index) => index * 5);
+const quickGenerationSteps = [
+  {
+    title: 'Reading your signs together',
+    body: 'Looking at the first layer of attraction, friction, and ease.',
+  },
+  {
+    title: 'Finding the emotional rhythm',
+    body: 'Shaping a quick mirror of where the connection may flow.',
+  },
+  {
+    title: 'Writing your quick match',
+    body: 'Keeping it simple, warm, and useful.',
+  },
+];
+const fullGenerationSteps = [
+  {
+    title: 'Mapping both birth signatures',
+    body: 'Looking at date, place, and chart patterns side by side.',
+  },
+  {
+    title: 'Reading emotional rhythm',
+    body: 'Finding where safety, attraction, and timing meet.',
+  },
+  {
+    title: 'Checking communication patterns',
+    body: 'Noticing where the connection needs care, space, or clarity.',
+  },
+  {
+    title: 'Writing your compatibility mirror',
+    body: 'Turning the backend reading into something warm and grounded.',
+  },
+];
+const QUICK_MIN_VISIBLE_MS = 4200;
+const FULL_MIN_VISIBLE_MS = 7200;
+const QUICK_SLOW_MS = 6500;
+const FULL_SLOW_MS = 11000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function LoadingStepItem({ title, active }: { title: string; active: boolean }) {
+  const activeValue = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    activeValue.value = withTiming(active ? 1 : 0, { duration: 260 });
+  }, [active, activeValue]);
+
+  const dotStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      activeValue.value,
+      [0, 1],
+      ['rgba(31,33,48,0.16)', '#16A7A0']
+    ),
+    opacity: 0.45 + activeValue.value * 0.55,
+    transform: [{ scale: 1 + activeValue.value * 0.18 }],
+  }));
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: 0.58 + activeValue.value * 0.42,
+  }));
+
+  return (
+    <View style={styles.loadingStepRow}>
+      <Animated.View style={[styles.loadingStepDot, dotStyle]} />
+      <Animated.Text style={[styles.loadingStepText, active && styles.loadingStepTextActive, textStyle]}>
+        {title}
+      </Animated.Text>
+    </View>
+  );
+}
 
 function pad(value: number) {
   return String(value).padStart(2, '0');
@@ -92,11 +163,17 @@ export default function CompatibilityScreen() {
   const [showResult, setShowResult] = useState(false);
   const [reading, setReading] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+  const [loadingElapsedMs, setLoadingElapsedMs] = useState(0);
 
   const progress = useSharedValue(0);
+  const loadingProgressValue = useSharedValue(0);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
+  }));
+  const loadingProgressStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: loadingProgressValue.value }],
   }));
 
   useEffect(() => {
@@ -126,6 +203,41 @@ export default function CompatibilityScreen() {
     };
   }, [matchMode, placeQuery, selectedPlace]);
 
+  useEffect(() => {
+    if (step !== 'loading') return;
+    const steps = matchMode === 'full' ? fullGenerationSteps : quickGenerationSteps;
+    const interval = setInterval(() => {
+      setLoadingStepIndex((index) => Math.min(index + 1, steps.length - 1));
+    }, matchMode === 'full' ? 1900 : 1500);
+
+    return () => clearInterval(interval);
+  }, [matchMode, step]);
+
+  useEffect(() => {
+    if (step !== 'loading') {
+      setLoadingElapsedMs(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      setLoadingElapsedMs(Date.now() - startedAt);
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== 'loading') {
+      loadingProgressValue.value = 0;
+      return;
+    }
+    loadingProgressValue.value = withTiming(0.92, {
+      duration: matchMode === 'full' ? 18000 : 10000,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [loadingProgressValue, matchMode, step]);
+
   const fullLocked = matchMode === 'full' && !isPremium;
   const canReveal = !fullLocked && name.trim().length > 0 && (
     matchMode === 'quick'
@@ -140,28 +252,36 @@ export default function CompatibilityScreen() {
     }
     if (canReveal) {
       setStep('loading');
+      setLoadingStepIndex(0);
+      setLoadingElapsedMs(0);
       setError(null);
       try {
-        const result = matchMode === 'quick'
-          ? await createCompatibilityReading({
-              partnerName: name.trim(),
-              partnerSign: selectedSign?.toLowerCase(),
-            })
-          : await createCompatibilityReading({
-              partnerName: name.trim(),
-              partnerSign: selectedSign?.toLowerCase(),
-              partnerBirthDate: birthDate.trim(),
-              partnerBirthTime: knowsBirthTime ? birthTime.trim() : null,
-              partnerBirthPlace: selectedPlace
-                ? {
-                    city: selectedPlace.name,
-                    country: selectedPlace.country,
-                    timezone: selectedPlace.timezone,
-                    lat: selectedPlace.lat,
-                    lng: selectedPlace.lng,
-                  }
-                : undefined,
-            });
+        const request = matchMode === 'quick'
+          ? createCompatibilityReading({
+            partnerName: name.trim(),
+            partnerSign: selectedSign?.toLowerCase(),
+          })
+          : createCompatibilityReading({
+            partnerName: name.trim(),
+            partnerSign: selectedSign?.toLowerCase(),
+            partnerBirthDate: birthDate.trim(),
+            partnerBirthTime: knowsBirthTime ? birthTime.trim() : null,
+            partnerBirthPlace: selectedPlace
+              ? {
+                city: selectedPlace.name,
+                country: selectedPlace.country,
+                timezone: selectedPlace.timezone,
+                lat: selectedPlace.lat,
+                lng: selectedPlace.lng,
+              }
+              : undefined,
+          });
+        const [result] = await Promise.all([
+          request,
+          sleep(matchMode === 'full' ? FULL_MIN_VISIBLE_MS : QUICK_MIN_VISIBLE_MS),
+        ]);
+        loadingProgressValue.value = withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) });
+        await sleep(500);
         setReading(result);
         setStep('result');
         setTimeout(() => {
@@ -217,22 +337,41 @@ export default function CompatibilityScreen() {
     : basis.confidence === 'medium'
       ? 'Medium confidence'
       : 'Quick zodiac match';
+  const loadingSteps = matchMode === 'full' ? fullGenerationSteps : quickGenerationSteps;
+  const loadingStep = loadingSteps[Math.min(loadingStepIndex, loadingSteps.length - 1)];
+  const loadingSlow = loadingElapsedMs > (matchMode === 'full' ? FULL_SLOW_MS : QUICK_SLOW_MS);
+  const loadingTitle = loadingSlow
+    ? 'Still shaping the reading carefully'
+    : loadingStep.title;
+  const loadingBody = loadingSlow
+    ? 'Some readings take a little longer when the backend is writing with more context.'
+    : loadingStep.body;
 
   if (step === 'loading') {
     return (
-      <View style={styles.loadingContainer}>
+      <LinearGradient
+        colors={['#FFF9F3', '#F5F7EE', '#ECE5F7']}
+        style={styles.loadingContainer}
+      >
         <Animated.View entering={FadeIn.duration(500)} style={styles.loadingCenter}>
           <Animated.View style={[styles.loadingIconBg, pulseStyle]}>
             <Text style={styles.loadingIcon}>✦</Text>
           </Animated.View>
-          <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-            <Text style={styles.loadingTitle}>Reading the space between you...</Text>
+          <Text style={styles.loadingLabel}>{matchMode === 'full' ? 'Full Birth Match' : 'Quick Match'}</Text>
+          <Animated.View key={loadingTitle} entering={FadeInUp.duration(420)}>
+            <Text style={styles.loadingTitle}>{loadingTitle}</Text>
+            <Text style={styles.loadingSub}>{loadingBody}</Text>
           </Animated.View>
-          <Animated.View entering={FadeInUp.delay(350).duration(500)}>
-            <Text style={styles.loadingSub}>This takes feeling, not just logic</Text>
-          </Animated.View>
+          <View style={styles.loadingProgressTrack}>
+            <Animated.View style={[styles.loadingProgressFill, loadingProgressStyle]} />
+          </View>
+          <View style={styles.loadingSteps}>
+            {loadingSteps.map((item, index) => (
+              <LoadingStepItem key={item.title} title={item.title} active={index <= loadingStepIndex} />
+            ))}
+          </View>
         </Animated.View>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -699,7 +838,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  loadingCenter: { alignItems: 'center' },
+  loadingCenter: {
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    padding: 20,
+  },
   loadingIconBg: {
     width: 64,
     height: 64,
@@ -715,15 +859,77 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   loadingIcon: { fontSize: 24, color: '#FFFFFF' },
+  loadingLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    color: '#8B72CF',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
   loadingTitle: {
     fontFamily: theme.fonts.serif,
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '500',
     color: theme.colors.ink,
-    marginBottom: 4,
+    lineHeight: 27,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  loadingSub: { fontSize: 12, color: theme.colors.muted, textAlign: 'center' },
+  loadingSub: {
+    minHeight: 42,
+    fontSize: 13,
+    color: theme.colors.muted,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  loadingProgressTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 999,
+    marginTop: 18,
+    marginBottom: 16,
+    backgroundColor: 'rgba(31,33,48,0.08)',
+    overflow: 'hidden',
+  },
+  loadingProgressFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#8B72CF',
+    transformOrigin: 'left',
+  },
+  loadingSteps: {
+    width: '100%',
+    gap: 9,
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.64)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  loadingStepRow: {
+    minHeight: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  loadingStepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(31,33,48,0.16)',
+  },
+  loadingStepText: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 17,
+  },
+  loadingStepTextActive: {
+    color: theme.colors.ink,
+    fontWeight: '700',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
