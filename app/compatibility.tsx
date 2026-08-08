@@ -16,7 +16,7 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { ApiError } from '@/src/lib/api';
 import { useTier } from '@/src/context/TierContext';
-import { createCompatibilityReading } from '@/src/services/backend';
+import { createCompatibilityReading, type CompatibilityReading } from '@/src/services/backend';
 import { searchCities, type City } from '@/src/services/cities';
 
 const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
@@ -74,6 +74,15 @@ const QUICK_MIN_VISIBLE_MS = 4200;
 const FULL_MIN_VISIBLE_MS = 7200;
 const QUICK_SLOW_MS = 6500;
 const FULL_SLOW_MS = 11000;
+const PARTNER_NAME_MAX = 80;
+const PLACE_QUERY_MAX = 80;
+const resultSectionMeta: Record<string, { emoji: string; fallbackTitle: string }> = {
+  attraction: { emoji: '🧲', fallbackTitle: 'What Draws You Together' },
+  friction: { emoji: '⚡', fallbackTitle: 'Where Friction Lives' },
+  growth: { emoji: '🌱', fallbackTitle: 'Growth Together' },
+  repair: { emoji: '🫶', fallbackTitle: 'How Repair Works Here' },
+  timing: { emoji: '⏳', fallbackTitle: 'Timing and Pacing' },
+};
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -161,7 +170,7 @@ export default function CompatibilityScreen() {
   const [placeResults, setPlaceResults] = useState<City[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<City | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [reading, setReading] = useState<any | null>(null);
+  const [reading, setReading] = useState<CompatibilityReading | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [loadingElapsedMs, setLoadingElapsedMs] = useState(0);
@@ -330,8 +339,10 @@ export default function CompatibilityScreen() {
     setTimeSelectorVisible(false);
   };
   const resultSections = Array.isArray(reading?.sections) ? reading.sections : [];
-  const resultSection = (key: string) => resultSections.find((section: any) => section.key === key)?.body;
+  const premiumExtraSections = reading?.premiumDetails?.deepSections?.filter((section) => !['attraction', 'friction', 'growth'].includes(section.key)) ?? [];
+  const scoreBreakdown = reading?.premiumDetails?.scoreBreakdown;
   const basis = reading?.basis ?? {};
+  const fullResult = reading?.access?.level === 'full';
   const confidenceLabel = basis.confidence === 'high'
     ? 'High confidence'
     : basis.confidence === 'medium'
@@ -424,37 +435,67 @@ export default function CompatibilityScreen() {
               </LinearGradient>
             </Animated.View>
 
-            <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.resultSection}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>🧲</Text>
-                <Text style={styles.resultSectionTitle}>What Draws You Together</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                {resultSection('attraction') ?? `${name} brings energy that challenges your caution. You'll feel pulled toward their certainty, and they'll feel grounded by your depth.`}
-              </Text>
-            </Animated.View>
+            {reading?.quickSummary && (
+              <Animated.View entering={FadeInUp.delay(320).duration(500)} style={styles.quickSummaryCard}>
+                <Text style={styles.quickSummaryLabel}>Free quick read</Text>
+                <Text style={styles.quickSummaryTitle}>{reading.quickSummary.title}</Text>
+                <Text style={styles.quickSummaryBody}>{reading.quickSummary.body}</Text>
+                <Text style={styles.quickSummaryHint}>{reading.quickSummary.upgradeHint}</Text>
+              </Animated.View>
+            )}
 
-            <Animated.View entering={FadeInUp.delay(450).duration(500)} style={styles.resultSection}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>⚡</Text>
-                <Text style={styles.resultSectionTitle}>Where Friction Lives</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                {resultSection('friction') ?? 'Naming timing differences early prevents them from becoming resentment.'}
-              </Text>
-            </Animated.View>
+            {scoreBreakdown && (
+              <Animated.View entering={FadeInUp.delay(320).duration(500)} style={styles.scoreBreakdownCard}>
+                <Text style={styles.scoreBreakdownLabel}>Premium depth</Text>
+                <View style={styles.scoreBreakdownGrid}>
+                  {Object.entries(scoreBreakdown).map(([key, value]) => (
+                    <View key={key} style={styles.scoreBreakdownItem}>
+                      <Text style={styles.scoreBreakdownValue}>{value}%</Text>
+                      <Text style={styles.scoreBreakdownName}>{key}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
+            )}
 
-            <Animated.View entering={FadeInUp.delay(550).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' }]}>
-              <View style={styles.resultSectionHeader}>
-                <Text style={styles.resultSectionEmoji}>🌱</Text>
-                <Text style={styles.resultSectionTitle}>Growth Together</Text>
-              </View>
-              <Text style={styles.resultSectionText}>
-                {resultSection('growth') ?? "The best version of this connection isn't about avoiding friction — it's about staying present when it arrives."}
-              </Text>
-            </Animated.View>
+            {resultSections.map((section, index) => {
+              const meta = resultSectionMeta[section.key] ?? { emoji: '✦', fallbackTitle: section.title };
+              return (
+                <Animated.View
+                  key={`${section.key}-${index}`}
+                  entering={FadeInUp.delay(350 + index * 100).duration(500)}
+                  style={[
+                    styles.resultSection,
+                    fullResult && section.key === 'growth' && { backgroundColor: 'rgba(221,237,220,0.5)', borderColor: 'rgba(31,33,48,0.06)' },
+                  ]}
+                >
+                  <View style={styles.resultSectionHeader}>
+                    <Text style={styles.resultSectionEmoji}>{meta.emoji}</Text>
+                    <Text style={styles.resultSectionTitle}>{section.title || meta.fallbackTitle}</Text>
+                  </View>
+                  <Text style={styles.resultSectionText}>{section.body}</Text>
+                </Animated.View>
+              );
+            })}
 
-            <Animated.View entering={FadeInUp.delay(650).duration(500)} style={[styles.resultSection, { backgroundColor: 'rgba(232,221,251,0.4)', borderColor: 'rgba(139,114,207,0.15)' }]}>
+            {premiumExtraSections.map((section, index) => {
+              const meta = resultSectionMeta[section.key] ?? { emoji: '✦', fallbackTitle: section.title };
+              return (
+                <Animated.View
+                  key={`${section.key}-${index}`}
+                  entering={FadeInUp.delay(650 + index * 90).duration(500)}
+                  style={[styles.resultSection, styles.premiumDeepSection]}
+                >
+                  <View style={styles.resultSectionHeader}>
+                    <Text style={styles.resultSectionEmoji}>{meta.emoji}</Text>
+                    <Text style={styles.resultSectionTitle}>{section.title || meta.fallbackTitle}</Text>
+                  </View>
+                  <Text style={styles.resultSectionText}>{section.body}</Text>
+                </Animated.View>
+              );
+            })}
+
+            <Animated.View entering={FadeInUp.delay(650).duration(500)} style={[styles.resultSection, styles.quoteSection]}>
               <Text style={styles.quoteText}>
                 "{reading?.quote ?? "Compatibility isn't about being the same. It's about whether you can grow in the same direction without losing yourself."}"
               </Text>
@@ -536,10 +577,12 @@ export default function CompatibilityScreen() {
             <TextInput
               value={name}
               onChangeText={setName}
+              maxLength={PARTNER_NAME_MAX}
               placeholder="e.g. Jordan"
               placeholderTextColor={theme.colors.muted + '80'}
               style={styles.input}
             />
+            <Text style={styles.characterHint}>{name.length}/{PARTNER_NAME_MAX}</Text>
           </Animated.View>
 
           {matchMode === 'full' ? (
@@ -599,10 +642,12 @@ export default function CompatibilityScreen() {
                 setPlaceQuery(value);
                 setSelectedPlace(null);
               }}
+              maxLength={PLACE_QUERY_MAX}
               placeholder="Search city"
               placeholderTextColor={theme.colors.muted + '80'}
               style={styles.input}
             />
+            <Text style={styles.characterHint}>{placeQuery.length}/{PLACE_QUERY_MAX}</Text>
             {selectedPlace && (
               <Text style={styles.selectedPlaceText}>{selectedPlace.name}, {selectedPlace.country}</Text>
             )}
@@ -1075,6 +1120,12 @@ const styles = StyleSheet.create({
   lockedItem: { fontSize: 11, color: theme.colors.muted, lineHeight: 17 },
   inputSection: { marginBottom: 20 },
   inputLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },
+  characterHint: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    textAlign: 'right',
+    marginTop: 6,
+  },
   inlineHeader: {
     minHeight: 30,
     flexDirection: 'row',
@@ -1402,11 +1453,11 @@ const styles = StyleSheet.create({
   },
   resultSection: {
     borderRadius: 24,
-    padding: 16,
+    padding: 18,
     marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
+    borderColor: 'rgba(31,33,48,0.11)',
   },
   resultSectionHeader: {
     flexDirection: 'row',
@@ -1415,8 +1466,78 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultSectionEmoji: { fontSize: 16 },
-  resultSectionTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink },
-  resultSectionText: { fontSize: 13, color: theme.colors.muted, lineHeight: 22 },
+  resultSectionTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
+  resultSectionText: { fontSize: 13, color: '#5E6072', lineHeight: 23 },
+  quickSummaryCard: {
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+  },
+  quickSummaryLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    marginBottom: 5,
+  },
+  quickSummaryTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 18,
+    fontWeight: '500',
+    color: theme.colors.ink,
+    marginBottom: 6,
+  },
+  quickSummaryBody: { fontSize: 12, color: theme.colors.muted, lineHeight: 20, marginBottom: 10 },
+  quickSummaryHint: { fontSize: 11, fontWeight: '700', color: '#7A63BD', lineHeight: 17 },
+  scoreBreakdownCard: {
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: 'rgba(232,221,251,0.42)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.18)',
+  },
+  scoreBreakdownLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    marginBottom: 10,
+  },
+  scoreBreakdownGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  scoreBreakdownItem: {
+    width: '48%',
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.06)',
+  },
+  scoreBreakdownValue: { fontSize: 18, fontWeight: '800', color: theme.colors.ink, marginBottom: 2 },
+  scoreBreakdownName: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.muted,
+    textTransform: 'capitalize',
+  },
+  premiumDeepSection: {
+    backgroundColor: '#FFFDF8',
+    borderColor: 'rgba(139,114,207,0.28)',
+    shadowColor: 'rgba(31,33,48,0.08)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    shadowOpacity: 1,
+    elevation: 2,
+  },
+  quoteSection: {
+    backgroundColor: 'rgba(232,221,251,0.58)',
+    borderColor: 'rgba(139,114,207,0.24)',
+  },
   quoteText: {
     fontSize: 13,
     color: theme.colors.ink,

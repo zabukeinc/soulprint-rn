@@ -355,6 +355,35 @@ export type BirthChartReport = {
   reportSections?: Array<{ key: string; title: string; body: string }>;
 };
 
+export type CompatibilityReading = {
+  id: string;
+  access: {
+    tier: 'free' | 'premium';
+    level: 'quick' | 'full';
+    lockedModes: string[];
+  };
+  userSign: string;
+  partnerSign: string;
+  partnerName: string | null;
+  partnerBirthDate: string | null;
+  partnerBirthPlace: ProfilePayload['profile']['birthPlace'] | null;
+  basis: Record<string, any>;
+  scores: Record<string, number>;
+  sections: Array<{ key: string; title: string; body: string }>;
+  quote: string;
+  quickSummary: { title: string; body: string; upgradeHint: string } | null;
+  premiumDetails: {
+    scoreBreakdown: {
+      emotional: number;
+      attraction: number;
+      communication: number;
+      growth: number;
+    };
+    chartBasis: Record<string, any>;
+    deepSections: Array<{ key: string; title: string; body: string }>;
+  } | null;
+};
+
 type BackendCity = {
   id?: string;
   name?: string;
@@ -571,7 +600,7 @@ export function createCompatibilityReading(input: {
   partnerBirthTime?: string | null;
   partnerBirthPlace?: ProfilePayload['profile']['birthPlace'];
 }) {
-  return apiRequest<any>('/compatibility/readings', {
+  return apiRequest<CompatibilityReading>('/compatibility/readings', {
     method: 'POST',
     body: input,
   });

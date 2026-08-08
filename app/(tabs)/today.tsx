@@ -11,6 +11,8 @@ import PatternAlertCard from '@/src/components/PatternAlertCard';
 import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
 import { InlineRefreshing, SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 
+const JOURNAL_TEXT_MAX = 2000;
+
 function getTimeGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -493,9 +495,10 @@ export default function TodayScreen() {
                 placeholderTextColor={theme.colors.muted + '80'}
                 value={journalText}
                 onChangeText={setJournalText}
+                maxLength={JOURNAL_TEXT_MAX}
               />
               <View style={styles.journalFooter}>
-                <Text style={styles.journalHint}>Saved only for you</Text>
+                <Text style={styles.journalHint}>{journalText.length}/{JOURNAL_TEXT_MAX}</Text>
                 <TouchableOpacity
                   onPress={handleSaveJournal}
                   disabled={!journalText.trim()}
