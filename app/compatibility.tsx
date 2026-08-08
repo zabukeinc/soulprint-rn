@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { ApiError } from '@/src/lib/api';
+import { useTier } from '@/src/context/TierContext';
 import { createCompatibilityReading } from '@/src/services/backend';
 import { searchCities, type City } from '@/src/services/cities';
 
@@ -73,8 +74,9 @@ function formatDateLabel(value: string) {
 
 export default function CompatibilityScreen() {
   const router = useRouter();
+  const { isPremium } = useTier();
   const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
-  const [matchMode, setMatchMode] = useState<'full' | 'quick'>('full');
+  const [matchMode, setMatchMode] = useState<'full' | 'quick'>('quick');
   const [name, setName] = useState('');
   const [selectedSign, setSelectedSign] = useState<string | null>(null);
   const [birthDate, setBirthDate] = useState('');
@@ -96,6 +98,10 @@ export default function CompatibilityScreen() {
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withRepeat(withTiming(1.1, { duration: 1000 }), -1, true) }],
   }));
+
+  useEffect(() => {
+    if (isPremium) setMatchMode('full');
+  }, [isPremium]);
 
   useEffect(() => {
     let active = true;
@@ -120,13 +126,18 @@ export default function CompatibilityScreen() {
     };
   }, [matchMode, placeQuery, selectedPlace]);
 
-  const canReveal = name.trim().length > 0 && (
+  const fullLocked = matchMode === 'full' && !isPremium;
+  const canReveal = !fullLocked && name.trim().length > 0 && (
     matchMode === 'quick'
       ? Boolean(selectedSign)
       : /^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim()) && Boolean(selectedPlace) && (!knowsBirthTime || /^\d{2}:\d{2}$/.test(birthTime.trim()))
   );
 
   const handleReveal = async () => {
+    if (fullLocked) {
+      router.push('/pricing');
+      return;
+    }
     if (canReveal) {
       setStep('loading');
       setError(null);
@@ -262,7 +273,7 @@ export default function CompatibilityScreen() {
               >
                 <View style={styles.scoreGlow} />
                 <Animated.View entering={ZoomIn.delay(400).duration(300)} style={styles.scoreContent}>
-                  <Text style={styles.scoreLabel}>Emotional Match</Text>
+              <Text style={styles.scoreLabel}>Emotional Match</Text>
                   <Text style={styles.scoreValue}>{reading?.scores?.overall ?? 74}%</Text>
                   <Text style={styles.scoreSub}>{basis.matchType === 'full_birth_match' ? 'Birth chart compatibility' : 'Sun sign compatibility'}</Text>
                 </Animated.View>
@@ -351,6 +362,7 @@ export default function CompatibilityScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.modeText, matchMode === 'full' && styles.modeTextActive]}>Full Birth Match</Text>
+          {!isPremium && <Text style={[styles.modeSubText, matchMode === 'full' && styles.modeSubTextActive]}>Premium</Text>}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeButton, matchMode === 'quick' && styles.modeButtonActive]}
@@ -358,22 +370,41 @@ export default function CompatibilityScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.modeText, matchMode === 'quick' && styles.modeTextActive]}>Quick Match</Text>
+          <Text style={[styles.modeSubText, matchMode === 'quick' && styles.modeSubTextActive]}>Free</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Their name</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. Jordan"
-          placeholderTextColor={theme.colors.muted + '80'}
-          style={styles.input}
-        />
-      </Animated.View>
-
-      {matchMode === 'full' ? (
+      {fullLocked ? (
+        <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.lockedCard}>
+          <View style={styles.lockedIconBg}>
+            <Text style={styles.lockedIcon}>✦</Text>
+          </View>
+          <Text style={styles.lockedLabel}>Premium Reading</Text>
+          <Text style={styles.lockedTitle}>Unlock Full Birth Match</Text>
+          <Text style={styles.lockedBody}>
+            Full Match compares birth date, place, optional birth time, and chart patterns for a deeper compatibility reading.
+          </Text>
+          <View style={styles.lockedList}>
+            <Text style={styles.lockedItem}>• Birth chart compatibility</Text>
+            <Text style={styles.lockedItem}>• Emotional, attraction, communication, and growth scores</Text>
+            <Text style={styles.lockedItem}>• Deeper AI interpretation from the backend</Text>
+          </View>
+        </Animated.View>
+      ) : (
         <>
+          <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Their name</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. Jordan"
+              placeholderTextColor={theme.colors.muted + '80'}
+              style={styles.input}
+            />
+          </Animated.View>
+
+          {matchMode === 'full' ? (
+            <>
           <Animated.View entering={FadeInUp.delay(320).duration(500)} style={styles.inputSection}>
             <Text style={styles.inputLabel}>Their birth date</Text>
             <TouchableOpacity
@@ -470,52 +501,54 @@ export default function CompatibilityScreen() {
               ))}
             </View>
           </Animated.View>
-        </>
-      ) : (
-        <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Their zodiac sign</Text>
-          <View style={styles.signGrid}>
-            {zodiacSigns.map((sign, i) => (
-              <Animated.View
-                key={sign}
-                entering={FadeInUp.delay(400 + i * 30).duration(300)}
-                style={{ width: '23%' }}
-              >
-                <TouchableOpacity
-                  onPress={() => setSelectedSign(sign)}
-                  style={[
-                    styles.signBtn,
-                    selectedSign === sign && styles.signBtnActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.signBtnText,
-                      selectedSign === sign && styles.signBtnTextActive,
-                    ]}
+            </>
+          ) : (
+            <Animated.View entering={FadeInUp.delay(350).duration(500)} style={styles.inputSection}>
+              <Text style={styles.inputLabel}>Their zodiac sign</Text>
+              <View style={styles.signGrid}>
+                {zodiacSigns.map((sign, i) => (
+                  <Animated.View
+                    key={sign}
+                    entering={FadeInUp.delay(400 + i * 30).duration(300)}
+                    style={{ width: '23%' }}
                   >
-                    {sign}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-        </Animated.View>
+                    <TouchableOpacity
+                      onPress={() => setSelectedSign(sign)}
+                      style={[
+                        styles.signBtn,
+                        selectedSign === sign && styles.signBtnActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.signBtnText,
+                          selectedSign === sign && styles.signBtnTextActive,
+                        ]}
+                      >
+                        {sign}
+                      </Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+        </>
       )}
 
       <Animated.View entering={FadeInUp.delay(700).duration(500)}>
         <TouchableOpacity
           activeOpacity={0.85}
-          disabled={!canReveal}
+          disabled={!canReveal && !fullLocked}
           onPress={handleReveal}
         >
           <LinearGradient
-            colors={canReveal ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
+            colors={canReveal || fullLocked ? theme.gradients.primary : ['#C4B8E0', '#A0D4D0']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.button, !canReveal && styles.buttonDisabled]}
+            style={[styles.button, !canReveal && !fullLocked && styles.buttonDisabled]}
           >
-            <Text style={styles.buttonText}>Reveal Compatibility</Text>
+            <Text style={styles.buttonText}>{fullLocked ? 'Unlock Full Match' : matchMode === 'quick' ? 'Reveal Quick Match' : 'Reveal Full Match'}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -770,7 +803,7 @@ const styles = StyleSheet.create({
   },
   modeButton: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 50,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -781,6 +814,59 @@ const styles = StyleSheet.create({
   },
   modeText: { fontSize: 12, fontWeight: '800', color: theme.colors.muted, textAlign: 'center' },
   modeTextActive: { color: '#FFFFFF' },
+  modeSubText: { fontSize: 10, fontWeight: '700', color: theme.colors.muted, marginTop: 2 },
+  modeSubTextActive: { color: 'rgba(255,255,255,0.78)' },
+  lockedCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,114,207,0.16)',
+    alignItems: 'center',
+    ...theme.shadows.warmSoft,
+  },
+  lockedIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    backgroundColor: 'rgba(139,114,207,0.14)',
+  },
+  lockedIcon: { fontSize: 18, color: '#8B72CF' },
+  lockedLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#8B72CF',
+    marginBottom: 4,
+  },
+  lockedTitle: {
+    fontFamily: theme.fonts.serif,
+    fontSize: 21,
+    fontWeight: '500',
+    color: theme.colors.ink,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  lockedBody: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  lockedList: {
+    width: '100%',
+    gap: 6,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(232,221,251,0.36)',
+  },
+  lockedItem: { fontSize: 11, color: theme.colors.muted, lineHeight: 17 },
   inputSection: { marginBottom: 20 },
   inputLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },
   inlineHeader: {

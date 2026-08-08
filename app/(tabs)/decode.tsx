@@ -26,7 +26,7 @@ const features = [
     id: 'compatibility',
     icon: Users,
     title: 'Compatibility',
-    description: 'Decode chemistry with someone.',
+    description: 'Quick match free. Full birth match premium.',
     gradient: ['#DDEDDC', '#DFF2EC'] as const,
   },
   {
