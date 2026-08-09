@@ -30,8 +30,8 @@
 ### 3.1 Base URL
 
 ```
-Production: https://api.astrovy.app/v1
-Staging:    https://api-staging.astrovy.app/v1
+Production: https://api.astrovy.space/v1
+Staging:    https://api-staging.astrovy.space/v1
 ```
 
 ### 3.2 Headers
@@ -668,5 +668,4 @@ REQ `{ "expoPushToken": "ExponentPushToken[...]", "platform": "ios" }` → `201`
 | Date | Change |
 |---|---|
 | 2026-08-01 | v1 draft — initial contract |
-
 
