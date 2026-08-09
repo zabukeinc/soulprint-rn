@@ -128,7 +128,7 @@ export default function MirrorScreen() {
       </Animated.View>
 
       {engagement.refreshing && (
-        <InlineRefreshing label="Updating Mirror from backend..." />
+        <InlineRefreshing label="Updating Mirror..." />
       )}
 
       <Animated.View entering={FadeInUp.duration(500).delay(80)} style={styles.insightCard}>

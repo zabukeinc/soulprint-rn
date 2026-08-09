@@ -244,7 +244,7 @@ export default function TodayScreen() {
       </Animated.View>
 
       {engagement.refreshing && (
-        <InlineRefreshing label="Updating Today from backend..." />
+        <InlineRefreshing label="Updating today..." />
       )}
 
       <Animated.View entering={FadeInUp.duration(500).delay(50)}>

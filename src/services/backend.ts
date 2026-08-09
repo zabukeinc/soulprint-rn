@@ -220,6 +220,19 @@ export type MirrorJourneyPayload = {
   moodDistribution: Array<{ mood: string; count: number; percentage: number }> | null;
   themeCards: Array<{ key: string; title: string; body: string }> | null;
   premiumInsights: { rangeLabel: string; body: string } | null;
+  generation?: {
+    summary: {
+      status: 'basic' | 'generating' | 'ready';
+      source?: 'backend' | 'cache' | 'generated';
+      provider?: 'static' | 'openai' | 'alibaba';
+      model?: string;
+      promptId?: string;
+      promptVersion?: string;
+      cacheKey?: string;
+      pollAfterMs?: number;
+      quality?: Record<string, any>;
+    };
+  };
 };
 
 export type FirstMirrorPayload = {

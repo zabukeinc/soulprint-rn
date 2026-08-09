@@ -67,7 +67,23 @@ export default function JourneyScreen() {
       .finally(() => setLoading(false));
   }, [range]);
 
+  useEffect(() => {
+    if (journey?.generation?.summary.status !== 'generating') return;
+    const timeout = setTimeout(() => {
+      getMirrorJourney(range)
+        .then(setJourney)
+        .catch(() => undefined);
+    }, journey.generation.summary.pollAfterMs ?? 1500);
+    return () => clearTimeout(timeout);
+  }, [journey?.generation?.summary.status, journey?.generation?.summary.pollAfterMs, range]);
+
   const latestMood = useMemo(() => journey?.graph.points.at(-1)?.mood ?? null, [journey?.graph.points]);
+  const summaryStatus = journey?.generation?.summary.status;
+  const summaryLabel = summaryStatus === 'ready'
+    ? 'Premium synthesis'
+    : summaryStatus === 'generating'
+      ? 'Premium synthesis preparing'
+      : 'Journey summary';
   const previewMoodDistribution = useMemo(() => {
     if (!journey) return null;
     if (journey.moodDistribution) return journey.moodDistribution;
@@ -128,9 +144,12 @@ export default function JourneyScreen() {
       ) : (
         <>
           <Animated.View entering={FadeInUp.duration(450)} style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Backend summary</Text>
+            <Text style={styles.summaryLabel}>{summaryLabel}</Text>
             <Text style={styles.summaryTitle}>{journey.summary.title}</Text>
             <Text style={styles.summaryBody}>{journey.summary.body}</Text>
+            {summaryStatus === 'generating' && (
+              <Text style={styles.summaryHint}>Your graph and reflection history are ready. The deeper premium synthesis is updating in the background.</Text>
+            )}
           </Animated.View>
 
           <Animated.View entering={FadeInUp.duration(450).delay(80)} style={styles.graphCard}>
@@ -226,6 +245,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: '#16A7A0', fontWeight: '800', marginBottom: 8 },
   summaryTitle: { fontFamily: theme.fonts.serif, fontSize: 22, lineHeight: 26, fontWeight: '500', color: theme.colors.ink, marginBottom: 8 },
   summaryBody: { fontSize: 13, color: theme.colors.muted, lineHeight: 21 },
+  summaryHint: { marginTop: 10, fontSize: 11, color: '#8B72CF', lineHeight: 17, fontWeight: '700' },
   graphCard: { borderRadius: 24, padding: 16, marginBottom: 12, backgroundColor: 'rgba(232,221,251,0.34)', borderWidth: 1, borderColor: 'rgba(139,114,207,0.14)' },
   graphHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
