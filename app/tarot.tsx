@@ -15,6 +15,8 @@ import { theme } from '@/src/lib/theme';
 import { getPositionMeaning } from '@/src/lib/tarotEngine';
 import { TAROT_CARDS } from '@/src/lib/tarot';
 import { InlineRefreshing, SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
+import { TarotArtworkCard } from '@/src/components/TarotArtworkCard';
+import type { TarotVisual } from '@/src/services/backend';
 
 type Position = 'past' | 'present' | 'future';
 
@@ -25,6 +27,7 @@ interface DrawnCard {
   name?: string;
   emoji?: string;
   keywords?: unknown;
+  visual?: TarotVisual;
   meaning?: string;
   interpretation?: {
     meaning?: string;
@@ -49,6 +52,7 @@ export default function TarotScreen() {
     name: c.backend?.name,
     emoji: c.backend?.emoji,
     keywords: c.backend?.keywords,
+    visual: c.backend?.visual,
     meaning: c.backend?.meaning,
     interpretation: c.backend?.interpretation,
   }));
@@ -67,6 +71,7 @@ export default function TarotScreen() {
         name: c.backend?.name,
         emoji: c.backend?.emoji,
         keywords: c.backend?.keywords,
+        visual: c.backend?.visual,
         meaning: c.backend?.meaning,
         interpretation: c.backend?.interpretation,
       }));
@@ -92,6 +97,7 @@ export default function TarotScreen() {
         name: card.name,
         emoji: card.emoji,
         keywords: card.keywords,
+        visual: card.visual,
         meaning: card.meaning,
         interpretation: card.interpretation,
       }));
@@ -132,6 +138,7 @@ export default function TarotScreen() {
       name: drawn.name ?? fallback?.name ?? drawn.cardId,
       emoji: drawn.emoji ?? fallback?.emoji ?? '✦',
       keywords,
+      visual: drawn.visual,
       meaning: drawn.interpretation?.meaning ?? drawn.meaning ?? (fallback ? (isPremium ? fallback.meaning.premium : fallback.meaning.free) : ''),
       reflectionPrompt: drawn.interpretation?.reflectionPrompt,
       action: drawn.interpretation?.action,
@@ -270,28 +277,22 @@ export default function TarotScreen() {
                 )}
 
                 <LinearGradient
-                  colors={theme.gradients.hero}
+                  colors={['#FFF9EF', '#F7F2EA'] as const}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.cardBody}
                 >
-                  <View style={styles.cardGlow} />
-                  <View style={styles.cardEmojiRow}>
-                    <Text style={[styles.cardEmoji, drawn.reversed && styles.cardEmojiReversed]}>
-                      {card.emoji}
-                    </Text>
-                    {drawn.reversed && (
-                      <View style={styles.reversedBadge}>
-                        <Text style={styles.reversedBadgeText}>Reversed</Text>
-                      </View>
-                    )}
+                  <TarotArtworkCard
+                    name={card.name}
+                    reversed={drawn.reversed}
+                    keywords={card.keywords}
+                    visual={card.visual}
+                    fallbackSymbol={card.emoji}
+                  />
+                  <View style={styles.readingPanel}>
+                    <Text style={styles.cardName}>{card.name}</Text>
+                    <Text style={styles.cardKeywords}>{card.keywords}</Text>
                   </View>
-                  <Text style={styles.cardName}>
-                    {card.name}
-                  </Text>
-                  <Text style={styles.cardKeywords}>
-                    {card.keywords}
-                  </Text>
                   <Text style={styles.cardMeaning}>
                     {card.meaning}
                   </Text>
@@ -521,44 +522,16 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     borderRadius: 24,
-    padding: 20,
+    padding: 14,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
     ...theme.shadows.warmSoft,
   },
-  cardGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    right: -30,
-    top: -30,
-  },
-  cardEmojiRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  cardEmoji: {
-    fontSize: 40,
-  },
-  cardEmojiReversed: {
-    transform: [{ rotate: '180deg' }],
-  },
-  reversedBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(244,199,210,0.6)',
-  },
-  reversedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#8B72CF',
+  readingPanel: {
+    paddingHorizontal: 6,
+    paddingTop: 18,
   },
   cardName: {
     fontFamily: theme.fonts.serif,

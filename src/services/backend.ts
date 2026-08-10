@@ -270,6 +270,7 @@ export type TarotDraw = {
   name: string;
   emoji: string;
   suit: string;
+  visual?: TarotVisual;
   reversed: boolean;
   position: 'past' | 'present' | 'future';
   keywords: unknown;
@@ -282,6 +283,22 @@ export type TarotDraw = {
     source?: string;
   } | null;
   date: string;
+};
+
+export type TarotVisual = {
+  imageKey: string;
+  hasArtwork: boolean;
+  symbol: string;
+  arcana: 'major' | 'minor' | string;
+  suit: string;
+  rank: string | null;
+  palette: {
+    background: [string, string];
+    accent: string;
+    ink: string;
+    aura: string;
+  };
+  visualPrompt: string;
 };
 
 export type TarotState = {
