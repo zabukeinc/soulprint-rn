@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getAvailablePurchases, useIAP, type ProductSubscription, type Purchase } from 'expo-iap';
 import Animated, {
   FadeInUp,
   FadeIn,
@@ -11,7 +12,8 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
-import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type LegalInfo } from '@/src/services/backend';
+import { useAuth } from '@/src/context/AuthContext';
+import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, verifyGoogleIapPurchase } from '@/src/services/backend';
 
 const features = {
   monthly: [
@@ -32,12 +34,49 @@ const features = {
 
 export default function PricingScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
   const [serverProducts, setServerProducts] = useState<Array<Record<string, any>> | null>(null);
   const [serverFeatures, setServerFeatures] = useState<string[] | null>(null);
   const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
   const [checkingRestore, setCheckingRestore] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const productIds = serverProducts?.map((product) => product.id).filter(Boolean) ?? [];
+
+  const finishVerifiedPurchase = async (purchase: Purchase): Promise<Entitlement | null> => {
+    if (Platform.OS !== 'android') return null;
+    const productId = purchase.productId;
+    const purchaseToken = purchase.purchaseToken;
+    if (!productId || !purchaseToken) return null;
+
+    const entitlement = await verifyGoogleIapPurchase({ productId, purchaseToken });
+    await iap.finishTransaction({ purchase, isConsumable: false });
+    return entitlement;
+  };
+
+  const iap = useIAP({
+    onPurchaseSuccess: (purchase) => {
+      setPurchasing(true);
+      setStatusMessage('Confirming your premium access...');
+      finishVerifiedPurchase(purchase)
+        .then((entitlement) => {
+          const active = entitlement?.tier === 'premium' && ['active', 'grace'].includes(entitlement.status);
+          setStatusMessage(active ? 'Premium is active on this account.' : 'Purchase was checked, but no active premium entitlement was found.');
+        })
+        .catch(() => {
+          setStatusMessage('Purchase finished in Play, but backend verification failed. Please tap Restore purchases.');
+        })
+        .finally(() => setPurchasing(false));
+    },
+    onPurchaseError: () => {
+      setPurchasing(false);
+      setStatusMessage('Purchase was not completed. Please try again when Play Store is ready.');
+    },
+    onError: () => {
+      setStatusMessage('Play Store billing is not ready in this build yet.');
+    },
+  });
 
   useEffect(() => {
     getProducts()
@@ -52,9 +91,17 @@ export default function PricingScreen() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !iap.connected || productIds.length === 0) return;
+    iap.fetchProducts({ skus: productIds, type: 'subs' }).catch(() => {
+      setStatusMessage('Could not load Play Store prices yet. Backend plan details are still available.');
+    });
+  }, [iap.connected, productIds.join('|')]);
+
   const selectedProduct = serverProducts?.find((product) =>
     selected === 'monthly' ? product.period === 'monthly' : product.period === 'annual'
   );
+  const storeProduct = iap.subscriptions.find((product) => product.id === selectedProduct?.id);
   const displayFeatures = serverFeatures ?? features[selected];
   const manageSubscriptionUrl = Platform.OS === 'ios'
     ? legalInfo.subscriptions.appleManageUrl
@@ -70,14 +117,68 @@ export default function PricingScreen() {
     }
   };
 
-  const handlePurchase = () => {
-    setStatusMessage('Purchases are not enabled in this build yet. Apple and Google verification endpoints are ready on the backend, but the store SDK still needs to be connected.');
+  const googleOfferToken = (product: ProductSubscription | undefined) => {
+    if (product?.platform !== 'android') return null;
+    return product.subscriptionOffers?.[0]?.offerTokenAndroid ?? null;
+  };
+
+  const handlePurchase = async () => {
+    if (Platform.OS !== 'android') {
+      setStatusMessage('App Store purchases are next. Play Store billing is being wired first.');
+      return;
+    }
+    if (!user) {
+      setStatusMessage('Please log in before starting premium.');
+      return;
+    }
+    if (!selectedProduct?.id) {
+      setStatusMessage('Premium product is not ready yet. Please try again.');
+      return;
+    }
+    if (!iap.connected) {
+      const connected = await iap.reconnect().catch(() => false);
+      if (!connected) {
+        setStatusMessage('Play Store billing is not available in this build. Use an Android development or store build.');
+        return;
+      }
+    }
+
+    setPurchasing(true);
+    setStatusMessage('Opening Play Store checkout...');
+    try {
+      const offerToken = googleOfferToken(storeProduct);
+      await iap.requestPurchase({
+        type: 'subs',
+        request: {
+          google: {
+            skus: [selectedProduct.id],
+            obfuscatedAccountId: user.id,
+            ...(offerToken ? { subscriptionOffers: [{ sku: selectedProduct.id, offerToken }] } : {}),
+          },
+        },
+      });
+    } catch {
+      setPurchasing(false);
+      setStatusMessage('Could not open Play Store checkout. Please try again from a signed Android build.');
+    }
   };
 
   const handleRestore = async () => {
     setCheckingRestore(true);
     setStatusMessage(null);
     try {
+      if (Platform.OS === 'android' && iap.connected) {
+        const purchases = await getAvailablePurchases({ includeSuspendedAndroid: true });
+        const verified = await Promise.all(
+          purchases
+            .filter((purchase) => Boolean(purchase.purchaseToken))
+            .map((purchase) => finishVerifiedPurchase(purchase))
+        );
+        if (verified.some((entitlement) => entitlement?.tier === 'premium' && ['active', 'grace'].includes(entitlement.status))) {
+          setStatusMessage('Premium access was restored from Play Store.');
+          return;
+        }
+      }
       const entitlement = await getEntitlement();
       const active = entitlement.tier === 'premium' && ['active', 'grace'].includes(entitlement.status);
       setStatusMessage(active ? 'Premium access is active on this account.' : 'No active premium entitlement was found on this account yet.');
@@ -177,7 +278,7 @@ export default function PricingScreen() {
               <Text style={styles.planName}>{selected}</Text>
             </View>
             <View style={styles.planPriceBox}>
-              <Text style={styles.planPrice}>${selectedProduct?.monthlyEquivalent ?? selectedProduct?.price ?? (selected === 'monthly' ? '9' : '6')}</Text>
+              <Text style={styles.planPrice}>{storeProduct?.displayPrice ?? `$${selectedProduct?.monthlyEquivalent ?? selectedProduct?.price ?? (selected === 'monthly' ? '9' : '6')}`}</Text>
               <Text style={styles.planPriceSub}>per month</Text>
             </View>
           </View>
@@ -216,14 +317,14 @@ export default function PricingScreen() {
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(200).duration(500)}>
-        <TouchableOpacity activeOpacity={0.85} onPress={handlePurchase}>
+        <TouchableOpacity activeOpacity={0.85} onPress={handlePurchase} disabled={purchasing}>
           <LinearGradient
             colors={theme.gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaButton}
           >
-            <Text style={styles.ctaText}>Go deeper</Text>
+            {purchasing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.ctaText}>Go deeper</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>

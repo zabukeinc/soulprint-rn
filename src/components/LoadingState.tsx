@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { theme } from '@/src/lib/theme';
 
 export function LoadingPage({
@@ -110,6 +110,32 @@ export function SkeletonPillRow({ count = 3 }: { count?: number }) {
   );
 }
 
+export function ErrorStateCard({
+  title = 'Could not load this yet',
+  body = 'Check your connection and try again.',
+  actionLabel = 'Try again',
+  onRetry,
+  style,
+}: {
+  title?: string;
+  body?: string;
+  actionLabel?: string;
+  onRetry?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.errorCard, style]}>
+      <Text style={styles.errorTitle}>{title}</Text>
+      <Text style={styles.errorBody}>{body}</Text>
+      {onRetry && (
+        <TouchableOpacity activeOpacity={0.85} onPress={onRetry} style={styles.retryButton}>
+          <Text style={styles.retryText}>{actionLabel}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   page: {
     flex: 1,
@@ -188,5 +214,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#8B72CF',
+  },
+  errorCard: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(184,74,98,0.18)',
+    ...theme.shadows.warmSm,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.ink,
+  },
+  errorBody: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 20,
+    color: theme.colors.muted,
+  },
+  retryButton: {
+    marginTop: 14,
+    minHeight: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.ink,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

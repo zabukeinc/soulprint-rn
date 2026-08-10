@@ -1,7 +1,9 @@
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
+import { captureApiError } from '@/src/lib/observability';
 
 const TOKEN_KEY = 'astrovy_auth_tokens';
+const DEFAULT_TIMEOUT_MS = 20_000;
 
 export type TokenPair = {
   accessToken: string;
@@ -27,18 +29,22 @@ type RequestOptions = Omit<RequestInit, 'body' | 'headers'> & {
   body?: unknown;
   auth?: boolean;
   idempotencyKey?: string;
+  timeoutMs?: number;
+  reportErrors?: boolean;
 };
 
 export class ApiError extends Error {
   code: string;
   status: number;
+  category: 'auth' | 'network' | 'offline' | 'premium' | 'quota' | 'server' | 'timeout' | 'validation' | 'unknown';
   details?: unknown;
 
-  constructor(status: number, code: string, message: string, details?: unknown) {
+  constructor(status: number, code: string, message: string, details?: unknown, category: ApiError['category'] = 'unknown') {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.category = category;
     this.details = details;
   }
 }
@@ -78,20 +84,57 @@ function timezone() {
 async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) return undefined as T;
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const payload = text ? safeJsonParse(text) : null;
   if (!response.ok) {
     const error = payload?.error;
+    const category = categorizeStatus(response.status, error?.code);
     throw new ApiError(
       response.status,
       error?.code ?? 'REQUEST_FAILED',
-      error?.message ?? 'Request failed.',
-      error?.details
+      friendlyApiMessage(response.status, error?.code, error?.message),
+      error?.details,
+      category
     );
   }
   return payload as T;
 }
 
+function safeJsonParse(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function categorizeStatus(status: number, code?: string): ApiError['category'] {
+  if (status === 401) return 'auth';
+  if (status === 403 && code === 'PREMIUM_REQUIRED') return 'premium';
+  if (status === 429 || code === 'FEATURE_QUOTA_EXCEEDED') return 'quota';
+  if ([400, 422].includes(status)) return 'validation';
+  if (status >= 500) return 'server';
+  return 'unknown';
+}
+
+function friendlyApiMessage(status: number, code?: string, fallback?: string) {
+  if (status === 401) return 'Your session expired. Please log in again.';
+  if (status === 403 && code === 'PREMIUM_REQUIRED') return fallback ?? 'This reading needs premium access.';
+  if (status === 429) return fallback ?? 'You have reached today\'s limit. Try again after the reset.';
+  if (status >= 500) return 'Astrovy is having trouble reaching the backend. Please try again.';
+  return fallback ?? 'Request failed. Please try again.';
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function isNetworkError(error: unknown) {
+  return error instanceof TypeError || (error instanceof Error && /network|fetch/i.test(error.message));
+}
+
 async function rawRequest<T>(path: string, options: RequestOptions, tokens: TokenPair | null) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -103,13 +146,26 @@ async function rawRequest<T>(path: string, options: RequestOptions, tokens: Toke
     headers.Authorization = `Bearer ${tokens.accessToken}`;
   }
 
-  const response = await fetch(`${apiConfig.baseUrl}${path}`, {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  try {
+    const response = await fetch(`${apiConfig.baseUrl}${path}`, {
+      ...options,
+      headers,
+      signal: options.signal ?? controller.signal,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
 
-  return parseResponse<T>(response);
+    return parseResponse<T>(response);
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new ApiError(0, 'REQUEST_TIMEOUT', 'The backend is taking too long. Please try again.', undefined, 'timeout');
+    }
+    if (isNetworkError(error)) {
+      throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'You seem to be offline. Check your connection and try again.', undefined, 'network');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -117,6 +173,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try {
     return await rawRequest<T>(path, options, tokens);
   } catch (error) {
+    if (error instanceof ApiError && options.reportErrors !== false) {
+      captureApiError({
+        path,
+        method: options.method,
+        status: error.status,
+        code: error.code,
+        message: error.message,
+        category: error.category,
+      });
+    }
     if (
       options.auth !== false &&
       error instanceof ApiError &&

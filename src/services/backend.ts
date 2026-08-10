@@ -513,6 +513,13 @@ export function setEntitlementPreview(tier: 'free' | 'premium') {
   });
 }
 
+export function verifyGoogleIapPurchase(input: { purchaseToken: string; productId: string }) {
+  return apiRequest<Entitlement>('/iap/google/verify', {
+    method: 'POST',
+    body: input,
+  });
+}
+
 export function getProducts() {
   return apiRequest<{ products: Array<Record<string, any>>; features: string[] }>('/products');
 }

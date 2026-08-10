@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { authStorage, setUnauthorizedHandler, type ApiUser } from '@/src/lib/api';
+import { setObservabilityUser } from '@/src/lib/observability';
 import * as backend from '@/src/services/backend';
 
 type AuthContextValue = {
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshMe = useCallback(async () => {
     const me = await backend.getMe();
     setUser(me.user as ApiUser);
+    setObservabilityUser({ id: (me.user as ApiUser).id });
     setProfileComplete(Boolean(me.profile?.onboardingComplete));
   }, []);
 
@@ -46,10 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const me = await backend.getMe();
         const currentUser = me.user as ApiUser;
         setUser(currentUser);
+        setObservabilityUser({ id: currentUser.id });
         setProfileComplete(Boolean(me.profile?.onboardingComplete));
       } catch {
         await authStorage.writeTokens(null);
         setUser(null);
+        setObservabilityUser(null);
         setProfileComplete(false);
       } finally {
         setHydrated(true);
@@ -65,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       await authStorage.writeTokens(null);
       setUser(null);
+      setObservabilityUser(null);
       setProfileComplete(false);
       throw error;
     }
@@ -78,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       await authStorage.writeTokens(null);
       setUser(null);
+      setObservabilityUser(null);
       setProfileComplete(false);
       throw error;
     }
@@ -86,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await authStorage.writeTokens(null);
     setUser(null);
+    setObservabilityUser(null);
     setProfileComplete(false);
   }, []);
 
@@ -102,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await backend.deleteAccount(input);
     await authStorage.writeTokens(null);
     setUser(null);
+    setObservabilityUser(null);
     setProfileComplete(false);
   }, []);
 
