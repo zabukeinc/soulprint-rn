@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { theme } from '@/src/lib/theme';
 import type { TarotVisual } from '@/src/services/backend';
 
@@ -15,6 +16,7 @@ type TarotArtworkCardProps = {
 const fallbackVisual: TarotVisual = {
   imageKey: 'tarot/fallback',
   hasArtwork: false,
+  imageUrl: null,
   symbol: '✦',
   arcana: 'symbolic',
   suit: 'astrovy',
@@ -53,10 +55,23 @@ export function TarotArtworkCard({ name, reversed, keywords, visual, fallbackSym
           )}
         </View>
 
-        <View style={[styles.symbolFrame, { borderColor: `${palette.accent}4D`, backgroundColor: `${palette.aura}40` }]}>
-          <Text style={[styles.symbol, { color: palette.ink }]}>{symbol}</Text>
-          <View style={[styles.symbolUnderline, { backgroundColor: palette.accent }]} />
-        </View>
+        {artwork.hasArtwork && artwork.imageUrl ? (
+          <View style={[styles.artworkFrame, { borderColor: `${palette.accent}4D` }]}>
+            <Image
+              source={artwork.imageUrl}
+              style={[styles.artworkImage, reversed && styles.artworkImageReversed]}
+              contentFit="cover"
+              transition={300}
+              cachePolicy="memory-disk"
+            />
+            <View style={[styles.artworkBorder, { borderColor: `${palette.accent}55` }]} />
+          </View>
+        ) : (
+          <View style={[styles.symbolFrame, { borderColor: `${palette.accent}4D`, backgroundColor: `${palette.aura}40` }]}>
+            <Text style={[styles.symbol, { color: palette.ink }]}>{symbol}</Text>
+            <View style={[styles.symbolUnderline, { backgroundColor: palette.accent }]} />
+          </View>
+        )}
 
         <View style={styles.caption}>
           <Text style={[styles.name, { color: palette.ink }]} numberOfLines={2}>
@@ -135,6 +150,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 16,
+  },
+  artworkFrame: {
+    alignSelf: 'center',
+    width: 200,
+    height: 300,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginVertical: 16,
+  },
+  artworkImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  artworkImageReversed: {
+    transform: [{ rotate: '180deg' }],
+  },
+  artworkBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    pointerEvents: 'none',
   },
   symbol: {
     fontSize: 72,

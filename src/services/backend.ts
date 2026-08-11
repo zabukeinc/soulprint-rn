@@ -288,6 +288,7 @@ export type TarotDraw = {
 export type TarotVisual = {
   imageKey: string;
   hasArtwork: boolean;
+  imageUrl: string | null;
   symbol: string;
   arcana: 'major' | 'minor' | string;
   suit: string;
