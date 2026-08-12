@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpaci
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { requireNativeModule } from 'expo-modules-core';
-import { getAvailablePurchases, useIAP, type ProductSubscription, type Purchase } from 'expo-iap';
+import { getAvailablePurchases, useIAP, type ProductSubscription, type ProductSubscriptionAndroid, type Purchase } from 'expo-iap';
 import Animated, {
   FadeInUp,
   FadeIn,
@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTier } from '@/src/context/TierContext';
 import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, verifyGoogleIapPurchase } from '@/src/services/backend';
 
 const features = {
@@ -73,6 +74,7 @@ export default function PricingScreen() {
 function NativePricingScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { refreshTier } = useTier();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
   const [serverProducts, setServerProducts] = useState<Array<Record<string, any>> | null>(null);
   const [serverFeatures, setServerFeatures] = useState<string[] | null>(null);
@@ -90,6 +92,7 @@ function NativePricingScreen() {
 
     const entitlement = await verifyGoogleIapPurchase({ productId, purchaseToken });
     await iap.finishTransaction({ purchase, isConsumable: false });
+    await refreshTier();
     return entitlement;
   };
 
@@ -110,9 +113,6 @@ function NativePricingScreen() {
     onPurchaseError: () => {
       setPurchasing(false);
       setStatusMessage('Purchase was not completed. Please try again when Play Store is ready.');
-    },
-    onError: () => {
-      setStatusMessage('Play Store billing is not ready in this build yet.');
     },
   });
 
@@ -157,7 +157,7 @@ function NativePricingScreen() {
 
   const googleOfferToken = (product: ProductSubscription | undefined) => {
     if (product?.platform !== 'android') return null;
-    return product.subscriptionOffers?.[0]?.offerTokenAndroid ?? null;
+    return (product as ProductSubscriptionAndroid).subscriptionOfferDetailsAndroid?.[0]?.offerToken ?? null;
   };
 
   const handlePurchase = async () => {
@@ -174,11 +174,8 @@ function NativePricingScreen() {
       return;
     }
     if (!iap.connected) {
-      const connected = await iap.reconnect().catch(() => false);
-      if (!connected) {
-        setStatusMessage('Play Store billing is not available in this build. Use an Android development or store build.');
-        return;
-      }
+      setStatusMessage('Play Store billing is not available in this build. Use an Android development or store build.');
+      return;
     }
 
     setPurchasing(true);
@@ -188,9 +185,9 @@ function NativePricingScreen() {
       await iap.requestPurchase({
         type: 'subs',
         request: {
-          google: {
+          android: {
             skus: [selectedProduct.id],
-            obfuscatedAccountId: user.id,
+            obfuscatedAccountIdAndroid: user.id,
             ...(offerToken ? { subscriptionOffers: [{ sku: selectedProduct.id, offerToken }] } : {}),
           },
         },
@@ -206,7 +203,7 @@ function NativePricingScreen() {
     setStatusMessage(null);
     try {
       if (Platform.OS === 'android' && iap.connected) {
-        const purchases = await getAvailablePurchases({ includeSuspendedAndroid: true });
+        const purchases = await getAvailablePurchases();
         const verified = await Promise.all(
           purchases
             .filter((purchase) => Boolean(purchase.purchaseToken))

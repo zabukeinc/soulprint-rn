@@ -540,13 +540,6 @@ export function getEntitlement() {
   return apiRequest<Entitlement>('/entitlements/me');
 }
 
-export function setEntitlementPreview(tier: 'free' | 'premium') {
-  return apiRequest<Entitlement>('/entitlements/me/preview', {
-    method: 'PATCH',
-    body: { tier },
-  });
-}
-
 export function verifyGoogleIapPurchase(input: { purchaseToken: string; productId: string }) {
   return apiRequest<Entitlement>('/iap/google/verify', {
     method: 'POST',

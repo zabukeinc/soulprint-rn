@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Astrovy.space",
-    "slug": "Astrovy.space",
+    "slug": "astrovy-space",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/Logo.png",
@@ -21,7 +21,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.astrovy.space"
     },
     "web": {
       "favicon": "./assets/Icon-Light.png"
@@ -29,7 +30,22 @@
     "scheme": "astrovy",
     "plugins": [
       "expo-router",
-      "expo-iap"
-    ]
+      "expo-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.2.20"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cda38f6b-4c07-4ac4-9f6b-cd26a5116423"
+      }
+    },
+    "owner": "regyanaxs-team"
   }
 }

@@ -12,7 +12,7 @@ import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/L
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { isPremium, loading: tierLoading, toggleTier } = useTier();
+  const { isPremium } = useTier();
   const { signOut, deleteAccount } = useAuth();
   const engagement = useEngagement();
   const [account, setAccount] = useState<ApiUser | null>(null);
@@ -189,29 +189,15 @@ export default function ProfileScreen() {
       }]}>
         <View style={styles.tierRow}>
           <View>
-            <Text style={styles.tierTitle}>
-              {isPremium ? '✦ Premium Unlocked' : 'Preview Mode'}
-            </Text>
+            <Text style={styles.tierTitle}>{isPremium ? '✦ Premium active' : 'Go deeper with Premium'}</Text>
             <Text style={styles.tierDesc}>
               {isPremium
-                ? 'All features unlocked. See the full experience.'
-                : 'Viewing as a free user. Switch to see premium.'}
+                ? 'Your full Astrovy experience is unlocked.'
+                : 'Unlock deeper readings, patterns, and guidance.'}
             </Text>
           </View>
-          <TouchableOpacity disabled={tierLoading} onPress={() => { void toggleTier(); }} style={styles.tierToggle}>
-            <View
-              style={[
-                styles.toggleTrack,
-                { backgroundColor: isPremium ? '#16A7A0' : '#8B72CF' },
-              ]}
-            >
-              <View
-                style={[
-                  styles.toggleKnob,
-                  { transform: [{ translateX: isPremium ? 18 : 0 }] },
-                ]}
-              />
-            </View>
+          <TouchableOpacity onPress={() => router.push('/pricing')} style={styles.tierAction} activeOpacity={0.85}>
+            <Text style={styles.tierActionText}>{isPremium ? 'Manage' : 'Explore'}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -447,13 +433,13 @@ const styles = StyleSheet.create({
   },
   tierTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   tierDesc: { fontSize: 12, color: theme.colors.muted },
-  tierToggle: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    paddingHorizontal: 3,
+  tierAction: {
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.ink,
   },
+  tierActionText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   toggleTrack: {
     width: 44,
     height: 26,
