@@ -72,10 +72,10 @@ export default function TodayScreen() {
   const todayJob = engagement.dailyContentStatus?.jobs.find((job) => job.feature === 'today');
   const contentState = todayJob?.status ?? engagement.todayPayload?.generation?.dailyReading?.status ?? 'ready';
   const contentStateLabel = contentState === 'ready'
-    ? 'Backend content ready'
+    ? 'Your signal is ready'
     : contentState === 'failed'
-      ? 'Backend content needs retry'
-      : 'Backend content syncing';
+      ? 'Your signal needs another moment'
+      : 'Your signal is taking shape';
   const prompt = engagement.todayPayload?.journal.prompt ?? 'What do I need but avoid asking for?';
   const streak = engagement?.streak || 0;
   const lastReflection = engagement?.journalEntries?.[0];

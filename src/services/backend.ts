@@ -404,7 +404,11 @@ export type CompatibilityReading = {
   partnerSign: string;
   partnerName: string | null;
   partnerBirthDate: string | null;
+  partnerBirthTime?: string | null;
   partnerBirthPlace: ProfilePayload['profile']['birthPlace'] | null;
+  inputFingerprint?: string | null;
+  matchType?: string | null;
+  createdAt?: string | null;
   basis: Record<string, any>;
   scores: Record<string, number>;
   sections: Array<{ key: string; title: string; body: string }>;
@@ -420,6 +424,11 @@ export type CompatibilityReading = {
     chartBasis: Record<string, any>;
     deepSections: Array<{ key: string; title: string; body: string }>;
   } | null;
+};
+
+export type CompatibilityHistoryPayload = {
+  data: CompatibilityReading[];
+  nextCursor: string | null;
 };
 
 type BackendCity = {
@@ -651,6 +660,18 @@ export function createCompatibilityReading(input: {
     method: 'POST',
     body,
   });
+}
+
+export function listCompatibilityReadings(options: { limit?: number; cursor?: string } = {}) {
+  const query = new URLSearchParams();
+  if (options.limit) query.set('limit', String(options.limit));
+  if (options.cursor) query.set('cursor', options.cursor);
+  const suffix = query.toString();
+  return apiRequest<CompatibilityHistoryPayload>(`/compatibility/readings${suffix ? `?${suffix}` : ''}`);
+}
+
+export function getCompatibilityReading(id: string) {
+  return apiRequest<CompatibilityReading>(`/compatibility/readings/${encodeURIComponent(id)}`);
 }
 
 export function submitFeedback(input: {

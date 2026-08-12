@@ -120,7 +120,7 @@ function friendlyApiMessage(status: number, code?: string, fallback?: string) {
   if (status === 401) return 'Your session expired. Please log in again.';
   if (status === 403 && code === 'PREMIUM_REQUIRED') return fallback ?? 'This reading needs premium access.';
   if (status === 429) return fallback ?? 'You have reached today\'s limit. Try again after the reset.';
-  if (status >= 500) return 'Astrovy is having trouble reaching the backend. Please try again.';
+  if (status >= 500) return 'Astrovy is having trouble connecting. Please try again.';
   return fallback ?? 'Request failed. Please try again.';
 }
 
@@ -157,7 +157,7 @@ async function rawRequest<T>(path: string, options: RequestOptions, tokens: Toke
     return parseResponse<T>(response);
   } catch (error) {
     if (isAbortError(error)) {
-      throw new ApiError(0, 'REQUEST_TIMEOUT', 'The backend is taking too long. Please try again.', undefined, 'timeout');
+      throw new ApiError(0, 'REQUEST_TIMEOUT', 'This is taking longer than expected. Please try again.', undefined, 'timeout');
     }
     if (isNetworkError(error)) {
       throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'You seem to be offline. Check your connection and try again.', undefined, 'network');

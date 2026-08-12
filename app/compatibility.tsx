@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeIn,
@@ -16,7 +16,7 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { ApiError } from '@/src/lib/api';
 import { useTier } from '@/src/context/TierContext';
-import { createCompatibilityReading, type CompatibilityReading } from '@/src/services/backend';
+import { createCompatibilityReading, getCompatibilityReading, type CompatibilityReading } from '@/src/services/backend';
 import { searchCities, type City } from '@/src/services/cities';
 
 const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
@@ -67,7 +67,7 @@ const fullGenerationSteps = [
   },
   {
     title: 'Writing your compatibility mirror',
-    body: 'Turning the backend reading into something warm and grounded.',
+    body: 'Turning the patterns into something warm and grounded.',
   },
 ];
 const QUICK_MIN_VISIBLE_MS = 4200;
@@ -154,6 +154,7 @@ function formatDateLabel(value: string) {
 
 export default function CompatibilityScreen() {
   const router = useRouter();
+  const { readingId } = useLocalSearchParams<{ readingId?: string }>();
   const { isPremium } = useTier();
   const [step, setStep] = useState<'input' | 'loading' | 'result'>('input');
   const [matchMode, setMatchMode] = useState<'full' | 'quick'>('quick');
@@ -188,6 +189,27 @@ export default function CompatibilityScreen() {
   useEffect(() => {
     if (isPremium) setMatchMode('full');
   }, [isPremium]);
+
+  useEffect(() => {
+    if (!readingId || Array.isArray(readingId)) return;
+    let active = true;
+    getCompatibilityReading(readingId)
+      .then((savedReading) => {
+        if (!active) return;
+        setReading(savedReading);
+        setName(savedReading.partnerName ?? '');
+        setSelectedSign(savedReading.partnerSign ?? null);
+        setStep('result');
+        setShowResult(true);
+        progress.value = withTiming(savedReading.scores?.overall ?? 0, { duration: 700 });
+      })
+      .catch(() => {
+        if (active) setError('This saved compatibility reading is no longer available.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [progress, readingId]);
 
   useEffect(() => {
     let active = true;
@@ -357,7 +379,7 @@ export default function CompatibilityScreen() {
     ? 'Still shaping the reading carefully'
     : loadingStep.title;
   const loadingBody = loadingSlow
-    ? 'Some readings take a little longer when the backend is writing with more context.'
+    ? 'Some readings take a little longer when there is more to notice and hold together.'
     : loadingStep.body;
 
   if (step === 'loading') {
@@ -521,7 +543,9 @@ export default function CompatibilityScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Compatibility</Text>
-        <View style={styles.backButtonPlaceholder} />
+        <TouchableOpacity style={styles.historyButton} onPress={() => router.push('/compatibility-history')}>
+          <Text style={styles.historyButtonText}>History</Text>
+        </TouchableOpacity>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.center}>
@@ -569,7 +593,7 @@ export default function CompatibilityScreen() {
           <View style={styles.lockedList}>
             <Text style={styles.lockedItem}>• Birth chart compatibility</Text>
             <Text style={styles.lockedItem}>• Emotional, attraction, communication, and growth scores</Text>
-            <Text style={styles.lockedItem}>• Deeper AI interpretation from the backend</Text>
+            <Text style={styles.lockedItem}>• A deeper, more personal reading of your connection</Text>
           </View>
         </Animated.View>
       ) : (
@@ -996,6 +1020,8 @@ const styles = StyleSheet.create({
   },
   backIcon: { fontSize: 18, color: theme.colors.ink },
   backButtonPlaceholder: { width: 40 },
+  historyButton: { minWidth: 58, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, backgroundColor: 'rgba(139,114,207,0.12)', borderWidth: 1, borderColor: 'rgba(139,114,207,0.18)' },
+  historyButtonText: { fontSize: 11, color: '#6D4BAA', fontWeight: '800' },
   headerLabel: { fontSize: 12, color: theme.colors.muted },
   center: { alignItems: 'center', marginBottom: 24 },
   iconBg: {

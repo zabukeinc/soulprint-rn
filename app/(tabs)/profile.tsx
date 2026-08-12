@@ -333,7 +333,7 @@ export default function ProfileScreen() {
             <Text style={styles.modalLabel}>Account deletion</Text>
             <Text style={styles.modalTitle}>Delete your Astrovy account?</Text>
             <Text style={styles.modalBody}>
-              This permanently deletes your account, profile, birth chart, journals, check-ins, tarot draws, and saved readings from the backend.
+              This permanently deletes your account, profile, birth chart, journals, check-ins, tarot draws, and saved readings.
             </Text>
             <Text style={styles.modalBody}>
               Deleting your account does not cancel an active App Store or Google Play subscription. Manage cancellation in your store account.

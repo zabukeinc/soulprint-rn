@@ -55,7 +55,7 @@ export default function FirstMirrorScreen() {
     return (
       <LoadingPage
         title="Generating First Mirror"
-        body="Reading your onboarding, birth chart, and focus through the backend AI pipeline."
+        body="Gathering the patterns in your story and shaping them into a first reflection."
       />
     );
   }
@@ -82,7 +82,7 @@ export default function FirstMirrorScreen() {
       {loading ? (
         <Animated.View entering={FadeIn.duration(300)} style={styles.insightCard}>
           <Text style={styles.insightTitle}>Generating your First Mirror</Text>
-          <Text style={styles.insightText}>Reading your onboarding, birth chart, and focus through the backend AI pipeline.</Text>
+          <Text style={styles.insightText}>Gathering the patterns in your story and shaping them into a first reflection.</Text>
         </Animated.View>
       ) : mirror ? (
         <>

@@ -15,7 +15,7 @@ export default function WeeklyReadingCard({ visible, onDismiss, reading }: Props
 
   const visibleReading = reading ?? {
     title: 'Your weekly reflection is preparing.',
-    body: 'Check back when your backend reading has synced.',
+    body: 'Your reflection is taking shape. Check back soon.',
   };
 
   return (

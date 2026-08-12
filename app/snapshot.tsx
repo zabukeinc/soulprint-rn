@@ -63,7 +63,7 @@ export default function SnapshotScreen() {
           </View>
           <Text style={styles.label}>First Mirror</Text>
           <Text style={styles.title}>Generating your First Mirror</Text>
-          <Text style={styles.desc}>Reading your onboarding and birth pattern through the backend.</Text>
+          <Text style={styles.desc}>Gathering your story and birth pattern into one clear reflection.</Text>
         </View>
         <SkeletonCard height={220} lines={3} />
         <SkeletonCard height={120} lines={2} style={{ marginTop: 14 }} />
@@ -102,7 +102,7 @@ export default function SnapshotScreen() {
       {loading ? (
         <Animated.View entering={FadeIn.duration(300)} style={styles.patternCard}>
           <Text style={styles.patternTitle}>Generating your First Mirror</Text>
-          <Text style={styles.patternDesc}>Reading your onboarding, birth chart, and focus through the backend AI pipeline.</Text>
+          <Text style={styles.patternDesc}>Gathering the patterns in your story and shaping them into a first reflection.</Text>
         </Animated.View>
       ) : mirror ? (
         <>

@@ -4,7 +4,7 @@ import { theme } from '@/src/lib/theme';
 
 export function LoadingPage({
   title = 'Loading your signal',
-  body = 'Fetching your latest reading from the backend.',
+  body = 'Bringing your latest reading into view.',
 }: {
   title?: string;
   body?: string;
@@ -25,7 +25,7 @@ export function LoadingPage({
   );
 }
 
-export function InlineRefreshing({ label = 'Updating from backend...' }: { label?: string }) {
+export function InlineRefreshing({ label = 'Refreshing your reflection...' }: { label?: string }) {
   return (
     <View style={styles.inline}>
       <ActivityIndicator color="#8B72CF" size="small" />

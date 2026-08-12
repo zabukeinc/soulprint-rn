@@ -55,7 +55,7 @@ function PremiumPreviewPanel({ title }: { title: string }) {
       <Text style={styles.previewLabel}>Premium Preview</Text>
       <Text style={styles.previewTitle}>{title}</Text>
       <Text style={styles.previewText}>
-        The backend account is still free, so this preview shows the full-report layout. Real premium will fill this with calculated chart content.
+        Your account is currently on the free plan, so this preview shows what the fuller chart experience will look like.
       </Text>
     </View>
   );
@@ -195,7 +195,7 @@ export default function HoroscopeScreen() {
         >
           <Text style={styles.chartLabel}>Natal Wheel</Text>
           <Text style={styles.chartSignature}>
-            {birthChart?.summary.chartSignature ?? 'Chart data unavailable. Pull to retry from the backend.'}
+            {birthChart?.summary.chartSignature ?? 'Your chart is still coming into view.'}
           </Text>
           <NatalChart
             size={286}
@@ -236,7 +236,7 @@ export default function HoroscopeScreen() {
 
       <Animated.View entering={FadeInUp.duration(500).delay(220)} style={styles.signatureCard}>
         <Text style={styles.sectionLabel}>Chart Signature</Text>
-        <Text style={styles.signatureText}>{birthChart?.summary.shortInterpretation ?? 'We could not load your backend chart summary yet.'}</Text>
+        <Text style={styles.signatureText}>{birthChart?.summary.shortInterpretation ?? 'Your chart summary is still coming into view.'}</Text>
         <View style={styles.statRow}>
           {signatureStats.map((stat) => (
             <View key={stat.label} style={styles.statItem}>

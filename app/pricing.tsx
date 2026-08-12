@@ -65,7 +65,7 @@ export default function PricingScreen() {
           setStatusMessage(active ? 'Premium is active on this account.' : 'Purchase was checked, but no active premium entitlement was found.');
         })
         .catch(() => {
-          setStatusMessage('Purchase finished in Play, but backend verification failed. Please tap Restore purchases.');
+          setStatusMessage('Your purchase went through, but we could not confirm it yet. Please tap Restore purchases.');
         })
         .finally(() => setPurchasing(false));
     },
@@ -94,7 +94,7 @@ export default function PricingScreen() {
   useEffect(() => {
     if (Platform.OS !== 'android' || !iap.connected || productIds.length === 0) return;
     iap.fetchProducts({ skus: productIds, type: 'subs' }).catch(() => {
-      setStatusMessage('Could not load Play Store prices yet. Backend plan details are still available.');
+      setStatusMessage('Could not load Play Store prices yet. Plan details are still available.');
     });
   }, [iap.connected, productIds.join('|')]);
 

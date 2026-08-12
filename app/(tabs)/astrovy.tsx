@@ -148,7 +148,7 @@ export default function AstrovyScreen() {
     {
       label: 'Core Pattern',
       title: emotionalSection?.title ?? 'Emotional Blueprint',
-      body: emotionalSection?.content.core ?? 'Your emotional blueprint is syncing from the backend.',
+      body: emotionalSection?.content.core ?? 'Your emotional blueprint is coming into focus.',
     },
     {
       label: 'Connection Style',
