@@ -400,6 +400,7 @@ export type CompatibilityReading = {
     level: 'quick' | 'full';
     lockedModes: string[];
   };
+  userName: string | null;
   userSign: string;
   partnerSign: string;
   partnerName: string | null;
@@ -429,6 +430,37 @@ export type CompatibilityReading = {
 export type CompatibilityHistoryPayload = {
   data: CompatibilityReading[];
   nextCursor: string | null;
+};
+
+export type MatrixArcanaPosition = {
+  position: string;
+  number: number;
+  name: string;
+  keywords: string[];
+};
+
+export type MatrixDestinyResponse = {
+  profile: { name: string; birthDate: string };
+  engine: { id: string; fingerprint: string };
+  access: { tier: 'free' | 'premium'; detailed: boolean };
+  matrix: {
+    center: MatrixArcanaPosition;
+    purpose: MatrixArcanaPosition;
+    talent: MatrixArcanaPosition;
+    relationshipLine: MatrixArcanaPosition[];
+    moneyLine: MatrixArcanaPosition[];
+    karmicTail: MatrixArcanaPosition[];
+    currentYear: MatrixArcanaPosition;
+  };
+  summary: string;
+  ai: MatrixDestinyAiState;
+};
+
+export type MatrixDestinyAiState = {
+  status: 'not_started' | 'queued' | 'generating' | 'ready' | 'failed';
+  generatedAt: string | null;
+  sections: Array<{ key: string; title: string; body: string; actions: string[] }>;
+  message?: string;
 };
 
 type BackendCity = {
@@ -665,6 +697,14 @@ export function listCompatibilityReadings(options: { limit?: number; cursor?: st
 
 export function getCompatibilityReading(id: string) {
   return apiRequest<CompatibilityReading>(`/compatibility/readings/${encodeURIComponent(id)}`);
+}
+
+export function getMatrixDestiny() {
+  return apiRequest<MatrixDestinyResponse>('/matrix-destiny/me');
+}
+
+export function getMatrixDestinyAi() {
+  return apiRequest<MatrixDestinyAiState>('/matrix-destiny/me/ai');
 }
 
 export function submitFeedback(input: {

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { Star, Heart, Users, Hand } from 'lucide-react-native';
+import { Star, Heart, Users, Hand, Grid3X3 } from 'lucide-react-native';
 import { useTier } from '@/src/context/TierContext';
 import { theme } from '@/src/lib/theme';
 
@@ -36,6 +36,13 @@ const features = [
     description: 'Coming soon, privacy-first.',
     gradient: ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)'] as const,
     soon: true,
+  },
+  {
+    id: 'matrix-destiny',
+    icon: Grid3X3,
+    title: 'Matrix Destiny',
+    description: 'Your numbers, patterns, and life themes.',
+    gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const,
   },
 ];
 
@@ -106,7 +113,7 @@ export default function DecodeScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.featureIconBg}
                 >
-                  <Hand size={20} color={theme.colors.muted} />
+                  <Icon size={20} color={theme.colors.muted} />
                 </LinearGradient>
                 <View style={styles.featureText}>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
