@@ -7,6 +7,7 @@ import { SkeletonCard } from '@/src/components/LoadingState';
 import { theme } from '@/src/lib/theme';
 
 const premiumKeys = ['career_money', 'karmic_shadow', 'current_year', 'relationships', 'action_plan'];
+const MAX_AI_POLL_ATTEMPTS = 18;
 
 function ArcanaCard({ label, item }: { label: string; item: { number: number; name: string; keywords: readonly string[] } }) {
   return (
@@ -49,9 +50,14 @@ export default function MatrixDestinyScreen() {
         if (!active) return;
         setAi(result);
         attempts += 1;
-        if (!['ready', 'failed'].includes(result.status) && attempts < 12) setTimeout(poll, Math.min(5000, 1200 + attempts * 300));
+        if (!['ready', 'failed'].includes(result.status) && attempts < MAX_AI_POLL_ATTEMPTS) {
+          setTimeout(poll, Math.min(4000, 1200 + attempts * 250));
+        } else if (!['ready', 'failed'].includes(result.status)) {
+          setAi({ status: 'failed', generatedAt: null, sections: [], message: 'This is taking longer than expected. Your matrix is still available above.' });
+        }
       } catch {
         if (active && attempts < 3) setTimeout(poll, 2500);
+        else if (active) setAi({ status: 'failed', generatedAt: null, sections: [], message: 'We could not finish the deeper reading. Your matrix is still available above.' });
       }
     };
     const timer = setTimeout(poll, 700);
@@ -104,7 +110,10 @@ export default function MatrixDestinyScreen() {
           if (!section) return <SkeletonCard key={key} height={150} lines={4} style={{ marginTop: 12 }} />;
           return <Animated.View key={key} entering={FadeInUp.delay(220 + index * 60).duration(400)} style={styles.sectionCard}><Text style={styles.sectionTitle}>{section.title}</Text><Text style={styles.sectionBody}>{section.body}</Text>{section.actions.map((action) => <Text key={action} style={styles.action}>• {action}</Text>)}</Animated.View>;
         })}
-        {ai?.status === 'failed' && <Text style={styles.status}>Your deeper reading could not finish yet. Your matrix is still available above.</Text>}
+        {ai?.status === 'failed' && <>
+          <Text style={styles.status}>{ai.message ?? 'Your deeper reading could not finish yet. Your matrix is still available above.'}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.replace('/matrix-destiny')}><Text style={styles.retryText}>Try again</Text></TouchableOpacity>
+        </>}
       </>}
     </ScrollView>
   );
@@ -124,5 +133,5 @@ const styles = StyleSheet.create({
   arcanaLabel: { fontSize: 10, color: theme.colors.muted, textTransform: 'uppercase', letterSpacing: 0.5 }, arcanaNumber: { marginTop: 7, width: 28, height: 28, borderRadius: 14, backgroundColor: '#7A63BD', alignItems: 'center', justifyContent: 'center' }, arcanaNumberText: { color: '#fff', fontWeight: '800' }, arcanaName: { fontSize: 12, fontWeight: '700', color: theme.colors.ink, marginTop: 6 }, arcanaKeywords: { fontSize: 10, color: theme.colors.muted, marginTop: 3 },
   lineTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.ink, marginTop: 18, marginBottom: 8 }, lineRow: { flexDirection: 'row', gap: 8 },
   premiumHeading: { fontFamily: theme.fonts.serif, fontSize: 22, color: theme.colors.ink, marginTop: 28, marginBottom: 4 },
-  sectionCard: { padding: 17, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(31,33,48,0.08)', marginTop: 12 }, sectionTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.ink }, sectionBody: { fontSize: 13, lineHeight: 21, color: theme.colors.muted, marginTop: 8 }, action: { fontSize: 12, lineHeight: 19, color: theme.colors.ink, marginTop: 7 }, status: { fontSize: 12, color: theme.colors.muted, marginTop: 14 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 }, errorTitle: { fontFamily: theme.fonts.serif, fontSize: 24, color: theme.colors.ink }, errorBody: { color: theme.colors.muted, textAlign: 'center', marginTop: 10 }, link: { color: '#7A63BD', fontWeight: '700', marginTop: 18 }
+  sectionCard: { padding: 17, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(31,33,48,0.08)', marginTop: 12 }, sectionTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.ink }, sectionBody: { fontSize: 13, lineHeight: 21, color: theme.colors.muted, marginTop: 8 }, action: { fontSize: 12, lineHeight: 19, color: theme.colors.ink, marginTop: 7 }, status: { fontSize: 12, color: theme.colors.muted, marginTop: 14 }, retryButton: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, backgroundColor: '#7A63BD' }, retryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 }, errorTitle: { fontFamily: theme.fonts.serif, fontSize: 24, color: theme.colors.ink }, errorBody: { color: theme.colors.muted, textAlign: 'center', marginTop: 10 }, link: { color: '#7A63BD', fontWeight: '700', marginTop: 18 }
 });
