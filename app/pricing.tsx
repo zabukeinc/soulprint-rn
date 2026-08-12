@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { requireNativeModule } from 'expo-modules-core';
 import { getAvailablePurchases, useIAP, type ProductSubscription, type Purchase } from 'expo-iap';
 import Animated, {
   FadeInUp,
@@ -32,7 +33,44 @@ const features = {
   ],
 };
 
+function hasIapNativeModule() {
+  try {
+    requireNativeModule('ExpoIap');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function IapUnavailableScreen() {
+  const router = useRouter();
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backIcon}>←</Text>
+      </TouchableOpacity>
+      <View style={styles.center}>
+        <Text style={styles.title}>Go deeper</Text>
+        <Text style={styles.subtitle}>Premium plans are ready for the store version of Astrovy.</Text>
+      </View>
+      <View style={styles.storeUnavailableCard}>
+        <Text style={styles.storeUnavailableTitle}>Premium checkout is not available here yet</Text>
+        <Text style={styles.storeUnavailableText}>
+          You are using a preview app without store billing. Install the Android development or store build to start a subscription securely through Google Play.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function PricingScreen() {
+  const [iapAvailable] = useState(hasIapNativeModule);
+  if (!iapAvailable) return <IapUnavailableScreen />;
+  return <NativePricingScreen />;
+}
+
+function NativePricingScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
@@ -571,6 +609,25 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  storeUnavailableCard: {
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(31,33,48,0.08)',
+    ...theme.shadows.warmSm,
+  },
+  storeUnavailableTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.ink,
+    marginBottom: 8,
+  },
+  storeUnavailableText: {
+    fontSize: 13,
+    color: theme.colors.muted,
+    lineHeight: 21,
   },
   secondaryCta: {
     fontSize: 12,

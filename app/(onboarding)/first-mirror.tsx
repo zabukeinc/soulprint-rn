@@ -118,10 +118,10 @@ export default function FirstMirrorScreen() {
               <Animated.View
                 key={card.title}
                 entering={FadeInUp.delay(200 + i * 50).duration(500)}
-                style={styles.patternCard}
+                style={[styles.patternCard, card.desc.length > 180 && styles.patternCardWide]}
               >
                 <Text style={styles.patternTitle}>{card.title}</Text>
-                <Text style={styles.patternDesc}>{card.desc}</Text>
+                <Text numberOfLines={card.desc.length > 180 ? 8 : 5} style={styles.patternDesc}>{card.desc}</Text>
               </Animated.View>
             ))}
           </View>
@@ -336,8 +336,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
   },
-  patternTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
-  patternDesc: { fontSize: 10, color: theme.colors.muted, lineHeight: 14 },
+  patternCardWide: { width: '100%' },
+  patternTitle: { fontSize: 12, fontWeight: '600', color: theme.colors.ink, marginBottom: 4 },
+  patternDesc: { fontSize: 11, color: theme.colors.muted, lineHeight: 16 },
   insightCard: {
     borderRadius: 24,
     padding: 16,

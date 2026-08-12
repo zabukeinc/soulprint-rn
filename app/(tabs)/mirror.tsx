@@ -6,6 +6,7 @@ import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { theme } from '@/src/lib/theme';
 import { InlineRefreshing, SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
+import { displayInitial } from '@/src/lib/display';
 
 const moodEmojis: Record<string, string> = {
   steady: '💛',
@@ -73,9 +74,12 @@ export default function MirrorScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerContent}>
             <Text style={styles.headerLabel}>Growth</Text>
             <Text style={styles.headerTitle}>Mirror</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{displayInitial(engagement.todayPayload?.user.name)}</Text>
           </View>
         </View>
         <Text style={styles.description}>
@@ -106,9 +110,12 @@ export default function MirrorScreen() {
     >
       <Animated.View entering={FadeInUp.duration(500)}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerContent}>
             <Text style={styles.headerLabel}>Growth</Text>
             <Text style={styles.headerTitle}>Mirror</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{displayInitial(engagement.todayPayload?.user.name)}</Text>
           </View>
         </View>
       </Animated.View>
@@ -376,7 +383,10 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 130,
   },
-  header: { marginBottom: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  headerContent: { flex: 1 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#8B72CF', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   headerLabel: { fontSize: 12, color: theme.colors.muted, letterSpacing: 0.5 },
   headerTitle: {
     fontFamily: theme.fonts.serif,

@@ -25,13 +25,13 @@ export default function SnapshotScreen() {
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    Promise.all([getMe(), getFirstMirrorReading()])
+    Promise.all([getMe(), getFirstMirrorReading({ fast: true })])
       .then(([me, firstMirror]) => {
         setProfile(me.profile);
         setMirror(firstMirror);
         setLoadError(null);
       })
-      .catch(() => setLoadError('Your First Mirror could not be generated. Please try again.'))
+      .catch(() => setLoadError('Your First Mirror could not be loaded. Please try again.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -147,10 +147,10 @@ export default function SnapshotScreen() {
               <Animated.View
                 key={card.title}
                 entering={FadeInUp.delay(350 + i * 50).duration(400)}
-                style={styles.patternCard}
+                style={[styles.patternCard, card.desc.length > 180 && styles.patternCardWide]}
               >
                 <Text style={styles.patternTitle}>{card.title}</Text>
-                <Text style={styles.patternDesc}>{card.desc}</Text>
+                <Text numberOfLines={card.desc.length > 180 ? 8 : 5} style={styles.patternDesc}>{card.desc}</Text>
               </Animated.View>
             ))}
           </View>
@@ -349,8 +349,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(31,33,48,0.08)',
   },
-  patternTitle: { fontSize: 11, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
-  patternDesc: { fontSize: 10, color: theme.colors.muted, lineHeight: 14 },
+  patternCardWide: { width: '100%' },
+  patternTitle: { fontSize: 12, fontWeight: '600', color: theme.colors.ink, marginBottom: 4 },
+  patternDesc: { fontSize: 11, color: theme.colors.muted, lineHeight: 16 },
   button: {
     width: '100%',
     minHeight: 48,

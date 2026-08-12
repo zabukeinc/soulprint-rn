@@ -10,6 +10,7 @@ import VisualStreakTracker from '@/src/components/VisualStreakTracker';
 import PatternAlertCard from '@/src/components/PatternAlertCard';
 import WeeklyReadingCard from '@/src/components/WeeklyReadingCard';
 import { InlineRefreshing, SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
+import { displayInitial } from '@/src/lib/display';
 
 const JOURNAL_TEXT_MAX = 2000;
 
@@ -168,7 +169,7 @@ export default function TodayScreen() {
             <Text style={styles.name}>Today</Text>
           </View>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>A</Text>
+            <Text style={styles.avatarText}>{displayInitial(engagement.todayPayload?.user.name)}</Text>
           </View>
         </View>
         <Text style={styles.moodQuestion}>How are you feeling right now?</Text>
@@ -229,7 +230,7 @@ export default function TodayScreen() {
               </View>
             )}
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>G</Text>
+              <Text style={styles.avatarText}>{displayInitial(engagement.todayPayload?.user.name)}</Text>
             </View>
           </View>
         </View>
