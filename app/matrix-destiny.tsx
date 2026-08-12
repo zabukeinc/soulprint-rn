@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -25,6 +25,7 @@ export default function MatrixDestinyScreen() {
   const [reading, setReading] = useState<MatrixDestinyResponse | null>(null);
   const [ai, setAi] = useState<MatrixDestinyAiState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pollAttempts = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -43,26 +44,29 @@ export default function MatrixDestinyScreen() {
   useEffect(() => {
     if (!reading || reading.access.tier !== 'premium' || ai?.status === 'ready' || ai?.status === 'failed') return;
     let active = true;
-    let attempts = 0;
     const poll = async () => {
       try {
         const result = await getMatrixDestinyAi();
         if (!active) return;
         setAi(result);
-        attempts += 1;
-        if (!['ready', 'failed'].includes(result.status) && attempts < MAX_AI_POLL_ATTEMPTS) {
-          setTimeout(poll, Math.min(4000, 1200 + attempts * 250));
+        pollAttempts.current += 1;
+        if (!['ready', 'failed'].includes(result.status) && pollAttempts.current < MAX_AI_POLL_ATTEMPTS) {
+          setTimeout(poll, Math.min(4000, 1200 + pollAttempts.current * 250));
         } else if (!['ready', 'failed'].includes(result.status)) {
           setAi({ status: 'failed', generatedAt: null, sections: [], message: 'This is taking longer than expected. Your matrix is still available above.' });
         }
       } catch {
-        if (active && attempts < 3) setTimeout(poll, 2500);
+        if (active && pollAttempts.current < 3) {
+          pollAttempts.current += 1;
+          setTimeout(poll, 2500);
+        }
         else if (active) setAi({ status: 'failed', generatedAt: null, sections: [], message: 'We could not finish the deeper reading. Your matrix is still available above.' });
       }
     };
+    pollAttempts.current = 0;
     const timer = setTimeout(poll, 700);
     return () => { active = false; clearTimeout(timer); };
-  }, [ai?.status, reading]);
+  }, [reading?.access.tier]);
 
   if (error) {
     return <View style={styles.center}><Text style={styles.errorTitle}>Your matrix is not ready</Text><Text style={styles.errorBody}>{error}</Text><TouchableOpacity onPress={() => router.back()}><Text style={styles.link}>Go back</Text></TouchableOpacity></View>;
