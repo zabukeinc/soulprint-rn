@@ -17,6 +17,7 @@ import { TAROT_CARDS } from '@/src/lib/tarot';
 import { InlineRefreshing, SkeletonBlock, SkeletonCard } from '@/src/components/LoadingState';
 import { TarotArtworkCard } from '@/src/components/TarotArtworkCard';
 import type { TarotVisual } from '@/src/services/backend';
+import { setTarotSharePayload } from '@/src/lib/tarotShare';
 
 type Position = 'past' | 'present' | 'future';
 
@@ -115,6 +116,16 @@ export default function TarotScreen() {
   };
 
   const handleShare = (card: DrawnCard) => {
+    const resolved = getCard(card);
+    setTarotSharePayload({
+      cardId: card.cardId,
+      name: resolved.name,
+      position: card.position,
+      reversed: card.reversed,
+      keywords: resolved.keywords,
+      meaning: resolved.meaning,
+      visual: resolved.visual,
+    });
     router.push({
       pathname: '/share-tarot',
       params: {

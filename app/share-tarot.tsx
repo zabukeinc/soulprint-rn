@@ -1,255 +1,168 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TouchableOpacity } from 'react-native';
 import { TAROT_CARDS } from '@/src/lib/tarot';
+import { clearTarotSharePayload, getTarotSharePayload } from '@/src/lib/tarotShare';
+import { theme } from '@/src/lib/theme';
 
-// Bold Wrapped-style gradients per suit
-const SUIT_GRADIENTS: Record<string, readonly [string, string, string]> = {
-  Major: ['#1a0b2e', '#4a148c', '#311b92'] as const,
-  Wands: ['#bf360c', '#e65100', '#ff6f00'] as const,
-  Cups: ['#0d47a1', '#1976d2', '#0097a7'] as const,
-  Swords: ['#263238', '#455a64', '#78909c'] as const,
-  Pentacles: ['#1b5e20', '#2e7d32', '#558b2f'] as const,
+const FALLBACK_PALETTE = {
+  background: ['#E7DDFC', '#DCF0E3'] as [string, string],
+  accent: '#8B72CF',
+  ink: '#1F2130',
+  aura: '#F8DCCB',
 };
+
+function titleCase(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 export default function ShareTarotScreen() {
   const router = useRouter();
+  const cardRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
   const { cardId, reversed, position } = useLocalSearchParams<{
     cardId: string;
     reversed: string;
     position: string;
   }>();
 
-  const card = TAROT_CARDS.find((c) => c.id === cardId);
-  const isReversed = reversed === '1';
+  const payload = getTarotSharePayload();
+  const card = useMemo(() => TAROT_CARDS.find((item) => item.id === cardId), [cardId]);
+  const isReversed = payload?.reversed ?? reversed === '1';
 
-  if (!card) return null;
+  if (!card && !payload) return null;
 
-  const gradient = SUIT_GRADIENTS[card.suit] || SUIT_GRADIENTS.Major;
-  const positionLabel = position
-    ? `${position.charAt(0).toUpperCase() + position.slice(1)}${isReversed ? ' · Reversed' : ''}`
-    : isReversed ? 'Reversed' : 'Upright';
+  const name = payload?.name ?? card?.name ?? cardId ?? 'Tarot card';
+  const keywords = payload?.keywords ?? (card ? (isReversed ? card.keywords.reversed : card.keywords.upright) : '');
+  const meaning = payload?.meaning ?? (card ? card.meaning.free : 'A message to reflect on today.');
+  const visual = payload?.visual;
+  const palette = visual?.palette ?? FALLBACK_PALETTE;
+  const positionLabel = titleCase(payload?.position ?? position ?? 'reading');
+  const shareText = `${name} · ${positionLabel}${isReversed ? ' · Reversed' : ''}\n${meaning}\n\nastrovy.space`;
+
+  const close = () => {
+    clearTarotSharePayload();
+    router.back();
+  };
+
+  const shareStory = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      if (cardRef.current && await Sharing.isAvailableAsync()) {
+        const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share your Astrovy tarot card',
+          UTI: 'public.png',
+        });
+        return;
+      }
+      await Share.share({ message: shareText });
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* The actual shareable card — vertical, full bleed, bold */}
-      <View style={styles.cardWrapper}>
+      <View ref={cardRef} collapsable={false} style={styles.cardWrapper}>
         <LinearGradient
-          colors={gradient}
+          colors={palette.background}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.card}
         >
-          {/* Decorative top blob */}
-          <View style={styles.blobTop} />
-          <View style={styles.blobBottom} />
+          <View style={[styles.auraLarge, { backgroundColor: `${palette.aura}A6` }]} />
+          <View style={[styles.auraSmall, { backgroundColor: `${palette.accent}24` }]} />
+          <View style={[styles.innerBorder, { borderColor: `${palette.accent}55` }]}>
+            <View style={styles.header}>
+              <Text style={[styles.brand, { color: palette.accent }]}>ASTROVY TAROT</Text>
+              <Text style={[styles.position, { color: palette.accent }]}>
+                {positionLabel.toUpperCase()}{isReversed ? ' · REVERSED' : ''}
+              </Text>
+            </View>
 
-          {/* Small brand header */}
-          <Text style={styles.brand}>ASTROVY</Text>
+            <View style={[styles.artworkFrame, { borderColor: `${palette.accent}55` }]}>
+              {visual?.hasArtwork && visual.imageUrl ? (
+                <Image
+                  source={visual.imageUrl}
+                  style={[styles.artwork, isReversed && styles.reversedArtwork]}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              ) : (
+                <View style={[styles.symbolFallback, { backgroundColor: `${palette.aura}70` }]}>
+                  <Text style={[styles.symbol, { color: palette.ink }]}>{visual?.symbol ?? card?.emoji ?? '✦'}</Text>
+                </View>
+              )}
+              <View style={[styles.artworkBorder, { borderColor: `${palette.accent}66` }]} />
+            </View>
 
-          {/* Big emoji */}
-          <Text style={[styles.emoji, isReversed && styles.emojiReversed]}>
-            {card.emoji}
-          </Text>
+            <View style={styles.identity}>
+              <Text style={[styles.cardName, { color: palette.ink }]}>{name}</Text>
+              <Text style={[styles.keywords, { color: `${palette.ink}A8` }]}>{keywords}</Text>
+            </View>
 
-          {/* Position label */}
-          <Text style={styles.position}>{positionLabel.toUpperCase()}</Text>
+            <View style={[styles.quotePanel, { borderColor: `${palette.accent}35`, backgroundColor: `${palette.aura}45` }]}>
+              <Text style={[styles.quoteMark, { color: palette.accent }]}>“</Text>
+              <Text style={[styles.meaning, { color: palette.ink }]} numberOfLines={5}>{meaning}</Text>
+            </View>
 
-          {/* Giant card name */}
-          <Text style={styles.cardName} numberOfLines={2}>
-            {card.name}
-          </Text>
-
-          {/* Keywords */}
-          <Text style={styles.keywords}>
-            {isReversed ? card.keywords.reversed : card.keywords.upright}
-          </Text>
-
-          {/* Meaning as a pull quote */}
-          <Text style={styles.meaning}>
-            {card.meaning.free}
-          </Text>
-
-          {/* Archetype tag */}
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>THE QUIET STRATEGIST</Text>
+            <View style={styles.footer}>
+              <View style={[styles.footerLine, { backgroundColor: palette.accent }]} />
+              <Text style={[styles.footerBrand, { color: `${palette.ink}90` }]}>astrovy.space</Text>
+            </View>
           </View>
-
-          {/* Decorative footer line */}
-          <View style={styles.footerLine} />
-          <Text style={styles.footerBrand}>astrovy.space</Text>
         </LinearGradient>
       </View>
 
-      {/* Actions below the card */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.closeBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.closeText}>Close</Text>
+        <TouchableOpacity style={styles.shareButton} onPress={shareStory} disabled={sharing} activeOpacity={0.85}>
+          {sharing ? <ActivityIndicator color={theme.colors.ink} /> : <Text style={styles.shareText}>Share this card</Text>}
         </TouchableOpacity>
-        <Text style={styles.hint}>
-          Screenshot this card to share to your Story
-        </Text>
+        <TouchableOpacity style={styles.closeButton} onPress={close} activeOpacity={0.8}>
+          <Text style={styles.closeText}>Back to tarot</Text>
+        </TouchableOpacity>
+        <Text style={styles.hint}>Your private profile details stay out of the shared card.</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  cardWrapper: {
-    width: '100%',
-    aspectRatio: 9 / 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowRadius: 40,
-    shadowOpacity: 0.5,
-    elevation: 20,
-  },
-  card: {
-    flex: 1,
-    padding: 28,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  // Decorative blobs
-  blobTop: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -60,
-    right: -60,
-  },
-  blobBottom: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    bottom: -40,
-    left: -40,
-  },
-  brand: {
-    fontSize: 11,
-    letterSpacing: 4,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '800',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  emoji: {
-    fontSize: 96,
-    marginTop: 8,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 8 },
-    textShadowRadius: 20,
-  },
-  emojiReversed: {
-    transform: [{ rotate: '180deg' }],
-  },
-  position: {
-    fontSize: 12,
-    letterSpacing: 3,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginTop: -8,
-  },
-  cardName: {
-    fontSize: 38,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 44,
-    letterSpacing: -1,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
-    paddingHorizontal: 8,
-  },
-  keywords: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontWeight: '700',
-    marginTop: -4,
-  },
-  meaning: {
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-    lineHeight: 26,
-    fontWeight: '500',
-    paddingHorizontal: 12,
-    maxWidth: 300,
-  },
-  tag: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: 'rgba(255,255,255,0.8)',
-    letterSpacing: 2,
-  },
-  footerLine: {
-    width: 40,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  footerBrand: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 2,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  actions: {
-    marginTop: 20,
-    alignItems: 'center',
-    gap: 10,
-  },
-  closeBtn: {
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  closeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  hint: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-  },
+  container: { flex: 1, backgroundColor: '#F4F0E9', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  cardWrapper: { width: '100%', maxWidth: 420, aspectRatio: 9 / 16, borderRadius: 24, overflow: 'hidden', elevation: 12, shadowColor: '#1F2130', shadowOffset: { width: 0, height: 18 }, shadowRadius: 28, shadowOpacity: 0.22 },
+  card: { flex: 1, padding: 12 },
+  innerBorder: { flex: 1, borderWidth: 1, borderRadius: 18, padding: 18, overflow: 'hidden', justifyContent: 'space-between' },
+  auraLarge: { position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -86, top: -72 },
+  auraSmall: { position: 'absolute', width: 180, height: 180, borderRadius: 90, left: -72, bottom: -48 },
+  header: { alignItems: 'center', gap: 8 },
+  brand: { fontSize: 10, fontWeight: '900', letterSpacing: 2.6 },
+  position: { fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  artworkFrame: { alignSelf: 'center', width: '67%', aspectRatio: 2 / 3, borderRadius: 15, borderWidth: 1, overflow: 'hidden', marginVertical: 12 },
+  artwork: { width: '100%', height: '100%' },
+  reversedArtwork: { transform: [{ rotate: '180deg' }] },
+  artworkBorder: { position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: 11, borderWidth: 1 },
+  symbolFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  symbol: { fontSize: 72 },
+  identity: { alignItems: 'center', gap: 5 },
+  cardName: { fontFamily: theme.fonts.serif, fontSize: 28, fontWeight: '500', textAlign: 'center' },
+  keywords: { fontSize: 10, lineHeight: 15, fontStyle: 'italic', textAlign: 'center' },
+  quotePanel: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  quoteMark: { fontFamily: theme.fonts.serif, fontSize: 28, lineHeight: 24 },
+  meaning: { flex: 1, fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  footer: { alignItems: 'center', gap: 7 },
+  footerLine: { width: 32, height: 2, borderRadius: 2, opacity: 0.6 },
+  footerBrand: { fontSize: 9, letterSpacing: 1.5, fontWeight: '700' },
+  actions: { width: '100%', maxWidth: 420, alignItems: 'center', gap: 9, marginTop: 16 },
+  shareButton: { minWidth: 190, minHeight: 46, paddingHorizontal: 24, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(31,33,48,0.12)' },
+  shareText: { fontSize: 14, fontWeight: '800', color: theme.colors.ink },
+  closeButton: { paddingHorizontal: 18, paddingVertical: 8 },
+  closeText: { fontSize: 13, fontWeight: '700', color: theme.colors.muted },
+  hint: { fontSize: 10, color: theme.colors.muted, textAlign: 'center' },
 });
