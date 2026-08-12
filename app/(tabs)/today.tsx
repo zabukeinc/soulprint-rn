@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, FadeOut, FadeOutUp, Easing } from 'react-native-reanimated';
 import { useEngagement } from '@/src/hooks/useEngagement';
@@ -60,14 +60,6 @@ export default function TodayScreen() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [savingMood, setSavingMood] = useState<string | null>(null);
-  const refreshEngagement = engagement.refresh;
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshEngagement?.().catch(() => {});
-    }, [refreshEngagement])
-  );
-
   const dailyReading = engagement.todayPayload?.dailyReading;
   const horoscopeSignal = engagement.todayPayload?.horoscope?.todaySignal;
   const signal = dailyReading?.signal ?? horoscopeSignal?.signal ?? {

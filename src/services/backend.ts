@@ -383,6 +383,13 @@ export type BirthChartReport = {
   calculation: any | null;
   aspects?: Array<{ planets: string[]; aspect: string; angle: number; orb: number; tone: string; interpretation: string }>;
   chartPatterns?: Array<{ type: string; title: string; description: string }>;
+  premiumSynthesis?: {
+    chartRuler: { planet: string | null; sign: string | null; signLabel: string; house: number | null; meaning: string };
+    relationshipSignature: { venus: string; mars: string; summary: string };
+    vocationSignature: { midheaven: string; saturn: string; jupiter: string; summary: string };
+    aspectBalance: { tensionCount: number; flowCount: number; summary: string };
+    integrationPrompts: string[];
+  };
   reportSections?: Array<{ key: string; title: string; body: string }>;
 };
 
@@ -611,8 +618,8 @@ export function createTarotDraw(spread: 'single' | 'three') {
   });
 }
 
-export function getAstrovyReading() {
-  return apiRequest<any>('/readings/astrovy');
+export function getAstrovyReading(options: { fast?: boolean } = {}) {
+  return apiRequest<any>(options.fast ? '/readings/astrovy?mode=fast' : '/readings/astrovy');
 }
 
 export function getFirstMirrorReading(options: { fast?: boolean } = {}) {
@@ -637,10 +644,12 @@ export function createCompatibilityReading(input: {
   partnerBirthDate?: string;
   partnerBirthTime?: string | null;
   partnerBirthPlace?: ProfilePayload['profile']['birthPlace'];
+  fast?: boolean;
 }) {
-  return apiRequest<CompatibilityReading>('/compatibility/readings', {
+  const { fast, ...body } = input;
+  return apiRequest<CompatibilityReading>(fast ? '/compatibility/readings?mode=fast' : '/compatibility/readings', {
     method: 'POST',
-    body: input,
+    body,
   });
 }
 

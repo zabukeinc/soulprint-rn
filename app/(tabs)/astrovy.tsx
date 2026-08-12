@@ -106,7 +106,7 @@ export default function AstrovyScreen() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([getMe(), getAstrovyReading()])
+    Promise.all([getMe(), getAstrovyReading({ fast: true })])
       .then(([me, astrovy]) => {
         setProfile(me.profile);
         setAstro(me.astro);

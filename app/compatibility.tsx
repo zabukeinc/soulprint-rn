@@ -269,6 +269,7 @@ export default function CompatibilityScreen() {
           ? createCompatibilityReading({
             partnerName: name.trim(),
             partnerSign: selectedSign?.toLowerCase(),
+            fast: true,
           })
           : createCompatibilityReading({
             partnerName: name.trim(),
@@ -284,6 +285,7 @@ export default function CompatibilityScreen() {
                 lng: selectedPlace.lng,
               }
               : undefined,
+            fast: true,
           });
         const [result] = await Promise.all([
           request,

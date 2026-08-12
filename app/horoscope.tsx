@@ -6,7 +6,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
 import { useTier } from '@/src/context/TierContext';
 import { getTodayHoroscope, getMoonPhase } from '@/src/lib/horoscope';
-import { getDailyHoroscope, getMe, getNatalChart, prewarmContent, type BirthChartReport } from '@/src/services/backend';
+import { getDailyHoroscope, getMe, getNatalChart, type BirthChartReport } from '@/src/services/backend';
 import NatalChart from '@/src/components/NatalChart';
 import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 
@@ -76,25 +76,32 @@ export default function HoroscopeScreen() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.allSettled([
-      getNatalChart({ fast: true }),
-      getDailyHoroscope(),
-      getMe(),
-    ])
-      .then(([chartResult, dailyResult, meResult]) => {
+
+    getNatalChart({ fast: true })
+      .then((chart) => {
         if (!active) return;
-        if (chartResult.status === 'fulfilled') {
-          setBirthChart(chartResult.value);
-          prewarmContent('profile').catch(() => {});
-        } else {
-          setBirthChart(null);
-        }
-        setDailyReading(dailyResult.status === 'fulfilled' ? dailyResult.value : null);
-        setMe(meResult.status === 'fulfilled' ? meResult.value : null);
+        setBirthChart(chart);
+        setLoading(false);
       })
-      .finally(() => {
-        if (active) setLoading(false);
+      .catch(() => {
+        if (active) {
+          setBirthChart(null);
+          setLoading(false);
+        }
       });
+
+    getDailyHoroscope()
+      .then((reading) => {
+        if (active) setDailyReading(reading);
+      })
+      .catch(() => {});
+
+    getMe()
+      .then((profile) => {
+        if (active) setMe(profile);
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -114,6 +121,7 @@ export default function HoroscopeScreen() {
   const houses = birthChart?.chartWheel?.houseCusps ?? [];
   const visibleAspects = birthChart?.aspects ?? [];
   const reportSections = birthChart?.reportSections ?? [];
+  const premiumSynthesis = birthChart?.premiumSynthesis;
 
   const signatureStats = useMemo(() => {
     const element = birthChart?.summary.dominantElement;
@@ -307,6 +315,43 @@ export default function HoroscopeScreen() {
               <>
                 {birthChart?.chartPatterns?.length || reportSections.length ? (
                   <>
+                    {premiumSynthesis && (
+                      <>
+                        <View style={styles.premiumSectionHeader}>
+                          <Text style={styles.premiumSectionLabel}>Premium synthesis</Text>
+                          <Text style={styles.premiumSectionTitle}>How the pieces work together</Text>
+                        </View>
+                        <View style={styles.premiumInsightCard}>
+                          <Text style={styles.rowTitle}>Chart ruler</Text>
+                          <Text style={styles.rowMeta}>
+                            {premiumSynthesis.chartRuler.planet ? `${titleCase(premiumSynthesis.chartRuler.planet)} in ${premiumSynthesis.chartRuler.signLabel}` : 'Rising sign needed'}
+                            {premiumSynthesis.chartRuler.house ? ` · House ${premiumSynthesis.chartRuler.house}` : ''}
+                          </Text>
+                          <Text style={styles.rowBody}>{premiumSynthesis.chartRuler.meaning}</Text>
+                        </View>
+                        <View style={styles.premiumInsightCard}>
+                          <Text style={styles.rowTitle}>Relationship signature</Text>
+                          <Text style={styles.rowMeta}>Venus {premiumSynthesis.relationshipSignature.venus} · Mars {premiumSynthesis.relationshipSignature.mars}</Text>
+                          <Text style={styles.rowBody}>{premiumSynthesis.relationshipSignature.summary}</Text>
+                        </View>
+                        <View style={styles.premiumInsightCard}>
+                          <Text style={styles.rowTitle}>Vocation signature</Text>
+                          <Text style={styles.rowMeta}>Midheaven {premiumSynthesis.vocationSignature.midheaven}</Text>
+                          <Text style={styles.rowBody}>{premiumSynthesis.vocationSignature.summary}</Text>
+                        </View>
+                        <View style={styles.premiumInsightCard}>
+                          <Text style={styles.rowTitle}>Aspect balance</Text>
+                          <Text style={styles.rowMeta}>{premiumSynthesis.aspectBalance.flowCount} flowing · {premiumSynthesis.aspectBalance.tensionCount} activating</Text>
+                          <Text style={styles.rowBody}>{premiumSynthesis.aspectBalance.summary}</Text>
+                        </View>
+                        <View style={styles.promptCard}>
+                          <Text style={styles.rowTitle}>Integration prompts</Text>
+                          {premiumSynthesis.integrationPrompts.map((prompt, index) => (
+                            <Text key={`prompt-${index}`} style={styles.promptText}>{index + 1}. {prompt}</Text>
+                          ))}
+                        </View>
+                      </>
+                    )}
                     {birthChart?.chartPatterns?.map((pattern, index) => (
                       <View key={`${pattern.type}-${index}`} style={styles.patternCard}>
                         <Text style={styles.rowTitle}>{pattern.title}</Text>
@@ -527,6 +572,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,221,251,0.48)',
     marginBottom: 8,
   },
+  premiumSectionHeader: { marginBottom: 8, paddingHorizontal: 2 },
+  premiumSectionLabel: { fontSize: 10, letterSpacing: 1.1, color: '#8B72CF', textTransform: 'uppercase', fontWeight: '800' },
+  premiumSectionTitle: { fontSize: 17, color: theme.colors.ink, fontWeight: '800', marginTop: 4 },
+  premiumInsightCard: { borderRadius: 16, padding: 13, backgroundColor: 'rgba(159,217,208,0.18)', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(72,132,125,0.16)' },
+  promptCard: { borderRadius: 16, padding: 13, backgroundColor: 'rgba(139,114,207,0.12)', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(139,114,207,0.18)' },
+  promptText: { fontSize: 12, color: theme.colors.muted, lineHeight: 19, marginTop: 8 },
   lockedPanel: {
     flexDirection: 'row',
     gap: 12,

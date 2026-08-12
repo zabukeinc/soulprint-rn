@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
@@ -39,14 +39,6 @@ export default function MirrorScreen() {
   const reflectionsToUnlock = mirror?.reflectionsToUnlock ?? Math.max(0, 3 - reflectionsCount);
   const insightSummary = mirror?.insightSummary;
   const patternCards = mirror?.patternCards ?? [];
-  const refreshEngagement = engagement.refresh;
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshEngagement?.().catch(() => {});
-    }, [refreshEngagement])
-  );
-
   const last7 = mirror?.weeklyArc?.days ?? getLast7Days().map((day) => ({
     date: day.date,
     dayLetter: day.dayName.charAt(0),

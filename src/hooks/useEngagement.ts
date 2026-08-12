@@ -7,6 +7,36 @@ import { cacheTodayWidgetSnapshot, widgetSnapshotFromToday } from '@/src/service
 
 type TarotPosition = 'past' | 'present' | 'future';
 
+type EngagementRefreshPayload = {
+  todayPayload: Awaited<ReturnType<typeof backend.getToday>>;
+  journalPayload: Awaited<ReturnType<typeof backend.listJournalEntries>>;
+  tarotPayload: Awaited<ReturnType<typeof backend.getTarotToday>>;
+  statusPayload: Awaited<ReturnType<typeof backend.getContentStatus>> | null;
+};
+
+let engagementRefreshInFlight: Promise<EngagementRefreshPayload> | null = null;
+
+async function fetchEngagementPayload(): Promise<EngagementRefreshPayload> {
+  if (engagementRefreshInFlight) return engagementRefreshInFlight;
+
+  const request = (async () => {
+    const [todayPayload, journalPayload, tarotPayload, statusPayload] = await Promise.all([
+      backend.getToday({ fast: true }),
+      backend.listJournalEntries(),
+      backend.getTarotToday(),
+      backend.getContentStatus('daily').catch(() => null),
+    ]);
+    return { todayPayload, journalPayload, tarotPayload, statusPayload };
+  })();
+
+  engagementRefreshInFlight = request;
+  try {
+    return await request;
+  } finally {
+    if (engagementRefreshInFlight === request) engagementRefreshInFlight = null;
+  }
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -105,15 +135,8 @@ export function useEngagement() {
     else setRefreshing(true);
     setError(null);
     try {
-      const [todayPayload, mirrorPayload, journalPayload, tarotPayload, statusPayload] = await Promise.all([
-        backend.getToday({ fast: true }),
-        backend.getMirror(),
-        backend.listJournalEntries(),
-        backend.getTarotToday(),
-        backend.getContentStatus('daily').catch(() => null),
-      ]);
+      const { todayPayload, journalPayload, tarotPayload, statusPayload } = await fetchEngagementPayload();
       setToday(todayPayload);
-      setMirror(mirrorPayload);
       setJournalEntries(journalPayload.data);
       setTarotState(tarotPayload);
       setDailyContentStatus(statusPayload ?? todayPayload.generation?.contentJobs ?? null);
@@ -122,6 +145,9 @@ export function useEngagement() {
       cacheTodayWidgetSnapshot(widgetSnapshotFromToday(todayPayload)).catch(() => {});
       backend.prewarmContent('daily')
         .then(setDailyContentStatus)
+        .catch(() => {});
+      backend.getMirror()
+        .then(setMirror)
         .catch(() => {});
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : 'Backend data could not be loaded.');
