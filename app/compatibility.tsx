@@ -780,7 +780,7 @@ export default function CompatibilityScreen() {
             <View style={styles.pickerColumns}>
               <View style={styles.pickerColumn}>
                 <Text style={styles.pickerLabel}>Month</Text>
-                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                   {monthOptions.map((month) => (
                     <TouchableOpacity
                       key={month.value}
@@ -795,7 +795,7 @@ export default function CompatibilityScreen() {
               </View>
               <View style={styles.pickerColumn}>
                 <Text style={styles.pickerLabel}>Day</Text>
-                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                   {dateDayOptions.map((day) => (
                     <TouchableOpacity
                       key={day}
@@ -853,7 +853,7 @@ export default function CompatibilityScreen() {
             <View style={styles.pickerColumns}>
               <View style={styles.pickerColumn}>
                 <Text style={styles.pickerLabel}>Hour</Text>
-                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                   {hourOptions.map((hour) => (
                     <TouchableOpacity
                       key={hour}
@@ -868,7 +868,7 @@ export default function CompatibilityScreen() {
               </View>
               <View style={styles.pickerColumn}>
                 <Text style={styles.pickerLabel}>Minute</Text>
-                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                   {minuteOptions.map((minute) => (
                     <TouchableOpacity
                       key={minute}

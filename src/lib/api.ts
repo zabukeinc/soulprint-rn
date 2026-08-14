@@ -101,7 +101,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
     throw new ApiError(
       response.status,
       error?.code ?? 'REQUEST_FAILED',
-      friendlyApiMessage(response.status, error?.code, error?.message),
+      friendlyApiMessage(response.status, error?.code, error?.message, error?.details),
       error?.details,
       category
     );
@@ -126,7 +126,9 @@ function categorizeStatus(status: number, code?: string): ApiError['category'] {
   return 'unknown';
 }
 
-function friendlyApiMessage(status: number, code?: string, fallback?: string) {
+function friendlyApiMessage(status: number, code?: string, fallback?: string, details?: unknown) {
+  const passwordMessage = (details as { fields?: { password?: string[] } } | undefined)?.fields?.password?.[0];
+  if (code === 'VALIDATION_ERROR' && passwordMessage) return passwordMessage;
   if (status === 401) return 'Your session expired. Please log in again.';
   if (status === 403 && code === 'PREMIUM_REQUIRED') return fallback ?? 'This reading needs premium access.';
   if (status === 429) return fallback ?? 'You have reached today\'s limit. Try again after the reset.';
@@ -178,11 +180,51 @@ async function rawRequest<T>(path: string, options: RequestOptions, tokens: Toke
   }
 }
 
+let refreshPromise: Promise<TokenPair | null> | null = null;
+
+async function refreshAccessToken(tokens: TokenPair | null) {
+  if (!tokens?.refreshToken) return null;
+  if (!refreshPromise) {
+    refreshPromise = rawRequest<SessionPayload>('/auth/refresh', {
+      method: 'POST',
+      auth: false,
+      body: { refreshToken: tokens.refreshToken },
+      reportErrors: false,
+    }, null)
+      .then(async (session) => {
+        await writeTokens(session.tokens);
+        return session.tokens;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const tokens = await readTokens();
+  let tokens = await readTokens();
   try {
     return await rawRequest<T>(path, options, tokens);
   } catch (error) {
+    if (
+      options.auth !== false &&
+      error instanceof ApiError &&
+      error.status === 401 &&
+      path !== '/auth/refresh'
+    ) {
+      const refreshed = await refreshAccessToken(tokens);
+      if (refreshed) {
+        tokens = refreshed;
+        try {
+          return await rawRequest<T>(path, options, tokens);
+        } catch (retryError) {
+          error = retryError;
+        }
+      }
+    }
+
     if (error instanceof ApiError && options.reportErrors !== false) {
       captureApiError({
         path,

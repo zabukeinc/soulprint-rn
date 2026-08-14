@@ -42,3 +42,6 @@ yarn-error.*
 
 # superpowers brainstorm artifacts
 .superpowers/
+
+# IDE metadata
+.idea/

@@ -27,6 +27,8 @@ export default function BirthTimeScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
     >
       <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -49,7 +51,7 @@ export default function BirthTimeScreen() {
           <Text style={styles.timeValue}>{time}</Text>
         </View>
         <View style={styles.timePickers}>
-          <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled>
             {Array.from({ length: 24 }, (_, i) => (
               <TouchableOpacity
                 key={i}
@@ -63,7 +65,7 @@ export default function BirthTimeScreen() {
             ))}
           </ScrollView>
           <Text style={styles.timeColon}>:</Text>
-          <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled>
             {Array.from({ length: 60 }, (_, i) => (
               <TouchableOpacity
                 key={i}

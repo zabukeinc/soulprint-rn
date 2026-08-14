@@ -10,10 +10,15 @@ import { NetworkProvider } from '@/src/context/NetworkContext';
 import { initObservability } from '@/src/lib/observability';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { checkForAppUpdate } from '@/src/services/appUpdate';
 
 initObservability();
 
 function RootLayout() {
+  React.useEffect(() => {
+    checkForAppUpdate().catch(() => {});
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AppErrorBoundary>

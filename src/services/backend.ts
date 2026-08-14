@@ -28,6 +28,15 @@ export type LegalInfo = {
   };
 };
 
+export type AppConfig = {
+  platform: 'android' | 'ios';
+  minimumVersion: string;
+  latestVersion: string;
+  storeUrl: string;
+  updateRequired: boolean;
+  checkedAt: string;
+};
+
 export const DEFAULT_LEGAL_INFO: LegalInfo = {
   appName: 'Astrovy',
   privacyUrl: 'https://astrovy.space/privacy',
@@ -439,6 +448,21 @@ export type MatrixArcanaPosition = {
   keywords: string[];
 };
 
+export type MatrixChakra = {
+  name: string;
+  subtitle: string;
+  color: string;
+  physical: number;
+  energy: number;
+  emotions: number;
+};
+
+export type MatrixTimelineMark = {
+  age: number;
+  label: string;
+  arcana: MatrixArcanaPosition;
+};
+
 export type MatrixDestinyResponse = {
   profile: { name: string; birthDate: string };
   engine: { id: string; fingerprint: string };
@@ -451,6 +475,23 @@ export type MatrixDestinyResponse = {
     moneyLine: MatrixArcanaPosition[];
     karmicTail: MatrixArcanaPosition[];
     currentYear: MatrixArcanaPosition;
+  };
+  purposes: {
+    personal: MatrixArcanaPosition;
+    social: MatrixArcanaPosition;
+    spiritual: MatrixArcanaPosition;
+    planetary: MatrixArcanaPosition;
+  };
+  chakras: MatrixChakra[];
+  channels: {
+    relationship: MatrixArcanaPosition[];
+    money: MatrixArcanaPosition[];
+    balance: MatrixArcanaPosition;
+    love: MatrixArcanaPosition;
+  };
+  timeline: {
+    currentAge: number;
+    marks: MatrixTimelineMark[];
   };
   summary: string;
   ai: MatrixDestinyAiState;
@@ -526,6 +567,10 @@ export function getMe() {
 
 export function getLegalInfo() {
   return apiRequest<LegalInfo>('/legal', { auth: false });
+}
+
+export function getAppConfig(platform: 'android' | 'ios', version: string) {
+  return apiRequest<AppConfig>(`/app-config?platform=${platform}&version=${encodeURIComponent(version)}`, { auth: false, reportErrors: false });
 }
 
 export function deleteAccount(input: { password?: string; confirm?: 'DELETE' }) {

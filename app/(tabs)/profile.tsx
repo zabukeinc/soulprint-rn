@@ -9,6 +9,7 @@ import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, type LegalInfo } from '@/src/s
 import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
+import { clearLocalCache } from '@/src/services/localCache';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -67,6 +68,23 @@ export default function ProfileScreen() {
 
   const openSupport = () => {
     openExternal(`mailto:${legalInfo.supportEmail}?subject=Astrovy%20Support`);
+  };
+
+  const confirmClearCache = () => {
+    Alert.alert(
+      'Clear device cache?',
+      'This removes temporary files from this device. Your account, readings, and daily limits stay safe.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear cache',
+          style: 'destructive',
+          onPress: () => {
+            void clearLocalCache().then(() => Alert.alert('Cache cleared', 'Your saved readings and account are still available.'));
+          },
+        },
+      ],
+    );
   };
 
   const confirmDeleteAccount = async () => {
@@ -278,6 +296,18 @@ export default function ProfileScreen() {
             <View style={styles.settingTextCol}>
               <Text style={styles.settingTitle}>Support</Text>
               <Text style={styles.settingDesc}>{legalInfo.supportEmail}</Text>
+            </View>
+            <Text style={styles.settingArrow}>→</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <View style={styles.divider} />
+
+        <Animated.View entering={FadeInUp.duration(500).delay(420)}>
+          <TouchableOpacity style={styles.settingRowButton} onPress={confirmClearCache} activeOpacity={0.85}>
+            <View style={styles.settingTextCol}>
+              <Text style={styles.settingTitle}>Clear device cache</Text>
+              <Text style={styles.settingDesc}>Remove temporary files without deleting your account</Text>
             </View>
             <Text style={styles.settingArrow}>→</Text>
           </TouchableOpacity>
