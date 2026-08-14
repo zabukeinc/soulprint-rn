@@ -5,11 +5,12 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { useAuth } from '@/src/context/AuthContext';
-import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, type LegalInfo } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, getNotificationPreferences, updateNotificationPreferences, type LegalInfo } from '@/src/services/backend';
 import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 import { clearLocalCache } from '@/src/services/localCache';
+import { cancelDailySignalNotification, scheduleDailySignalNotification } from '@/src/services/dailySignalNotifications';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,6 +26,9 @@ export default function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [dailySignalEnabled, setDailySignalEnabled] = useState(false);
+  const [dailySignalReminderTime, setDailySignalReminderTime] = useState('09:00');
+  const [savingDailySignal, setSavingDailySignal] = useState(false);
 
   useEffect(() => {
     getMe()
@@ -38,6 +42,13 @@ export default function ProfileScreen() {
 
     getLegalInfo()
       .then(setLegalInfo)
+      .catch(() => {});
+
+    getNotificationPreferences()
+      .then((preference) => {
+        setDailySignalEnabled(preference.dailySignalEnabled);
+        setDailySignalReminderTime(preference.reminderTime);
+      })
       .catch(() => {});
   }, []);
 
@@ -68,6 +79,39 @@ export default function ProfileScreen() {
 
   const openSupport = () => {
     openExternal(`mailto:${legalInfo.supportEmail}?subject=Astrovy%20Support`);
+  };
+
+  const toggleDailySignal = async () => {
+    if (savingDailySignal) return;
+    const nextEnabled = !dailySignalEnabled;
+    setSavingDailySignal(true);
+    try {
+      if (nextEnabled) {
+        const scheduled = await scheduleDailySignalNotification(dailySignalReminderTime);
+        if (!scheduled.enabled) {
+          Alert.alert('Notifications are off', 'Enable notifications in your device settings to receive your daily signal.');
+          return;
+        }
+      } else {
+        await cancelDailySignalNotification();
+      }
+      const saved = await updateNotificationPreferences({
+        dailySignalEnabled: nextEnabled,
+        reminderTime: dailySignalReminderTime,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      });
+      setDailySignalEnabled(saved.dailySignalEnabled);
+      setDailySignalReminderTime(saved.reminderTime);
+    } catch {
+      if (nextEnabled) {
+        await cancelDailySignalNotification().catch(() => {});
+      } else {
+        await scheduleDailySignalNotification(dailySignalReminderTime).catch(() => {});
+      }
+      Alert.alert('Could not update Daily Signal', 'Please try again in a moment.');
+    } finally {
+      setSavingDailySignal(false);
+    }
   };
 
   const confirmClearCache = () => {
@@ -229,12 +273,19 @@ export default function ProfileScreen() {
           <View>
             <Text style={styles.settingTitle}>Daily Signal</Text>
             <Text style={styles.settingDesc}>
-              Personal insight every day
+              {dailySignalEnabled ? `Reminder at ${dailySignalReminderTime}` : 'No daily reminder'}
             </Text>
           </View>
-          <View style={[styles.toggleTrack, { backgroundColor: '#16A7A0' }]}>
-            <View style={[styles.toggleKnob, { transform: [{ translateX: 18 }] }]} />
-          </View>
+          <TouchableOpacity
+            onPress={() => void toggleDailySignal()}
+            disabled={savingDailySignal}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: dailySignalEnabled, disabled: savingDailySignal }}
+            accessibilityLabel="Daily Signal reminders"
+            style={[styles.toggleTrack, { backgroundColor: dailySignalEnabled ? '#16A7A0' : 'rgba(31,33,48,0.18)' }]}
+          >
+            <View style={[styles.toggleKnob, { transform: [{ translateX: dailySignalEnabled ? 18 : 0 }] }]} />
+          </TouchableOpacity>
         </Animated.View>
 
         <View style={styles.divider} />

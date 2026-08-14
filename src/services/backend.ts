@@ -37,6 +37,12 @@ export type AppConfig = {
   checkedAt: string;
 };
 
+export type NotificationPreference = {
+  dailySignalEnabled: boolean;
+  reminderTime: string;
+  timezone: string;
+};
+
 export const DEFAULT_LEGAL_INFO: LegalInfo = {
   appName: 'Astrovy',
   privacyUrl: 'https://astrovy.space/privacy',
@@ -571,6 +577,24 @@ export function getLegalInfo() {
 
 export function getAppConfig(platform: 'android' | 'ios', version: string) {
   return apiRequest<AppConfig>(`/app-config?platform=${platform}&version=${encodeURIComponent(version)}`, { auth: false, reportErrors: false });
+}
+
+export function getNotificationPreferences() {
+  return apiRequest<NotificationPreference>('/notifications/preferences');
+}
+
+export function updateNotificationPreferences(input: Partial<NotificationPreference> & { dailySignalEnabled: boolean }) {
+  return apiRequest<NotificationPreference>('/notifications/preferences', {
+    method: 'PUT',
+    body: input
+  });
+}
+
+export function registerNotificationDevice(input: { expoPushToken: string; platform: 'ios' | 'android' }) {
+  return apiRequest<{ id: string; platform: string }>('/notifications/devices', {
+    method: 'POST',
+    body: input
+  });
 }
 
 export function deleteAccount(input: { password?: string; confirm?: 'DELETE' }) {
