@@ -429,7 +429,7 @@ export default function CompatibilityScreen() {
           <Animated.View entering={FadeIn.duration(500)}>
             <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.resultCenter}>
               <Text style={styles.resultLabel}>Compatibility Reading</Text>
-              <Text style={styles.resultTitle}>Gy & {name}</Text>
+              <Text style={styles.resultTitle}>{reading?.userName || 'You'} & {reading?.partnerName || name || 'Your partner'}</Text>
               <Text style={styles.resultSub}>{reading?.userSign ?? 'Your sign'} · {reading?.partnerSign ?? selectedSign ?? 'Calculated sign'}</Text>
               <View style={styles.confidencePill}>
                 <Text style={styles.confidenceText}>{confidenceLabel}</Text>

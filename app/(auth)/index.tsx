@@ -21,6 +21,7 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +69,7 @@ export default function AuthScreen() {
                 onPress={() => {
                   setMode(item);
                   setError(null);
+                  setPasswordTouched(false);
                 }}
                 style={[styles.switchButton, mode === item && styles.switchButtonActive]}
               >
@@ -90,12 +92,19 @@ export default function AuthScreen() {
           />
           <TextInput
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(value) => {
+              setPassword(value);
+              setPasswordTouched(true);
+            }}
+            onBlur={() => setPasswordTouched(true)}
             placeholder="Password"
             placeholderTextColor={theme.colors.muted + '80'}
             style={styles.input}
             secureTextEntry
           />
+          {mode === 'register' && passwordTouched && password.length < 8 && (
+            <Text style={styles.fieldHint}>Use at least 8 characters for your password.</Text>
+          )}
           {mode === 'register' && (
             <Text style={styles.formHint}>You’ll add your name and birth details in onboarding.</Text>
           )}
@@ -184,6 +193,7 @@ const styles = StyleSheet.create({
     color: theme.colors.ink,
     marginBottom: 10,
   },
+  fieldHint: { fontSize: 11, color: '#B56B55', lineHeight: 16, marginTop: -5, marginBottom: 10, marginLeft: 4 },
   formHint: { fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginBottom: 10 },
   error: { fontSize: 12, color: '#B84A62', lineHeight: 18, marginBottom: 10 },
   button: {

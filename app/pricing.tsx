@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpaci
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { requireNativeModule } from 'expo-modules-core';
-import { getAvailablePurchases, useIAP, type ProductSubscription, type ProductSubscriptionAndroid, type Purchase } from 'expo-iap';
+import type { ProductSubscription, ProductSubscriptionAndroid, Purchase } from 'expo-iap';
 import Animated, {
   FadeInUp,
   FadeIn,
@@ -72,6 +72,9 @@ export default function PricingScreen() {
 }
 
 function NativePricingScreen() {
+  // Load the native billing module only after the native-module guard passes.
+  // This keeps Expo Go from crashing while still allowing dev/store builds to use IAP.
+  const { getAvailablePurchases, useIAP } = require('expo-iap') as typeof import('expo-iap');
   const router = useRouter();
   const { user } = useAuth();
   const { refreshTier } = useTier();

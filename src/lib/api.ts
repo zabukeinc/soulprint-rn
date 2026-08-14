@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { captureApiError } from '@/src/lib/observability';
 
@@ -51,7 +52,14 @@ export class ApiError extends Error {
 
 function getApiBaseUrl() {
   const configured = process.env.EXPO_PUBLIC_API_URL;
-  if (configured) return configured.replace(/\/$/, '');
+  if (configured) {
+    const normalized = configured.replace(/\/$/, '');
+    // 10.0.2.2 is Android-emulator-only. iOS Simulator reaches the host through loopback.
+    if (Platform.OS === 'ios' && normalized.includes('10.0.2.2')) {
+      return normalized.replace('10.0.2.2', '127.0.0.1');
+    }
+    return normalized;
+  }
 
   const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost;
   const host = hostUri?.split(':')[0];
@@ -63,6 +71,8 @@ function getApiBaseUrl() {
 export const apiConfig = {
   baseUrl: getApiBaseUrl(),
 };
+
+if (__DEV__) console.info('[api-config] base URL:', apiConfig.baseUrl);
 
 async function readTokens(): Promise<TokenPair | null> {
   const raw = await SecureStore.getItemAsync(TOKEN_KEY);
