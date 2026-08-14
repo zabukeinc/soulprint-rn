@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -54,4 +56,15 @@ export async function cancelDailySignalNotification() {
   const identifier = await AsyncStorage.getItem(notificationIdKey);
   if (identifier) await Notifications.cancelScheduledNotificationAsync(identifier);
   await AsyncStorage.removeItem(notificationIdKey);
+}
+
+export async function getExpoPushRegistration() {
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) return null;
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    return { expoPushToken: token.data, platform: Platform.OS === 'ios' ? 'ios' as const : 'android' as const };
+  } catch {
+    return null;
+  }
 }

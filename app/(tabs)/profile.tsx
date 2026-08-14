@@ -5,12 +5,12 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { useAuth } from '@/src/context/AuthContext';
-import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, getNotificationPreferences, updateNotificationPreferences, type LegalInfo } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, getNotificationPreferences, registerNotificationDevice, updateNotificationPreferences, type LegalInfo } from '@/src/services/backend';
 import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 import { clearLocalCache } from '@/src/services/localCache';
-import { cancelDailySignalNotification, scheduleDailySignalNotification } from '@/src/services/dailySignalNotifications';
+import { cancelDailySignalNotification, getExpoPushRegistration, scheduleDailySignalNotification } from '@/src/services/dailySignalNotifications';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -99,6 +99,8 @@ export default function ProfileScreen() {
           );
           return;
         }
+        const device = await getExpoPushRegistration();
+        if (device) await registerNotificationDevice(device).catch(() => {});
       } else {
         await cancelDailySignalNotification();
       }
