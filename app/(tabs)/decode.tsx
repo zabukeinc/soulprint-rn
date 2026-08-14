@@ -30,19 +30,19 @@ const features = [
     gradient: ['#DDEDDC', '#DFF2EC'] as const,
   },
   {
+    id: 'matrix-destiny',
+    icon: Grid3X3,
+    title: 'Matrix Destiny',
+    description: 'Your numbers, patterns, and life themes.',
+    gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const,
+  },
+  {
     id: 'palm',
     icon: Hand,
     title: 'Palm Reading',
     description: 'Coming soon, privacy-first.',
     gradient: ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)'] as const,
     soon: true,
-  },
-  {
-    id: 'matrix-destiny',
-    icon: Grid3X3,
-    title: 'Matrix Destiny',
-    description: 'Your numbers, patterns, and life themes.',
-    gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const,
   },
 ];
 
