@@ -89,7 +89,14 @@ export default function ProfileScreen() {
       if (nextEnabled) {
         const scheduled = await scheduleDailySignalNotification(dailySignalReminderTime);
         if (!scheduled.enabled) {
-          Alert.alert('Notifications are off', 'Enable notifications in your device settings to receive your daily signal.');
+          Alert.alert(
+            'Notifications are off',
+            'Astrovy needs notification permission to remind you about your daily signal.',
+            [
+              { text: 'Not now', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => void Linking.openSettings() }
+            ]
+          );
           return;
         }
       } else {
