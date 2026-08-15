@@ -14,7 +14,9 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.astrovy.space/v1"
       }
     }
   },
