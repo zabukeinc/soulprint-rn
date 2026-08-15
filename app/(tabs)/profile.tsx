@@ -89,13 +89,18 @@ export default function ProfileScreen() {
       if (nextEnabled) {
         const scheduled = await scheduleDailySignalNotification(dailySignalReminderTime);
         if (!scheduled.enabled) {
+          const unavailable = scheduled.reason === 'unavailable';
           Alert.alert(
-            'Notifications are off',
-            'Astrovy needs notification permission to remind you about your daily signal.',
-            [
-              { text: 'Not now', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => void Linking.openSettings() }
-            ]
+            unavailable ? 'Update Astrovy' : 'Notifications are off',
+            unavailable
+              ? 'This build does not include notification support. Install the latest Astrovy build to turn on Daily Signal reminders.'
+              : 'Astrovy needs notification permission to remind you about your daily signal.',
+            unavailable
+              ? [{ text: 'OK', style: 'cancel' }]
+              : [
+                  { text: 'Not now', style: 'cancel' },
+                  { text: 'Open Settings', onPress: () => void Linking.openSettings() }
+                ]
           );
           return;
         }

@@ -1,16 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true
-  })
-});
+type NotificationsModule = typeof import('expo-notifications');
+
+let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
+
+async function loadNotifications(): Promise<NotificationsModule | null> {
+  if (!notificationsModulePromise) {
+    notificationsModulePromise = import('expo-notifications')
+      .then((Notifications) => {
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true
+          })
+        });
+        return Notifications;
+      })
+      .catch(() => null);
+  }
+
+  return notificationsModulePromise;
+}
 
 const notificationIdKey = 'astrovy.daily-signal.notification-id';
 
@@ -21,11 +35,17 @@ function parseReminderTime(value: string) {
 }
 
 export async function scheduleDailySignalNotification(reminderTime: string) {
-  await Notifications.setNotificationChannelAsync('daily-signal', {
-    name: 'Daily Signal',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: undefined
-  });
+  const Notifications = await loadNotifications();
+  if (!Notifications) return { enabled: false as const, reason: 'unavailable' as const };
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('daily-signal', {
+      name: 'Daily Signal',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: undefined
+    });
+  }
+
   const permissions = await Notifications.getPermissionsAsync();
   const granted = permissions.granted || permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
   if (!granted) {
@@ -53,13 +73,16 @@ export async function scheduleDailySignalNotification(reminderTime: string) {
 }
 
 export async function cancelDailySignalNotification() {
+  const Notifications = await loadNotifications();
   const identifier = await AsyncStorage.getItem(notificationIdKey);
-  if (identifier) await Notifications.cancelScheduledNotificationAsync(identifier);
+  if (identifier && Notifications) await Notifications.cancelScheduledNotificationAsync(identifier);
   await AsyncStorage.removeItem(notificationIdKey);
 }
 
 export async function getExpoPushRegistration() {
   try {
+    const Notifications = await loadNotifications();
+    if (!Notifications) return null;
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     if (!projectId) return null;
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
