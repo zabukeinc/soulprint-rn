@@ -143,6 +143,7 @@ function NativePricingScreen() {
     selected === 'monthly' ? product.period === 'monthly' : product.period === 'annual'
   );
   const storeProduct = iap.subscriptions.find((product) => product.id === selectedProduct?.id);
+  const selectedPrice = storeProduct?.displayPrice ?? `$${selectedProduct?.price ?? (selected === 'monthly' ? '9' : '72')}`;
   const displayFeatures = serverFeatures ?? features[selected];
   const manageSubscriptionUrl = Platform.OS === 'ios'
     ? legalInfo.subscriptions.appleManageUrl
@@ -316,8 +317,8 @@ function NativePricingScreen() {
               <Text style={styles.planName}>{selected}</Text>
             </View>
             <View style={styles.planPriceBox}>
-              <Text style={styles.planPrice}>{storeProduct?.displayPrice ?? `$${selectedProduct?.monthlyEquivalent ?? selectedProduct?.price ?? (selected === 'monthly' ? '9' : '6')}`}</Text>
-              <Text style={styles.planPriceSub}>per month</Text>
+              <Text style={styles.planPrice}>{selectedPrice}</Text>
+              <Text style={styles.planPriceSub}>{selected === 'annually' ? 'billed yearly' : 'per month'}</Text>
             </View>
           </View>
 
@@ -327,8 +328,7 @@ function NativePricingScreen() {
               style={styles.yearlyInfo}
             >
               <Text style={styles.yearlyText}>
-                <Text style={styles.yearlyBold}>$72 billed yearly</Text>
-                <Text style={styles.yearlyMuted}> (Save $36)</Text>
+                <Text style={styles.yearlyBold}>{selectedPrice} billed yearly</Text>
               </Text>
             </Animated.View>
           )}

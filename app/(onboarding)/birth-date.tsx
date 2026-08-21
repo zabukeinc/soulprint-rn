@@ -82,7 +82,12 @@ export default function BirthDateScreen() {
       <View style={styles.pickers}>
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Day</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.picker}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
             {days.map((d) => (
               <TouchableOpacity
                 key={d}
@@ -98,7 +103,12 @@ export default function BirthDateScreen() {
         </Animated.View>
         <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Month</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.picker}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
             {months.map((m) => (
               <TouchableOpacity
                 key={m.value}
@@ -114,7 +124,12 @@ export default function BirthDateScreen() {
         </Animated.View>
         <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.pickerCol}>
           <Text style={styles.pickerLabel}>Year</Text>
-          <ScrollView style={styles.picker} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.picker}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
             {years.map((y) => (
               <TouchableOpacity
                 key={y}

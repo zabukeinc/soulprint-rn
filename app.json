@@ -3,7 +3,6 @@
     "name": "Astrovy.space",
     "slug": "astrovy-space",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/Logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -36,7 +35,9 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.2.20"
+            "kotlinVersion": "2.2.20",
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ]

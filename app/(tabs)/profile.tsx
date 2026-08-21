@@ -264,7 +264,7 @@ export default function ProfileScreen() {
           : 'rgba(31,33,48,0.08)',
       }]}>
         <View style={styles.tierRow}>
-          <View>
+          <View style={styles.tierCopy}>
             <Text style={styles.tierTitle}>{isPremium ? '✦ Premium active' : 'Go deeper with Premium'}</Text>
             <Text style={styles.tierDesc}>
               {isPremium
@@ -526,6 +526,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  tierCopy: { flex: 1, minWidth: 0, paddingRight: 12 },
   tierTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   tierDesc: { fontSize: 12, color: theme.colors.muted },
   tierAction: {
@@ -533,6 +534,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
     backgroundColor: theme.colors.ink,
+    flexShrink: 0,
   },
   tierActionText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   toggleTrack: {

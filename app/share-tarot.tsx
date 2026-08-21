@@ -20,6 +20,17 @@ function titleCase(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function compactShareMeaning(value: string, maxLength = 145) {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+
+  const firstSentence = normalized.match(/^.+?[.!?](?:\s|$)/)?.[0]?.trim();
+  if (firstSentence && firstSentence.length <= maxLength) return firstSentence;
+
+  const boundary = normalized.slice(0, maxLength).lastIndexOf(' ');
+  return `${normalized.slice(0, boundary > 0 ? boundary : maxLength).trim()}.`;
+}
+
 export default function ShareTarotScreen() {
   const router = useRouter();
   const cardRef = useRef<View>(null);
@@ -39,6 +50,7 @@ export default function ShareTarotScreen() {
   const name = payload?.name ?? card?.name ?? cardId ?? 'Tarot card';
   const keywords = payload?.keywords ?? (card ? (isReversed ? card.keywords.reversed : card.keywords.upright) : '');
   const meaning = payload?.meaning ?? (card ? card.meaning.free : 'A message to reflect on today.');
+  const shareMeaning = compactShareMeaning(meaning);
   const visual = payload?.visual;
   const palette = visual?.palette ?? FALLBACK_PALETTE;
   const positionLabel = titleCase(payload?.position ?? position ?? 'reading');
@@ -110,7 +122,7 @@ export default function ShareTarotScreen() {
 
             <View style={[styles.quotePanel, { borderColor: `${palette.accent}35`, backgroundColor: `${palette.aura}45` }]}>
               <Text style={[styles.quoteMark, { color: palette.accent }]}>“</Text>
-              <Text style={[styles.meaning, { color: palette.ink }]} numberOfLines={5}>{meaning}</Text>
+              <Text style={[styles.meaning, { color: palette.ink }]} numberOfLines={4}>{shareMeaning}</Text>
             </View>
 
             <View style={styles.footer}>
@@ -155,7 +167,7 @@ const styles = StyleSheet.create({
   keywords: { fontSize: 10, lineHeight: 15, fontStyle: 'italic', textAlign: 'center' },
   quotePanel: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
   quoteMark: { fontFamily: theme.fonts.serif, fontSize: 28, lineHeight: 24 },
-  meaning: { flex: 1, fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  meaning: { flex: 1, fontSize: 11, lineHeight: 16, textAlign: 'center' },
   footer: { alignItems: 'center', gap: 7 },
   footerLine: { width: 32, height: 2, borderRadius: 2, opacity: 0.6 },
   footerBrand: { fontSize: 9, letterSpacing: 1.5, fontWeight: '700' },
