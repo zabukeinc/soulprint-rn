@@ -10,6 +10,30 @@ export type Entitlement = {
   willRenew: boolean;
 };
 
+export type PalmReading = {
+  id?: string;
+  status: 'ready' | 'not_started';
+  hand?: 'left' | 'right';
+  image?: { width: number; height: number; quality: number };
+  source?: 'mock' | 'vision';
+  summary?: string;
+  details?: {
+    marriageLine: string;
+    loveLine: string;
+    headLine: string;
+    lifeLine: string;
+    moneyLine: string;
+  } | null;
+  access: { tier: 'free' | 'premium'; detailed: boolean };
+  generatedAt?: string;
+  disclaimer?: string;
+};
+
+export type PalmReadingHistoryPayload = {
+  data: PalmReading[];
+  nextCursor: string | null;
+};
+
 export type LegalInfo = {
   appName: string;
   privacyUrl: string;
@@ -774,6 +798,33 @@ export function getMatrixDestiny() {
 
 export function getMatrixDestinyAi() {
   return apiRequest<MatrixDestinyAiState>('/matrix-destiny/me/ai');
+}
+
+export function getPalmReading() {
+  return apiRequest<PalmReading>('/palm-readings/me');
+}
+
+export function listPalmReadings(options: { limit?: number; cursor?: string } = {}) {
+  const query = new URLSearchParams();
+  if (options.limit) query.set('limit', String(options.limit));
+  if (options.cursor) query.set('cursor', options.cursor);
+  const suffix = query.toString();
+  return apiRequest<PalmReadingHistoryPayload>(`/palm-readings${suffix ? `?${suffix}` : ''}`);
+}
+
+export function getPalmReadingById(id: string) {
+  return apiRequest<PalmReading>(`/palm-readings/${encodeURIComponent(id)}`);
+}
+
+export function createPalmReading(input: {
+  hand: 'left' | 'right';
+  imageHash?: string;
+  imageData?: string;
+  imageWidth: number;
+  imageHeight: number;
+  quality: number;
+}) {
+  return apiRequest<PalmReading>('/palm-readings', { method: 'POST', body: input });
 }
 
 export function submitFeedback(input: {

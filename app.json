@@ -32,6 +32,13 @@
       "expo-iap",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Astrovy uses your selected photo to create your palm reflection.",
+          "cameraPermission": "Astrovy uses your camera to create your palm reflection."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

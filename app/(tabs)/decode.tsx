@@ -14,6 +14,7 @@ const features = [
     title: 'Full Astrovy',
     description: 'Your complete emotional blueprint.',
     gradient: ['#E8DDFB', '#F8DCCB'] as const,
+    soon: false,
   },
   {
     id: 'love',
@@ -21,6 +22,7 @@ const features = [
     title: 'Love Pattern',
     description: 'How you seek safety and closeness.',
     gradient: ['#F4C7D2', '#E8DDFB'] as const,
+    soon: false,
   },
   {
     id: 'compatibility',
@@ -28,6 +30,7 @@ const features = [
     title: 'Compatibility',
     description: 'Quick match free. Full birth match premium.',
     gradient: ['#DDEDDC', '#DFF2EC'] as const,
+    soon: false,
   },
   {
     id: 'matrix-destiny',
@@ -35,14 +38,15 @@ const features = [
     title: 'Matrix Destiny',
     description: 'Your numbers, patterns, and life themes.',
     gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const,
+    soon: false,
   },
   {
-    id: 'palm',
+    id: 'palm-reading',
     icon: Hand,
     title: 'Palm Reading',
-    description: 'Coming soon, privacy-first.',
+    description: 'A gentle reflection from your palm lines.',
     gradient: ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)'] as const,
-    soon: true,
+    soon: false,
   },
 ];
 
