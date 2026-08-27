@@ -16,17 +16,36 @@ export type PalmReading = {
   hand?: 'left' | 'right';
   image?: { width: number; height: number; quality: number };
   source?: 'mock' | 'vision';
+  headline?: string;
   summary?: string;
   details?: {
-    marriageLine: string;
-    loveLine: string;
-    headLine: string;
-    lifeLine: string;
-    moneyLine: string;
+    marriageLine: PalmInsight;
+    loveLine: PalmInsight;
+    headLine: PalmInsight;
+    lifeLine: PalmInsight;
+    moneyLine: PalmInsight;
   } | null;
+  recommendations?: string[] | null;
   access: { tier: 'free' | 'premium'; detailed: boolean };
   generatedAt?: string;
   disclaimer?: string;
+};
+
+export type PalmInsight = {
+  observation: string;
+  meaning: string;
+  suggestion: string;
+};
+
+export type PalmReadingJob = {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  phase: 'preparing' | 'reading' | 'completed' | 'failed';
+  readingId: string | null;
+  retryable: boolean;
+  createdAt: string;
+  completedAt: string | null;
+  result: PalmReading | null;
 };
 
 export type PalmReadingHistoryPayload = {
@@ -816,6 +835,14 @@ export function getPalmReadingById(id: string) {
   return apiRequest<PalmReading>(`/palm-readings/${encodeURIComponent(id)}`);
 }
 
+export function getPalmReadingJob(id: string) {
+  return apiRequest<PalmReadingJob>(`/palm-readings/jobs/${encodeURIComponent(id)}`);
+}
+
+export function deletePalmReading(id: string) {
+  return apiRequest<{ deleted: true }>(`/palm-readings/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
 export function createPalmReading(input: {
   hand: 'left' | 'right';
   imageHash?: string;
@@ -824,7 +851,7 @@ export function createPalmReading(input: {
   imageHeight: number;
   quality: number;
 }) {
-  return apiRequest<PalmReading>('/palm-readings', { method: 'POST', body: input });
+  return apiRequest<PalmReading | { jobId: string; status: PalmReadingJob['status']; readingId: string | null }>('/palm-readings', { method: 'POST', body: input });
 }
 
 export function submitFeedback(input: {

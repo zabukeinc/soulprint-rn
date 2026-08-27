@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Camera, Check, Hand, Image as ImageIcon, ShieldCheck, Sparkles } from 'lucide-react-native';
-import { createPalmReading, getPalmReading, getPalmReadingById, type PalmReading } from '@/src/services/backend';
+import { createPalmReading, getPalmReading, getPalmReadingById, getPalmReadingJob, type PalmInsight, type PalmReading } from '@/src/services/backend';
 import { ApiError } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 
@@ -34,6 +34,10 @@ function dataUrlFor(asset: ImagePicker.ImagePickerAsset) {
 function conciseSummary(value: string) {
   const firstSentence = value.split(/[.!?]/)[0]?.trim() ?? value.trim();
   return `${firstSentence}${firstSentence.endsWith('.') ? '' : '.'}`.slice(0, 190);
+}
+
+function isPalmReading(value: unknown): value is PalmReading {
+  return Boolean(value && typeof value === 'object' && (value as PalmReading).status === 'ready');
 }
 
 export default function PalmReadingScreen() {
@@ -105,14 +109,30 @@ export default function PalmReadingScreen() {
     setError(null);
     setBusy(true);
     try {
-      const next = await createPalmReading({
+      const submitted = await createPalmReading({
         hand,
         imageData: pendingImage.data,
         imageWidth: pendingImage.width,
         imageHeight: pendingImage.height,
         quality: 0.85,
       });
-      setReading(next);
+      if (isPalmReading(submitted)) {
+        setReading(submitted);
+        return;
+      }
+
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const job = await getPalmReadingJob(submitted.jobId);
+        if (job.status === 'completed' && job.result) {
+          setReading(job.result);
+          return;
+        }
+        if (job.status === 'failed') {
+          throw new Error('Your palm could not be read from this photo. Please try another clear image.');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      throw new Error('Your palm is taking longer than expected. You can check it again from Palm history.');
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : 'Your palm could not be read right now. Please try again.');
     } finally {
@@ -121,6 +141,13 @@ export default function PalmReadingScreen() {
   }
 
   const ready = reading?.status === 'ready';
+  const lineInsights: Array<{ label: string; insight: PalmInsight }> = reading?.details ? [
+    { label: 'Marriage line', insight: reading.details.marriageLine },
+    { label: 'Love line', insight: reading.details.loveLine },
+    { label: 'Head line', insight: reading.details.headLine },
+    { label: 'Life line', insight: reading.details.lifeLine },
+    { label: 'Money line', insight: reading.details.moneyLine },
+  ] : [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -203,7 +230,7 @@ export default function PalmReadingScreen() {
             </View>
             {previewUri && <Image source={{ uri: previewUri }} style={styles.resultImage} />}
             <Text style={styles.resultHeroEyebrow}>A MOMENT TO NOTICE</Text>
-            <Text style={styles.resultHeroTitle}>Your lines hold a pattern worth listening to.</Text>
+            <Text style={styles.resultHeroTitle}>{reading.headline || 'Your lines hold a pattern worth listening to.'}</Text>
           </LinearGradient>
           <View style={styles.summaryCard}>
             <Text style={styles.cardEyebrow}>YOUR PALM IN THIS MOMENT</Text>
@@ -214,17 +241,12 @@ export default function PalmReadingScreen() {
           {reading.details ? (
             <View style={styles.detailsCard}>
               <View style={styles.cardHeadingRow}><Sparkles size={17} color="#8B72CF" /><View><Text style={styles.cardTitle}>The lines that stand out</Text><Text style={styles.cardSubtitle}>Five gentle lenses for your current chapter</Text></View></View>
-              {[
-                ['Marriage line', reading.details.marriageLine],
-                ['Love line', reading.details.loveLine],
-                ['Head line', reading.details.headLine],
-                ['Life line', reading.details.lifeLine],
-                ['Money line', reading.details.moneyLine],
-              ].map(([label, body], index) => <View key={label} style={[styles.detailRow, index === 0 && styles.detailRowFirst]}><View style={[styles.detailAccent, { backgroundColor: ['#E487A4', '#D85C87', '#4CAFC0', '#16A7A0', '#E9A83A'][index] }]} /><View style={styles.detailContent}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailBody}>{body || 'This line was not clear enough to read carefully from this photo.'}</Text></View></View>)}
+              {lineInsights.map(({ label, insight }, index) => <View key={label} style={[styles.detailRow, index === 0 && styles.detailRowFirst]}><View style={[styles.detailAccent, { backgroundColor: ['#E487A4', '#D85C87', '#4CAFC0', '#16A7A0', '#E9A83A'][index] }]} /><View style={styles.detailContent}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailObservation}>{insight.observation}</Text><Text style={styles.detailBody}>{insight.meaning}</Text><Text style={styles.detailSuggestion}>{insight.suggestion}</Text></View></View>)}
             </View>
           ) : (
             <View style={styles.lockedCard}><Text style={styles.lockedTitle}>Want the fuller picture?</Text><Text style={styles.lockedBody}>Premium opens the line-by-line reflection and hand-shape notes.</Text><TouchableOpacity onPress={() => router.push('/pricing')}><Text style={styles.lockedLink}>Explore premium →</Text></TouchableOpacity></View>
           )}
+          {reading.recommendations?.length ? <View style={styles.recommendationsCard}><Text style={styles.cardEyebrow}>A SMALL NEXT STEP</Text>{reading.recommendations.map((recommendation) => <Text key={recommendation} style={styles.recommendation}>• {recommendation}</Text>)}</View> : null}
           <View style={styles.disclaimer}><ShieldCheck size={15} color={theme.colors.muted} /><Text style={styles.disclaimerText}>{reading.disclaimer}</Text></View>
           <TouchableOpacity onPress={() => { setReading(null); setPreviewUri(null); setPendingImage(null); }} style={styles.newReadingButton}><Text style={styles.newReadingText}>Read another palm</Text></TouchableOpacity>
         </View>
@@ -295,7 +317,11 @@ const styles = StyleSheet.create({
   detailAccent: { width: 4, borderRadius: 3, marginRight: 11, minHeight: 48 },
   detailContent: { flex: 1 },
   detailLabel: { fontSize: 11, fontWeight: '800', color: '#8B72CF', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 4 },
+  detailObservation: { fontSize: 12, lineHeight: 18, color: theme.colors.muted, marginBottom: 5 },
   detailBody: { fontSize: 13, lineHeight: 20, color: theme.colors.ink },
+  detailSuggestion: { fontSize: 12, lineHeight: 18, color: '#765CB8', marginTop: 7, fontWeight: '700' },
+  recommendationsCard: { borderRadius: 22, padding: 18, backgroundColor: '#F5F0FC', borderWidth: 1, borderColor: 'rgba(139,114,207,0.16)' },
+  recommendation: { fontSize: 13, lineHeight: 20, color: theme.colors.ink, marginTop: 6 },
   lockedCard: { borderRadius: 22, padding: 18, backgroundColor: '#FFF4E8' },
   lockedTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.ink, marginBottom: 6 },
   lockedBody: { fontSize: 13, lineHeight: 19, color: theme.colors.muted, marginBottom: 10 },

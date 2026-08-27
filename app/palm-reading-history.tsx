@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { ArrowLeft, Hand, Sparkles } from 'lucide-react-native';
-import { listPalmReadings, type PalmReading } from '@/src/services/backend';
+import { deletePalmReading, listPalmReadings, type PalmReading } from '@/src/services/backend';
 import { SkeletonCard } from '@/src/components/LoadingState';
 import { theme } from '@/src/lib/theme';
 
@@ -25,6 +25,25 @@ export default function PalmReadingHistoryScreen() {
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Your saved readings could not be loaded.'))
       .finally(() => setLoading(false));
   }, []);
+
+  function removeReading(reading: PalmReading) {
+    if (!reading.id) return;
+    Alert.alert('Remove this reading?', 'This saved reflection will be deleted from your history.', [
+      { text: 'Keep it', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deletePalmReading(reading.id!);
+            setReadings((current) => current.filter((item) => item.id !== reading.id));
+          } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : 'This reading could not be removed.');
+          }
+        },
+      },
+    ]);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -59,7 +78,7 @@ export default function PalmReadingHistoryScreen() {
               <View style={styles.cardTopline}><Text style={styles.cardDate}>{formatDate(reading.generatedAt)}</Text><Text style={styles.handPill}>{reading.hand === 'left' ? 'Left hand' : 'Right hand'}</Text></View>
               <View style={styles.cardTitleRow}><Sparkles size={17} color="#8B72CF" /><Text style={styles.cardTitle}>A reflection to return to</Text></View>
               <Text style={styles.cardSummary} numberOfLines={3}>{reading.summary}</Text>
-              <Text style={styles.cardLink}>Open reading →</Text>
+              <View style={styles.cardActions}><Text style={styles.cardLink}>Open reading →</Text><TouchableOpacity onPress={() => removeReading(reading)}><Text style={styles.removeLink}>Remove</Text></TouchableOpacity></View>
             </TouchableOpacity>
           </Animated.View>
         ))
@@ -86,6 +105,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: theme.fonts.serif, fontSize: 19, color: theme.colors.ink },
   cardSummary: { fontSize: 13, lineHeight: 20, color: theme.colors.ink, marginTop: 8 },
   cardLink: { fontSize: 12, fontWeight: '800', color: '#8B72CF', marginTop: 13 },
+  cardActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  removeLink: { fontSize: 12, fontWeight: '700', color: '#A13C46', marginTop: 13 },
   emptyCard: { borderRadius: 22, padding: 20, backgroundColor: 'rgba(255,255,255,0.8)', borderWidth: 1, borderColor: 'rgba(31,33,48,0.08)' },
   emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#F0E9FC', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 17, fontWeight: '800', color: theme.colors.ink },
