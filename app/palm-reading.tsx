@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +26,8 @@ type PendingImage = {
   height: number;
 };
 
+const ACTIVE_PALM_JOB_KEY = 'astrovy:palm-reading:active-job';
+
 function dataUrlFor(asset: ImagePicker.ImagePickerAsset) {
   if (!asset.base64) return null;
   const mime = asset.mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
@@ -50,6 +53,33 @@ export default function PalmReadingScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function pollPalmJob(jobId: string) {
+    setBusy(true);
+    try {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const job = await getPalmReadingJob(jobId);
+        if (job.status === 'completed' && job.result) {
+          await AsyncStorage.removeItem(ACTIVE_PALM_JOB_KEY);
+          setReading(job.result);
+          return true;
+        }
+        if (job.status === 'failed') {
+          await AsyncStorage.removeItem(ACTIVE_PALM_JOB_KEY);
+          setError('Your palm could not be read from this photo. Please try another clear image.');
+          return false;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      setError('Your palm is still being prepared. You can return to Palm history to check it again.');
+      return false;
+    } catch (requestError) {
+      setError(requestError instanceof ApiError ? requestError.message : 'Your palm reading could not be checked right now.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   useEffect(() => {
     (readingId ? getPalmReadingById(readingId) : getPalmReading())
       .then((result) => {
@@ -59,6 +89,13 @@ export default function PalmReadingScreen() {
       .catch(() => {
         // The capture flow remains usable when there is no previous result.
       });
+  }, [readingId]);
+
+  useEffect(() => {
+    if (readingId) return;
+    AsyncStorage.getItem(ACTIVE_PALM_JOB_KEY).then((jobId) => {
+      if (jobId) void pollPalmJob(jobId);
+    });
   }, [readingId]);
 
   async function chooseImage(source: 'camera' | 'library') {
@@ -120,19 +157,8 @@ export default function PalmReadingScreen() {
         setReading(submitted);
         return;
       }
-
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        const job = await getPalmReadingJob(submitted.jobId);
-        if (job.status === 'completed' && job.result) {
-          setReading(job.result);
-          return;
-        }
-        if (job.status === 'failed') {
-          throw new Error('Your palm could not be read from this photo. Please try another clear image.');
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-      throw new Error('Your palm is taking longer than expected. You can check it again from Palm history.');
+      await AsyncStorage.setItem(ACTIVE_PALM_JOB_KEY, submitted.jobId);
+      await pollPalmJob(submitted.jobId);
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : 'Your palm could not be read right now. Please try again.');
     } finally {
