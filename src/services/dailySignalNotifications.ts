@@ -6,7 +6,14 @@ type NotificationsModule = typeof import('expo-notifications');
 
 let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
 
+function isExpoGo() {
+  return Constants.appOwnership === 'expo'
+    || Constants.executionEnvironment === Constants.ExecutionEnvironment.StoreClient;
+}
+
 async function loadNotifications(): Promise<NotificationsModule | null> {
+  if (isExpoGo()) return null;
+
   if (!notificationsModulePromise) {
     notificationsModulePromise = import('expo-notifications')
       .then((Notifications) => {
@@ -81,9 +88,8 @@ export async function cancelDailySignalNotification() {
 
 export async function getExpoPushRegistration() {
   try {
-    // Expo Go no longer supports Android remote push token registration.
-    // Local scheduled reminders still work, so only skip the server-token step.
-    if (Constants.appOwnership === 'expo') return null;
+    // Expo Go does not support the native notification flow used by this feature.
+    if (isExpoGo()) return null;
 
     const Notifications = await loadNotifications();
     if (!Notifications) return null;
