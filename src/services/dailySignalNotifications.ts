@@ -81,6 +81,10 @@ export async function cancelDailySignalNotification() {
 
 export async function getExpoPushRegistration() {
   try {
+    // Expo Go no longer supports Android remote push token registration.
+    // Local scheduled reminders still work, so only skip the server-token step.
+    if (Constants.appOwnership === 'expo') return null;
+
     const Notifications = await loadNotifications();
     if (!Notifications) return null;
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;

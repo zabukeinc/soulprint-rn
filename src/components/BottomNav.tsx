@@ -12,7 +12,7 @@ import Animated, {
 const tabs = [
   { id: 'today', label: 'Today', icon: Home },
   { id: 'astrovy', label: 'Soul', icon: Sparkles },
-  { id: 'decode', label: 'Decode', icon: BookOpen },
+  { id: 'decode', label: 'Explore', icon: BookOpen },
   { id: 'mirror', label: 'Mirror', icon: Heart },
   { id: 'profile', label: 'Profile', icon: User },
 ];

@@ -3,56 +3,49 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { Star, Heart, Users, Hand, Grid3X3 } from 'lucide-react-native';
-import { useTier } from '@/src/context/TierContext';
+import { ChevronRight, Grid3X3, Hand, Heart, MoonStar, Orbit, Sparkles, Sun, Users } from 'lucide-react-native';
+import { useAuth } from '@/src/context/AuthContext';
 import { theme } from '@/src/lib/theme';
 
-const features = [
+const readingGroups = [
   {
-    id: 'astrovy',
-    icon: Star,
-    title: 'Full Astrovy',
-    description: 'Your complete emotional blueprint.',
-    gradient: ['#E8DDFB', '#F8DCCB'] as const,
-    soon: false,
+    title: 'Your Maps',
+    description: 'The patterns that make your inner world uniquely yours.',
+    features: [
+      { id: 'astrovy', icon: Sparkles, title: 'Soulprint', description: 'Your emotional blueprint and deeper patterns.', access: 'Free + Premium', gradient: ['#E8DDFB', '#F8DCCB'] as const },
+      { id: 'horoscope', icon: Orbit, title: 'Birth Chart', description: 'The sky pattern you were born with.', access: 'Free + Premium', gradient: ['#DCECF7', '#E8DDFB'] as const },
+      { id: 'matrix-destiny', icon: Grid3X3, title: 'Matrix Destiny', description: 'Your numbers, themes, and repeating patterns.', access: 'Free + Premium', gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const },
+    ],
   },
   {
-    id: 'love',
-    icon: Heart,
-    title: 'Love Pattern',
-    description: 'How you seek safety and closeness.',
-    gradient: ['#F4C7D2', '#E8DDFB'] as const,
-    soon: false,
+    title: 'Today',
+    description: 'A small way to meet the day you are actually having.',
+    features: [
+      { id: 'tarot', icon: MoonStar, title: 'Daily Tarot', description: 'A card to reflect on today.', access: 'Daily', gradient: ['#F7D875', '#F8DCCB'] as const },
+      { id: 'horoscope', icon: Sun, title: 'Daily Horoscope', description: 'A daily sky note shaped around your chart.', access: 'Daily', gradient: ['#DFF2EC', '#DCECF7'] as const },
+    ],
   },
   {
-    id: 'compatibility',
-    icon: Users,
-    title: 'Compatibility',
-    description: 'Quick match free. Full birth match premium.',
-    gradient: ['#DDEDDC', '#DFF2EC'] as const,
-    soon: false,
+    title: 'Love & Connection',
+    description: 'Understand closeness, rhythm, and the space between two people.',
+    features: [
+      { id: 'love', icon: Heart, title: 'Love Pattern', description: 'How you seek safety and closeness.', access: 'Free + Premium', gradient: ['#F4C7D2', '#E8DDFB'] as const },
+      { id: 'compatibility', icon: Users, title: 'Compatibility', description: 'Quick match free. Full birth match premium.', access: 'Free + Premium', gradient: ['#DDEDDC', '#DFF2EC'] as const },
+    ],
   },
   {
-    id: 'matrix-destiny',
-    icon: Grid3X3,
-    title: 'Matrix Destiny',
-    description: 'Your numbers, patterns, and life themes.',
-    gradient: ['rgba(224,238,255,0.72)', 'rgba(239,231,252,0.8)'] as const,
-    soon: false,
-  },
-  {
-    id: 'palm-reading',
-    icon: Hand,
-    title: 'Palm Reading',
-    description: 'A gentle reflection from your palm lines.',
-    gradient: ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.8)'] as const,
-    soon: false,
+    title: 'Other Perspectives',
+    description: 'Another lens for noticing what is already present.',
+    features: [
+      { id: 'palm-reading', icon: Hand, title: 'Palm Reading', description: 'A reflective reading of the lines you carry.', access: 'Free + Premium', gradient: ['#F7E8D5', '#F4E4F5'] as const },
+    ],
   },
 ];
 
 export default function DecodeScreen() {
   const router = useRouter();
-  const { isPremium } = useTier();
+  const { user } = useAuth();
+  const initial = user?.email?.charAt(0).toUpperCase() || 'A';
 
   return (
     <ScrollView
@@ -67,7 +60,7 @@ export default function DecodeScreen() {
             <Text style={styles.headerTitle}>Readings</Text>
           </View>
           <View style={styles.headerAvatar}>
-            <Text style={styles.headerAvatarText}>G</Text>
+            <Text style={styles.headerAvatarText}>{initial}</Text>
           </View>
         </View>
       </Animated.View>
@@ -79,93 +72,43 @@ export default function DecodeScreen() {
         </Text>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(500).delay(100)}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Available Readings</Text>
-          <View
-            style={[
-              styles.tierBadge,
-              { backgroundColor: isPremium ? 'rgba(22,167,160,0.12)' : 'rgba(139,114,207,0.12)' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.tierBadgeText,
-                { color: isPremium ? '#16A7A0' : '#7A63BD' },
-              ]}
-            >
-              {isPremium ? 'Unlocked' : 'Free'}
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      <View style={styles.featuresList}>
-        {features.map((feature, index) => {
-          const Icon = feature.icon;
-
-          if (feature.soon) {
-            return (
-              <Animated.View
-                key={feature.id}
-                entering={FadeInUp.duration(500).delay(150 + index * 80)}
-                style={styles.soonFeature}
-              >
-                <LinearGradient
-                  colors={feature.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.featureIconBg}
-                >
-                  <Icon size={20} color={theme.colors.muted} />
-                </LinearGradient>
-                <View style={styles.featureText}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDesc}>{feature.description}</Text>
-                </View>
-                <View style={styles.soonBadge}>
-                  <Text style={styles.soonBadgeText}>Soon</Text>
-                </View>
-              </Animated.View>
-            );
-          }
-
-          return (
-            <Animated.View
-              key={feature.id}
-              entering={FadeInUp.duration(500).delay(150 + index * 80)}
-            >
-              <TouchableOpacity
-                onPress={() => router.push(`/${feature.id}`)}
-                activeOpacity={0.85}
-                style={styles.featureCard}
-              >
-                <LinearGradient
-                  colors={feature.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.featureIconBg}
-                >
-                  <Icon size={20} color={theme.colors.ink} />
-                </LinearGradient>
-                <View style={styles.featureText}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDesc}>{feature.description}</Text>
-                </View>
-                <Text style={styles.openText}>Open →</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
+      <View style={styles.groupsList}>
+        {readingGroups.map((group, groupIndex) => (
+          <Animated.View key={group.title} entering={FadeInUp.duration(500).delay(100 + groupIndex * 70)} style={styles.group}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionCopy}>
+                <Text style={styles.sectionTitle}>{group.title}</Text>
+                <Text style={styles.sectionDescription}>{group.description}</Text>
+              </View>
+            </View>
+            <View style={styles.featuresList}>
+              {group.features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <TouchableOpacity
+                    key={`${group.title}-${feature.id}-${feature.title}`}
+                    onPress={() => router.push(feature.title === 'Daily Horoscope' ? '/horoscope?view=daily' : `/${feature.id}`)}
+                    activeOpacity={0.85}
+                    style={styles.featureCard}
+                  >
+                    <LinearGradient colors={feature.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featureIconBg}>
+                      <Icon size={20} color={theme.colors.ink} />
+                    </LinearGradient>
+                    <View style={styles.featureText}>
+                      <Text style={styles.featureTitle}>{feature.title}</Text>
+                      <Text style={styles.featureDesc}>{feature.description}</Text>
+                    </View>
+                    <View style={styles.featureAction}>
+                      <Text style={[styles.accessText, feature.access.includes('Premium') && styles.premiumAccessText]}>{feature.access}</Text>
+                      <ChevronRight size={18} color={theme.colors.muted} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Animated.View>
+        ))}
       </View>
-
-      {!isPremium && (
-        <Animated.View entering={FadeInUp.duration(500).delay(500)}>
-          <TouchableOpacity onPress={() => router.push('/pricing')} activeOpacity={0.85}>
-            <Text style={styles.upgradeLink}>Upgrade for weekly readings →</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
     </ScrollView>
   );
 }
@@ -215,19 +158,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 20,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.ink },
-  tierBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tierBadgeText: { fontSize: 11, fontWeight: '700' },
+  groupsList: { gap: 24 },
+  group: { gap: 10 },
+  sectionHeader: { marginBottom: 2 },
+  sectionCopy: { gap: 3 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.ink },
+  sectionDescription: { fontSize: 12, color: theme.colors.muted, lineHeight: 18 },
   featuresList: { gap: 10 },
   featureCard: {
     borderRadius: 24,
@@ -240,17 +176,6 @@ const styles = StyleSheet.create({
     gap: 12,
     ...theme.shadows.warmSm,
   },
-  soonFeature: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(31,33,48,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    opacity: 0.75,
-  },
   featureIconBg: {
     width: 44,
     height: 44,
@@ -258,23 +183,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureText: { flex: 1 },
+  featureText: { flex: 1, minWidth: 0 },
   featureTitle: { fontSize: 14, fontWeight: '500', color: theme.colors.ink, marginBottom: 2 },
   featureDesc: { fontSize: 12, color: theme.colors.muted, lineHeight: 18 },
-  openText: { fontSize: 12, fontWeight: '800', color: '#16A7A0' },
-  soonBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.52)',
-  },
-  soonBadgeText: { fontSize: 11, fontWeight: '700', color: theme.colors.muted },
-  upgradeLink: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#8B72CF',
-    textAlign: 'center',
-    paddingVertical: 16,
-    marginTop: 8,
-  },
+  featureAction: { alignItems: 'flex-end', justifyContent: 'center', gap: 4, maxWidth: 92 },
+  accessText: { fontSize: 10, fontWeight: '800', color: '#16A7A0', textAlign: 'right' },
+  premiumAccessText: { color: '#8B72CF' },
 });

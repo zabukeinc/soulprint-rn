@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { theme } from '@/src/lib/theme';
@@ -63,6 +63,7 @@ function PremiumPreviewPanel({ title }: { title: string }) {
 
 export default function HoroscopeScreen() {
   const router = useRouter();
+  const { view } = useLocalSearchParams<{ view?: string }>();
   const { isPremium: previewPremium } = useTier();
   const fallbackHoroscope = getTodayHoroscope();
   const fallbackMoon = getMoonPhase();
@@ -145,7 +146,7 @@ export default function HoroscopeScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerLabel}>Birth Chart</Text>
+            <Text style={styles.headerLabel}>{view === 'daily' ? 'Daily Horoscope' : 'Birth Chart'}</Text>
             <Text style={styles.headerTitle}>Your Sky</Text>
           </View>
           <View style={styles.accessBadge}>
@@ -177,7 +178,7 @@ export default function HoroscopeScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerLabel}>Birth Chart</Text>
+            <Text style={styles.headerLabel}>{view === 'daily' ? 'Daily Horoscope' : 'Birth Chart'}</Text>
             <Text style={styles.headerTitle}>{me?.profile?.name ?? 'Your Sky'}</Text>
           </View>
           <View style={styles.accessBadge}>

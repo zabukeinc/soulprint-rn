@@ -180,7 +180,7 @@ export default function AstrovyScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerLabel}>Your identity map</Text>
-            <Text style={styles.headerTitle}>Astrovy</Text>
+            <Text style={styles.headerTitle}>Soul</Text>
           </View>
           <View style={styles.headerIcon}>
             <Text style={styles.headerIconText}>✦</Text>
@@ -206,7 +206,7 @@ export default function AstrovyScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerLabel}>Your identity map</Text>
-            <Text style={styles.headerTitle}>{name}'s Astrovy</Text>
+            <Text style={styles.headerTitle}>{name}'s Soulprint</Text>
           </View>
           <View style={styles.headerIcon}>
             <Text style={styles.headerIconText}>✦</Text>
