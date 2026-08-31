@@ -3,7 +3,7 @@
     "name": "Astrovy.space",
     "slug": "astrovy-space",
     "version": "1.0.0",
-    "icon": "./assets/Logo.png",
+    "icon": "./assets/Icon-Light.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
