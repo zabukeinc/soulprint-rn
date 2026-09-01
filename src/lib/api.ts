@@ -70,9 +70,15 @@ function getApiBaseUrl() {
 
 export const apiConfig = {
   baseUrl: getApiBaseUrl(),
+  environment: process.env.EXPO_PUBLIC_APP_ENV ?? (__DEV__ ? 'development' : 'production'),
 };
 
-if (__DEV__) console.info('[api-config] base URL:', apiConfig.baseUrl);
+if (__DEV__) {
+  console.info('[api-config]', {
+    environment: apiConfig.environment,
+    baseUrl: apiConfig.baseUrl,
+  });
+}
 
 async function readTokens(): Promise<TokenPair | null> {
   const raw = await SecureStore.getItemAsync(TOKEN_KEY);
