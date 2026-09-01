@@ -10,6 +10,19 @@ export type Entitlement = {
   willRenew: boolean;
 };
 
+export type PremiumProduct = {
+  id: string;
+  period: 'monthly' | 'annual';
+  price: string;
+  currency: string;
+  displayName: string;
+  billingLabel: string;
+  description: string;
+  features: string[];
+  badge?: string;
+  monthlyEquivalent?: string;
+};
+
 export type PalmReading = {
   id?: string;
   status: 'ready' | 'not_started';
@@ -692,7 +705,7 @@ export function verifyGoogleIapPurchase(input: { purchaseToken: string; productI
 }
 
 export function getProducts() {
-  return apiRequest<{ products: Array<Record<string, any>>; features: string[] }>('/products');
+  return apiRequest<{ products: PremiumProduct[]; features: string[] }>('/products');
 }
 
 export function getToday(options: { fast?: boolean } = {}) {

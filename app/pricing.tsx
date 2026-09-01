@@ -15,22 +15,25 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { useAuth } from '@/src/context/AuthContext';
 import { useTier } from '@/src/context/TierContext';
-import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, verifyGoogleIapPurchase } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, type PremiumProduct, verifyGoogleIapPurchase } from '@/src/services/backend';
 
 const features = {
   monthly: [
-    'Complete emotional blueprint',
-    'Love, career & growth patterns',
-    'Shadow self exploration',
-    'Weekly personalized insights',
+    'Full birth chart and planetary interpretations',
+    '22-Arcana Matrix Destiny map and deeper reading',
+    'Daily three-card tarot spread',
+    'Full compatibility and relationship insights',
+    'Detailed palm reading with recommendations',
+    'Premium Mirror patterns and personalized readings',
   ],
   annually: [
-    'Complete emotional blueprint',
-    'Love, career & growth patterns',
-    'Shadow self exploration',
+    'Full birth chart and planetary interpretations',
+    '22-Arcana Matrix Destiny map and deeper reading',
+    'Daily three-card tarot spread',
+    'Full compatibility and relationship insights',
+    'Detailed palm reading with recommendations',
+    'Premium Mirror patterns and personalized readings',
     '12-month theme guidance',
-    'Weekly personalized insights',
-    'Priority support',
   ],
 };
 
@@ -79,7 +82,7 @@ function NativePricingScreen() {
   const { user } = useAuth();
   const { refreshTier } = useTier();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
-  const [serverProducts, setServerProducts] = useState<Array<Record<string, any>> | null>(null);
+  const [serverProducts, setServerProducts] = useState<PremiumProduct[] | null>(null);
   const [serverFeatures, setServerFeatures] = useState<string[] | null>(null);
   const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
   const [checkingRestore, setCheckingRestore] = useState(false);
@@ -144,10 +147,20 @@ function NativePricingScreen() {
   );
   const storeProduct = iap.subscriptions.find((product) => product.id === selectedProduct?.id);
   const selectedPrice = storeProduct?.displayPrice ?? `$${selectedProduct?.price ?? (selected === 'monthly' ? '9' : '72')}`;
-  const displayFeatures = serverFeatures ?? features[selected];
+  const displayFeatures = selectedProduct?.features ?? serverFeatures ?? features[selected];
+  const monthlyEquivalent = selected === 'annually' && storeProduct?.price
+    ? (() => {
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: storeProduct.currency, maximumFractionDigits: 2 }).format(storeProduct.price / 12);
+      } catch {
+        return selectedProduct?.monthlyEquivalent ? `$${selectedProduct.monthlyEquivalent}` : null;
+      }
+    })()
+    : null;
   const manageSubscriptionUrl = Platform.OS === 'ios'
     ? legalInfo.subscriptions.appleManageUrl
     : legalInfo.subscriptions.googleManageUrl;
+  const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
 
   const openExternal = async (url: string) => {
     try {
@@ -314,28 +327,29 @@ function NativePricingScreen() {
           <View style={styles.planHeader}>
             <View>
               <Text style={styles.planLabel}>Selected plan</Text>
-              <Text style={styles.planName}>{selected}</Text>
+              <Text style={styles.planName}>{selectedProduct?.displayName ?? (selected === 'annually' ? 'Annual' : 'Monthly')}</Text>
             </View>
             <View style={styles.planPriceBox}>
               <Text style={styles.planPrice}>{selectedPrice}</Text>
-              <Text style={styles.planPriceSub}>{selected === 'annually' ? 'billed yearly' : 'per month'}</Text>
+              <Text style={styles.planPriceSub}>{selected === 'annually' ? 'billed yearly' : 'billed monthly'}</Text>
             </View>
           </View>
 
-          {selected === 'annually' && (
+          {selectedProduct && (
             <Animated.View
               entering={ZoomIn.duration(300)}
               style={styles.yearlyInfo}
             >
               <Text style={styles.yearlyText}>
-                <Text style={styles.yearlyBold}>{selectedPrice} billed yearly</Text>
+                <Text style={styles.yearlyBold}>{selectedProduct.billingLabel}</Text>
+                {monthlyEquivalent && <Text style={styles.yearlyText}> About {monthlyEquivalent}/month.</Text>}
               </Text>
             </Animated.View>
           )}
 
           <View style={styles.cancelRow}>
             <View style={styles.cancelDot} />
-            <Text style={styles.cancelText}>Cancel anytime</Text>
+            <Text style={styles.cancelText}>Renews automatically. Cancel anytime in {storeName}.</Text>
           </View>
         </LinearGradient>
 
