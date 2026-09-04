@@ -79,7 +79,7 @@ function NativePricingScreen() {
   // This keeps Expo Go from crashing while still allowing dev/store builds to use IAP.
   const { getAvailablePurchases, useIAP } = require('expo-iap') as typeof import('expo-iap');
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshMe } = useAuth();
   const { refreshTier } = useTier();
   const [selected, setSelected] = useState<'monthly' | 'annually'>('annually');
   const [serverProducts, setServerProducts] = useState<PremiumProduct[] | null>(null);
@@ -90,6 +90,10 @@ function NativePricingScreen() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const productIds = serverProducts?.map((product) => product.id).filter(Boolean) ?? [];
 
+  const syncPremiumAccess = async () => {
+    await Promise.all([refreshTier(), refreshMe()]);
+  };
+
   const finishVerifiedPurchase = async (purchase: Purchase): Promise<Entitlement | null> => {
     if (Platform.OS !== 'android') return null;
     const productId = purchase.productId;
@@ -98,7 +102,6 @@ function NativePricingScreen() {
 
     const entitlement = await verifyGoogleIapPurchase({ productId, purchaseToken });
     await iap.finishTransaction({ purchase, isConsumable: false });
-    await refreshTier();
     return entitlement;
   };
 
@@ -107,12 +110,13 @@ function NativePricingScreen() {
       setPurchasing(true);
       setStatusMessage('Confirming your premium access...');
       finishVerifiedPurchase(purchase)
-        .then((entitlement) => {
+        .then(async (entitlement) => {
+          await syncPremiumAccess();
           const active = entitlement?.tier === 'premium' && ['active', 'grace'].includes(entitlement.status);
           setStatusMessage(active ? 'Premium is active on this account.' : 'Purchase was checked, but no active premium entitlement was found.');
         })
         .catch(() => {
-          setStatusMessage('Your purchase went through, but we could not confirm it yet. Please tap Restore purchases.');
+          setStatusMessage('Your payment is complete. Premium is still activating; keep this app open or tap Restore purchases in a moment.');
         })
         .finally(() => setPurchasing(false));
     },
@@ -227,11 +231,13 @@ function NativePricingScreen() {
             .map((purchase) => finishVerifiedPurchase(purchase))
         );
         if (verified.some((entitlement) => entitlement?.tier === 'premium' && ['active', 'grace'].includes(entitlement.status))) {
+          await syncPremiumAccess();
           setStatusMessage('Premium access was restored from Play Store.');
           return;
         }
       }
       const entitlement = await getEntitlement();
+      await syncPremiumAccess();
       const active = entitlement.tier === 'premium' && ['active', 'grace'].includes(entitlement.status);
       setStatusMessage(active ? 'Premium access is active on this account.' : 'No active premium entitlement was found on this account yet.');
     } catch {
