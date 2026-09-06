@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule } from 'expo';
 import type { ProductSubscription, ProductSubscriptionAndroid, Purchase } from 'expo-iap';
 import Animated, {
   FadeInUp,
