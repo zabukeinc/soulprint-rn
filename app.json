@@ -30,7 +30,6 @@
     "plugins": [
       "expo-router",
       "expo-iap",
-      "expo-notifications",
       [
         "expo-image-picker",
         {

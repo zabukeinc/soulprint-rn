@@ -5,12 +5,11 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTier } from '@/src/context/TierContext';
 import { useEngagement } from '@/src/hooks/useEngagement';
 import { useAuth } from '@/src/context/AuthContext';
-import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, getNotificationPreferences, registerNotificationDevice, updateNotificationPreferences, type LegalInfo } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getLegalInfo, getMe, type LegalInfo } from '@/src/services/backend';
 import { ApiError, type ApiUser } from '@/src/lib/api';
 import { theme } from '@/src/lib/theme';
 import { SkeletonBlock, SkeletonCard, SkeletonPillRow } from '@/src/components/LoadingState';
 import { clearLocalCache } from '@/src/services/localCache';
-import { cancelDailySignalNotification, getExpoPushRegistration, scheduleDailySignalNotification } from '@/src/services/dailySignalNotifications';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -26,9 +25,6 @@ export default function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [legalInfo, setLegalInfo] = useState<LegalInfo>(DEFAULT_LEGAL_INFO);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [dailySignalEnabled, setDailySignalEnabled] = useState(false);
-  const [dailySignalReminderTime, setDailySignalReminderTime] = useState('09:00');
-  const [savingDailySignal, setSavingDailySignal] = useState(false);
 
   useEffect(() => {
     getMe()
@@ -44,12 +40,6 @@ export default function ProfileScreen() {
       .then(setLegalInfo)
       .catch(() => {});
 
-    getNotificationPreferences()
-      .then((preference) => {
-        setDailySignalEnabled(preference.dailySignalEnabled);
-        setDailySignalReminderTime(preference.reminderTime);
-      })
-      .catch(() => {});
   }, []);
 
   const name = profile?.name ?? 'You';
@@ -79,53 +69,6 @@ export default function ProfileScreen() {
 
   const openSupport = () => {
     openExternal(`mailto:${legalInfo.supportEmail}?subject=Astrovy%20Support`);
-  };
-
-  const toggleDailySignal = async () => {
-    if (savingDailySignal) return;
-    const nextEnabled = !dailySignalEnabled;
-    setSavingDailySignal(true);
-    try {
-      if (nextEnabled) {
-        const scheduled = await scheduleDailySignalNotification(dailySignalReminderTime);
-        if (!scheduled.enabled) {
-          const unavailable = scheduled.reason === 'unavailable';
-          Alert.alert(
-            unavailable ? 'Update Astrovy' : 'Notifications are off',
-            unavailable
-              ? 'This build does not include notification support. Install the latest Astrovy build to turn on Daily Signal reminders.'
-              : 'Astrovy needs notification permission to remind you about your daily signal.',
-            unavailable
-              ? [{ text: 'OK', style: 'cancel' }]
-              : [
-                  { text: 'Not now', style: 'cancel' },
-                  { text: 'Open Settings', onPress: () => void Linking.openSettings() }
-                ]
-          );
-          return;
-        }
-        const device = await getExpoPushRegistration();
-        if (device) await registerNotificationDevice(device).catch(() => {});
-      } else {
-        await cancelDailySignalNotification();
-      }
-      const saved = await updateNotificationPreferences({
-        dailySignalEnabled: nextEnabled,
-        reminderTime: dailySignalReminderTime,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-      });
-      setDailySignalEnabled(saved.dailySignalEnabled);
-      setDailySignalReminderTime(saved.reminderTime);
-    } catch {
-      if (nextEnabled) {
-        await cancelDailySignalNotification().catch(() => {});
-      } else {
-        await scheduleDailySignalNotification(dailySignalReminderTime).catch(() => {});
-      }
-      Alert.alert('Could not update Daily Signal', 'Please try again in a moment.');
-    } finally {
-      setSavingDailySignal(false);
-    }
   };
 
   const confirmClearCache = () => {
@@ -283,27 +226,6 @@ export default function ProfileScreen() {
       </Animated.View>
 
       <View style={styles.settingsCard}>
-        <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.settingRow}>
-          <View>
-            <Text style={styles.settingTitle}>Daily Signal</Text>
-            <Text style={styles.settingDesc}>
-              {dailySignalEnabled ? `Reminder at ${dailySignalReminderTime}` : 'No daily reminder'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => void toggleDailySignal()}
-            disabled={savingDailySignal}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: dailySignalEnabled, disabled: savingDailySignal }}
-            accessibilityLabel="Daily Signal reminders"
-            style={[styles.toggleTrack, { backgroundColor: dailySignalEnabled ? '#16A7A0' : 'rgba(31,33,48,0.18)' }]}
-          >
-            <View style={[styles.toggleKnob, { transform: [{ translateX: dailySignalEnabled ? 18 : 0 }] }]} />
-          </TouchableOpacity>
-        </Animated.View>
-
-        <View style={styles.divider} />
-
         <Animated.View entering={FadeInUp.duration(500).delay(280)}>
           <TouchableOpacity
             style={styles.settingRowButton}
@@ -537,19 +459,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   tierActionText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-  toggleTrack: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-  },
   sectionLabel: {
     fontSize: 11,
     color: theme.colors.muted,
