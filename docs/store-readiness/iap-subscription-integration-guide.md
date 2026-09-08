@@ -16,7 +16,7 @@ The app should never decide premium access locally. Apple and Google own the pay
   - `POST /v1/iap/apple/verify`
   - `POST /v1/iap/google/verify`
   - Prisma tables for `Entitlement` and `IapVerificationAttempt`
-- Apple verification currently records an attempt and returns `501 NOT_IMPLEMENTED`.
+- Apple verification uses signed StoreKit transaction data and Apple App Store Server Notifications V2.
 - Google verification is implemented, but returns `501 PROVIDER_NOT_CONFIGURED` until `GOOGLE_PACKAGE_NAME` and `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` are set.
 
 ## Recommended Product IDs
@@ -60,7 +60,7 @@ GOOGLE_PACKAGE_NAME=
 GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=
 ```
 
-Use sandbox values in staging if a staging backend exists.
+TestFlight purchases use Apple Sandbox. The backend accepts signed transactions from both Sandbox and Production; use the same production endpoint while testing TestFlight.
 
 ## Step 3: Mobile Purchase Flow
 
@@ -77,8 +77,8 @@ Expected flow:
 
 Current SDK decision:
 
-- Expo app uses `expo-iap`.
-- Do not rely on Expo Go for IAP testing. IAP needs an Android development build or a Play Store testing build.
+- Expo app uses `expo-iap` on both iOS and Android.
+- Do not rely on Expo Go for IAP testing. IAP needs an iOS/Android development build or a TestFlight/Play Store testing build.
 
 ## Step 4: Backend Verification Contract
 

@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Linking, Platform, View, Text, TouchableOpaci
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { requireNativeModule } from 'expo';
-import type { ProductSubscription, ProductSubscriptionAndroid, Purchase } from 'expo-iap';
+import type { ProductSubscription, ProductSubscriptionAndroid, Purchase, PurchaseIOS } from 'expo-iap';
 import Animated, {
   FadeInUp,
   FadeIn,
@@ -15,7 +15,7 @@ import Animated, {
 import { theme } from '@/src/lib/theme';
 import { useAuth } from '@/src/context/AuthContext';
 import { useTier } from '@/src/context/TierContext';
-import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, type PremiumProduct, verifyGoogleIapPurchase } from '@/src/services/backend';
+import { DEFAULT_LEGAL_INFO, getEntitlement, getLegalInfo, getProducts, type Entitlement, type LegalInfo, type PremiumProduct, verifyAppleIapPurchase, verifyGoogleIapPurchase } from '@/src/services/backend';
 
 const features = {
   monthly: [
@@ -61,7 +61,7 @@ function IapUnavailableScreen() {
       <View style={styles.storeUnavailableCard}>
         <Text style={styles.storeUnavailableTitle}>Premium checkout is not available here yet</Text>
         <Text style={styles.storeUnavailableText}>
-          You are using a preview app without store billing. Install the Android development or store build to start a subscription securely through Google Play.
+          You are using a preview app without store billing. Install a development or store build to start a subscription securely through the App Store or Google Play.
         </Text>
       </View>
     </ScrollView>
@@ -95,10 +95,25 @@ function NativePricingScreen() {
   };
 
   const finishVerifiedPurchase = async (purchase: Purchase): Promise<Entitlement | null> => {
-    if (Platform.OS !== 'android') return null;
     const productId = purchase.productId;
+    if (!productId) return null;
+
+    if (Platform.OS === 'ios') {
+      const iosPurchase = purchase as PurchaseIOS;
+      const signedTransactionInfo = iosPurchase.purchaseToken;
+      if (!iosPurchase.transactionId || !signedTransactionInfo) return null;
+
+      const entitlement = await verifyAppleIapPurchase({
+        productId,
+        transactionId: iosPurchase.transactionId,
+        signedTransactionInfo,
+      });
+      await iap.finishTransaction({ purchase, isConsumable: false });
+      return entitlement;
+    }
+
     const purchaseToken = purchase.purchaseToken;
-    if (!productId || !purchaseToken) return null;
+    if (!purchaseToken) return null;
 
     const entitlement = await verifyGoogleIapPurchase({ productId, purchaseToken });
     await iap.finishTransaction({ purchase, isConsumable: false });
@@ -122,7 +137,7 @@ function NativePricingScreen() {
     },
     onPurchaseError: () => {
       setPurchasing(false);
-      setStatusMessage('Purchase was not completed. Please try again when Play Store is ready.');
+      setStatusMessage(`Purchase was not completed. Please try again when ${storeName} is ready.`);
     },
   });
 
@@ -140,9 +155,9 @@ function NativePricingScreen() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || !iap.connected || productIds.length === 0) return;
+    if (!iap.connected || productIds.length === 0) return;
     iap.fetchProducts({ skus: productIds, type: 'subs' }).catch(() => {
-      setStatusMessage('Could not load Play Store prices yet. Plan details are still available.');
+      setStatusMessage(`Could not load ${storeName} prices yet. Plan details are still available.`);
     });
   }, [iap.connected, productIds.join('|')]);
 
@@ -182,10 +197,6 @@ function NativePricingScreen() {
   };
 
   const handlePurchase = async () => {
-    if (Platform.OS !== 'android') {
-      setStatusMessage('App Store purchases are next. Play Store billing is being wired first.');
-      return;
-    }
     if (!user) {
       setStatusMessage('Please log in before starting premium.');
       return;
@@ -195,27 +206,34 @@ function NativePricingScreen() {
       return;
     }
     if (!iap.connected) {
-      setStatusMessage('Play Store billing is not available in this build. Use an Android development or store build.');
+      setStatusMessage(`${storeName} billing is not available in this build. Use a signed development or store build.`);
       return;
     }
 
     setPurchasing(true);
-    setStatusMessage('Opening Play Store checkout...');
+    setStatusMessage(`Opening ${storeName} checkout...`);
     try {
-      const offerToken = googleOfferToken(storeProduct);
-      await iap.requestPurchase({
-        type: 'subs',
-        request: {
-          android: {
-            skus: [selectedProduct.id],
-            obfuscatedAccountIdAndroid: user.id,
-            ...(offerToken ? { subscriptionOffers: [{ sku: selectedProduct.id, offerToken }] } : {}),
+      if (Platform.OS === 'ios') {
+        await iap.requestPurchase({
+          type: 'subs',
+          request: { ios: { sku: selectedProduct.id } },
+        });
+      } else {
+        const offerToken = googleOfferToken(storeProduct);
+        await iap.requestPurchase({
+          type: 'subs',
+          request: {
+            android: {
+              skus: [selectedProduct.id],
+              obfuscatedAccountIdAndroid: user.id,
+              ...(offerToken ? { subscriptionOffers: [{ sku: selectedProduct.id, offerToken }] } : {}),
+            },
           },
-        },
-      });
+        });
+      }
     } catch {
       setPurchasing(false);
-      setStatusMessage('Could not open Play Store checkout. Please try again from a signed Android build.');
+      setStatusMessage(`Could not open ${storeName} checkout. Please try again from a signed store build.`);
     }
   };
 
@@ -223,7 +241,7 @@ function NativePricingScreen() {
     setCheckingRestore(true);
     setStatusMessage(null);
     try {
-      if (Platform.OS === 'android' && iap.connected) {
+      if (iap.connected) {
         const purchases = await getAvailablePurchases();
         const verified = await Promise.all(
           purchases
@@ -232,7 +250,7 @@ function NativePricingScreen() {
         );
         if (verified.some((entitlement) => entitlement?.tier === 'premium' && ['active', 'grace'].includes(entitlement.status))) {
           await syncPremiumAccess();
-          setStatusMessage('Premium access was restored from Play Store.');
+          setStatusMessage(`Premium access was restored from ${storeName}.`);
           return;
         }
       }

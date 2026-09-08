@@ -680,6 +680,18 @@ export function verifyGoogleIapPurchase(input: { purchaseToken: string; productI
   });
 }
 
+export function verifyAppleIapPurchase(input: {
+  transactionId: string;
+  signedTransactionInfo: string;
+  productId: string;
+  signedRenewalInfo?: string;
+}) {
+  return apiRequest<Entitlement>('/iap/apple/verify', {
+    method: 'POST',
+    body: input,
+  });
+}
+
 export function getProducts() {
   return apiRequest<{ products: PremiumProduct[]; features: string[] }>('/products');
 }
